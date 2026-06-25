@@ -151,6 +151,7 @@
     #uiForegroundLayer #liveVotesPanel,
     #uiForegroundLayer #crowdFavoritePanel,
     #uiForegroundLayer #arcadeBattleOverlay:not(.hidden-overlay),
+    #uiForegroundLayer #arenaLobbyOverlay:not(.hidden-overlay),
     #uiForegroundLayer #battleVictoryOverlay:not(.hidden-overlay),
     #uiForegroundLayer #playerApp:not(.hidden) .screen:not(.hidden-screen) {
       pointer-events: auto !important;
@@ -165,6 +166,69 @@
     #arcadeBattleOverlay.hidden-overlay { opacity: 0; visibility: hidden; pointer-events: none; }
     #arcadeBattleOverlay { transition: opacity 0.45s ease, visibility 0.45s ease; }
     #arcadeBattleOverlay.battle-shake { animation: battleShake 0.48s ease-out; }
+    /* ── Arena Royale lobby — trainer matching gate ── */
+    #arenaLobbyOverlay {
+      position: fixed; inset: 0; z-index: 70;
+      display: flex; align-items: center; justify-content: center;
+      background: rgb(2 6 23 / 0.95); backdrop-filter: blur(10px);
+      pointer-events: auto !important;
+      padding: 1rem;
+    }
+    #arenaLobbyOverlay.hidden-overlay { opacity: 0; visibility: hidden; pointer-events: none !important; }
+    #arenaLobbyOverlay { transition: opacity 0.4s ease, visibility 0.4s ease; }
+    .arena-lobby-panel {
+      width: min(96vw, 42rem); max-height: min(88vh, 36rem);
+      display: flex; flex-direction: column; gap: var(--pf-spacer-md);
+      background: rgb(9 9 11 / 0.98); border: 2px solid rgb(250 204 21 / 0.5);
+      border-radius: 1.25rem; padding: 1.25rem;
+      box-shadow: 0 0 40px rgba(250, 204, 21, 0.15);
+    }
+    #arenaLobbyGrid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+      gap: 0.65rem; overflow-y: auto; min-height: 6rem; max-height: 14rem;
+    }
+    .arena-lobby-trainer {
+      display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+      padding: 0.55rem; border-radius: 0.75rem;
+      background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12);
+      font-size: 0.7rem; font-weight: 800; text-align: center;
+    }
+    .arena-lobby-trainer.entered { border-color: rgb(34 211 238 / 0.55); }
+    .arena-lobby-trainer.locked { border-color: rgb(250 204 21); box-shadow: 0 0 14px rgba(250,204,21,0.35); }
+    .arena-lobby-countdown {
+      font-family: 'Bangers', cursive; font-size: 3rem; color: rgb(250 204 21);
+      text-shadow: 0 0 20px rgba(250,204,21,0.5);
+    }
+    /* ── Shiny spawn visual overrides ── */
+    #tcgCard.tcg-shiny {
+      border-color: rgb(250 204 21) !important;
+      box-shadow: 0 0 30px rgba(250,204,21,0.6) !important;
+      animation: tcgShinyPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes tcgShinyPulse {
+      0%, 100% { box-shadow: 0 0 30px rgba(250,204,21,0.6); }
+      50% { box-shadow: 0 0 48px rgba(255,255,255,0.75), 0 0 24px rgba(250,204,21,0.9); }
+    }
+    #wildLandscape.shiny-takeover-flash {
+      animation: shinyLandscapeFlash 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes shinyLandscapeFlash {
+      0% { filter: brightness(1.1) saturate(1.2); }
+      100% { filter: brightness(1.45) saturate(1.55) hue-rotate(-8deg); }
+    }
+    /* ── Programmatic type badges (no broken image icons) ── */
+    .tcg-type-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 1.35rem; height: 1.35rem; padding: 0 0.28rem;
+      border-radius: 9999px; font-size: 0.48rem; font-weight: 900;
+      letter-spacing: 0.02em; text-transform: uppercase; line-height: 1;
+      border: 1.5px solid rgba(0,0,0,0.25); box-shadow: inset 0 1px 0 rgba(255,255,255,0.35);
+      color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,0.35);
+    }
+    .tcg-type-badge-lg {
+      min-width: 2rem; height: 2rem; font-size: 0.58rem; padding: 0 0.35rem;
+    }
+    .tcg-hp .tcg-type-badge-lg { flex-shrink: 0; }
     @keyframes battleShake {
       0%, 100% { transform: translate3d(0, 0, 0); }
       15% { transform: translate3d(-10px, 5px, 0); }
@@ -916,7 +980,7 @@
                   <div class="tcg-hp">
                     <span>HP</span>
                     <span id="tcgCardHp">70</span>
-                    <img id="tcgTypeIcon" src="" alt="" width="18" height="18" draggable="false" />
+                    <span id="tcgTypeIcon" class="tcg-hp-type" aria-hidden="true"></span>
                   </div>
                 </header>
                 <div id="tcgArtBox" class="tcg-art-box">
@@ -984,6 +1048,32 @@
         </div>
       </div>
     </footer>
+  </div>
+
+  <!-- ═══ ARENA ROYALE LOBBY — trainer matching gate ═══ -->
+  <div id="arenaLobbyOverlay" class="hidden-overlay ui-panel ui-interactive pointer-events-auto" aria-hidden="true" role="dialog" aria-labelledby="arenaLobbyTitle">
+    <div class="arena-lobby-panel ui-panel">
+      <header class="text-center shrink-0">
+        <p id="arenaLobbyTitle" class="font-arcade text-2xl sm:text-3xl text-yellow-400">⚔️ ENTERING ARENA ROYALE…</p>
+        <p id="arenaLobbySubtitle" class="text-blue-200 text-sm mt-1">Trainers tap <strong>Enter Arena</strong> on their phones</p>
+      </header>
+      <div id="arenaLobbyGrid" class="ui-panel" aria-live="polite">
+        <p class="text-neon-cyan text-center text-sm italic col-span-full py-4">Waiting for trainers to enter…</p>
+      </div>
+      <p id="arenaLobbyHint" class="text-center text-amber-300/90 text-sm font-bold shrink-0">Waiting for at least 2 Trainers to draft…</p>
+      <div id="arenaLobbyCountdownWrap" class="hidden text-center shrink-0">
+        <p class="text-blue-200 text-xs mb-1">Match launches in</p>
+        <p id="arenaLobbyCountdown" class="arena-lobby-countdown">15</p>
+      </div>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center shrink-0">
+        <button id="arenaLobbyStartBtn" type="button" disabled
+          class="type-btn pointer-events-auto font-arcade text-lg bg-fuchsia-600 text-white px-8 py-3 rounded-2xl border-4 border-fuchsia-300 disabled:opacity-40 disabled:cursor-not-allowed">
+          START BATTLE
+        </button>
+        <button id="arenaLobbyCancelBtn" type="button"
+          class="pointer-events-auto text-blue-300/70 underline text-sm py-3">Cancel</button>
+      </div>
+    </div>
   </div>
 
   <!-- ═══ BATTLE ARENA ROYALE OVERLAY ═══ -->
@@ -1065,6 +1155,17 @@
       <p id="playerLockedMsg" class="text-xl text-blue-200 font-bold">Reveal in progress…</p>
     </section>
 
+    <section id="playerArenaLobby" class="screen hidden-screen flex-1 flex flex-col items-center justify-center px-6 gap-6 text-center">
+      <div class="text-6xl">⚔️</div>
+      <h2 class="font-arcade text-3xl text-fuchsia-400">Arena Royale!</h2>
+      <p id="playerArenaLobbyMsg" class="text-blue-200 font-bold max-w-sm">The host is opening the battle lobby…</p>
+      <button id="playerEnterArenaBtn" type="button"
+        class="type-btn pointer-events-auto font-arcade text-2xl bg-fuchsia-600 text-white px-10 py-4 rounded-2xl border-4 border-fuchsia-300 shadow-lg">
+        ENTER ARENA
+      </button>
+      <p id="playerArenaLobbyStatus" class="text-green-400 font-bold text-lg"></p>
+    </section>
+
     <section id="playerDraft" class="screen hidden-screen flex-1 flex flex-col px-4 py-5 gap-4 overflow-y-auto">
       <header class="text-center shrink-0">
         <p class="font-arcade text-2xl text-fuchsia-400">⚔️ ARENA DRAFT!</p>
@@ -1072,6 +1173,10 @@
         <p class="text-blue-200/80 text-sm mt-1">Tap one Pokémon to lock in</p>
       </header>
       <div id="draftPokemonCards" class="flex-1 flex flex-col gap-3 justify-center max-w-md mx-auto w-full"></div>
+      <button id="playerDraftLockBtn" type="button" disabled
+        class="hidden type-btn pointer-events-auto font-arcade text-xl bg-yellow-400 text-blue-900 px-8 py-3 rounded-2xl border-4 border-white shadow-lg disabled:opacity-40 mx-auto">
+        ACCEPT &amp; LOCK ✓
+      </button>
       <p id="playerDraftStatus" class="text-center text-green-400 font-bold text-lg shrink-0"></p>
     </section>
 
@@ -1145,10 +1250,14 @@
       MIN_SPAWN_PX: 200,
       ARCADE_TURN_SEC: 10,
       ARENA_DRAFT_SEC: 30,
+      ARENA_LOBBY_COUNTDOWN_SEC: 15,
       ARENA_PICK_URGENCY_SEC: 15,
       ARENA_PLAYER_HP: 100,
       ARENA_BOUNTY: 10,
       ARENA_MAX_COMBAT_TURNS: 36,
+      /** 30% shiny spawn roll per round */
+      SHINY_CHANCE: 0.3,
+      SHINY_TAKEOVER_MS: 3000,
       BOSS_HP: 120,
       PLAYER_BATTLE_HP: 100,
     };
@@ -1256,6 +1365,40 @@
     function typeIconUrl(type) {
       const id = TYPE_IDS[type] || 1;
       return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/types/generation-viii/sword-shield/small/${id}.png`;
+    }
+
+    /** CSS color-circle type badges — bulletproof, no remote image dependency */
+    const TYPE_BADGE_COLORS = {
+      normal: '#a8a878', fire: '#f08030', water: '#6890f0', grass: '#78c850', electric: '#f8d030',
+      ice: '#98d8d8', fighting: '#c03028', poison: '#a040a0', ground: '#e0c068', flying: '#a890f0',
+      psychic: '#f85888', bug: '#a8b820', rock: '#b8a038', ghost: '#705898', dragon: '#7038f8',
+      dark: '#705848', steel: '#b8b8d0', fairy: '#ee99ac', colorless: '#c8c8a8',
+    };
+
+    function typeBadgeHtml(type, size = 'sm') {
+      const key = (type || 'normal').toLowerCase();
+      const bg = TYPE_BADGE_COLORS[key] || TYPE_BADGE_COLORS.normal;
+      const label = key === 'colorless' ? '★' : key.slice(0, 3).toUpperCase();
+      const cls = size === 'lg' ? 'tcg-type-badge tcg-type-badge-lg' : 'tcg-type-badge';
+      return `<span class="${cls}" style="background:${bg}" title="${escapeHtml(key)}">${label}</span>`;
+    }
+
+    /** Roll 30% shiny spawn — called once per round initialization */
+    function rollShinySpawn() {
+      return Math.random() < CONFIG.SHINY_CHANCE;
+    }
+
+    function applyShinyToPokemon(pokemon) {
+      if (!pokemon || pokemon.isHero) {
+        pokemon.isShiny = false;
+        return pokemon;
+      }
+      pokemon.isShiny = rollShinySpawn();
+      if (pokemon.isShiny) {
+        const shinySrc = pokemon.shinyArtwork || pokemon.shinySprite;
+        if (shinySrc) pokemon.artwork = shinySrc;
+      }
+      return pokemon;
     }
 
     function colorlessIconUrl() {
@@ -1518,7 +1661,7 @@
     // ── DOM ──────────────────────────────────────────────────────────
     const $ = id => document.getElementById(id);
     const hostScreens = { start: $('startScreen'), loading: $('loadingScreen'), game: $('gameScreen'), end: $('endScreen') };
-    const playerScreens = { connect: $('playerConnect'), wait: $('playerWait'), vote: $('playerVote'), locked: $('playerLocked'), draft: $('playerDraft'), battle: $('playerBattle'), error: $('playerError') };
+    const playerScreens = { connect: $('playerConnect'), wait: $('playerWait'), vote: $('playerVote'), locked: $('playerLocked'), arenaLobby: $('playerArenaLobby'), draft: $('playerDraft'), battle: $('playerBattle'), error: $('playerError') };
 
     // ═══════════════════════════════════════════════════════════════
     // PERMANENT DUAL-CHANNEL AUDIO — instantiated once, never recreated
@@ -1918,6 +2061,14 @@
             if (!this.isHost) return;
             ArenaRoyale.onDraftPick(payload);
           })
+          .on('broadcast', { event: 'arena_enter' }, ({ payload }) => {
+            if (!this.isHost) return;
+            ArenaRoyale.onArenaEnter(payload);
+          })
+          .on('broadcast', { event: 'arena_lock' }, ({ payload }) => {
+            if (!this.isHost) return;
+            ArenaRoyale.onArenaLock(payload);
+          })
           .on('broadcast', { event: 'score_update' }, ({ payload }) => {
             /* Player phones → host: localStorage-validated cumulative score */
             if (!this.isHost) return;
@@ -1996,6 +2147,24 @@
         this.channel.send({
           type: 'broadcast',
           event: 'draft_pick',
+          payload: { voterId, playerName, pokemonId, at: Date.now() },
+        });
+      },
+
+      sendArenaEnter() {
+        if (!this.channel || !playerName) return;
+        this.channel.send({
+          type: 'broadcast',
+          event: 'arena_enter',
+          payload: { voterId, playerName, at: Date.now() },
+        });
+      },
+
+      sendArenaLock(pokemonId) {
+        if (!this.channel || !playerName) return;
+        this.channel.send({
+          type: 'broadcast',
+          event: 'arena_lock',
           payload: { voterId, playerName, pokemonId, at: Date.now() },
         });
       },
@@ -2502,6 +2671,13 @@
 
         this.ensureBgm();
         await this.fadeBgm(CONFIG.VOL.CELEBRATE, 400);
+      },
+
+      /** High-pitch rare-item twinkle for shiny takeover */
+      async playShinySparkle() {
+        this.unlock();
+        const ok = await this.playSfx(CONFIG.SPARKLE_URL, 0.95, 6000);
+        if (!ok) this.playSparkleSynth();
       },
 
       returnToLobby() {
@@ -3171,6 +3347,19 @@
         this.bursts.push({ particles, age: 0 });
       },
 
+      /** Full-screen golden star burst for shiny reveal takeover */
+      goldenScreenBurst() {
+        const colors = ['#ffcb05', '#ffd700', '#fff8dc', '#ffffff', '#fbbf24', '#fde68a'];
+        for (let i = 0; i < 8; i++) {
+          this.burst(
+            innerWidth * (0.1 + Math.random() * 0.8),
+            innerHeight * (0.08 + Math.random() * 0.72),
+            colors,
+            true,
+          );
+        }
+      },
+
       loop() {
         const { ctx, canvas } = this;
         if (!ctx) return;
@@ -3201,7 +3390,59 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // BIOME PARTICLES — ash / bubbles / matrix streams
+    // SHINY TAKEOVER — 3s golden nebula screen hijack on shiny reveal
+    // ═══════════════════════════════════════════════════════════════
+    const ShinyTakeover = {
+      active: false,
+      savedLandscapeBg: '',
+      savedParticleMode: 'ash',
+
+      async run() {
+        if (this.active) return;
+        this.active = true;
+        const wl = $('wildLandscape');
+        this.savedLandscapeBg = wl?.style.backgroundImage || '';
+        this.savedParticleMode = BiomeParticles.mode || 'ash';
+
+        if (wl) {
+          wl.style.backgroundImage = `
+            linear-gradient(125deg, #1a0533 0%, #4a1a6b 18%, #ffcb05 42%, #fff8dc 58%, #a855f7 78%, #0f0520 100%),
+            radial-gradient(ellipse at 28% 18%, rgba(255,215,0,0.62) 0%, transparent 48%),
+            radial-gradient(ellipse at 72% 82%, rgba(168,85,247,0.5) 0%, transparent 52%)
+          `;
+          wl.classList.add('shiny-takeover-flash');
+        }
+        if (ThreeParallaxScene.targetColor) {
+          ThreeParallaxScene._savedTarget = ThreeParallaxScene.targetColor.getHex();
+          ThreeParallaxScene.targetColor.setHex(0xffd700);
+          ThreeParallaxScene.currentColor?.setHex(0xffd700);
+        }
+        BiomeParticles.setMode('star');
+        ClickBurstCanvas.goldenScreenBurst();
+        await AudioEngine.playShinySparkle();
+
+        await new Promise(r => setTimeout(r, CONFIG.SHINY_TAKEOVER_MS));
+        this.restore();
+      },
+
+      restore() {
+        const wl = $('wildLandscape');
+        if (wl) {
+          if (this.savedLandscapeBg) wl.style.backgroundImage = this.savedLandscapeBg;
+          else WildLandscape.init();
+          wl.classList.remove('shiny-takeover-flash');
+        }
+        if (ThreeParallaxScene._savedTarget != null) {
+          ThreeParallaxScene.targetColor?.setHex(ThreeParallaxScene._savedTarget);
+          ThreeParallaxScene._savedTarget = null;
+        }
+        BiomeParticles.setMode(this.savedParticleMode);
+        this.active = false;
+      },
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // BIOME PARTICLES — ash / bubbles / matrix / star streams
     // ═══════════════════════════════════════════════════════════════
     const BiomeParticles = {
       canvas: null, ctx: null, mode: 'ash', particles: [],
@@ -3225,7 +3466,7 @@
       setMode(mode) {
         this.mode = mode;
         this.particles = [];
-        const n = mode === 'matrix' ? 90 : 70;
+        const n = mode === 'matrix' ? 90 : mode === 'star' ? 110 : 70;
         for (let i = 0; i < n; i++) this.particles.push(this.makeParticle());
       },
 
@@ -3235,6 +3476,16 @@
           y: Math.random() * innerHeight,
           life: Math.random(),
         };
+        if (this.mode === 'star') {
+          return {
+            ...base,
+            r: 1 + Math.random() * 3.5,
+            vx: (Math.random() - 0.5) * 2.4,
+            vy: (Math.random() - 0.5) * 2.4,
+            a: 0.35 + Math.random() * 0.65,
+            twinkle: Math.random() * Math.PI * 2,
+          };
+        }
         if (this.mode === 'ash') {
           return { ...base, r: 1 + Math.random() * 3, vx: (Math.random() - 0.5) * 1.2, vy: -0.8 - Math.random() * 2, a: 0.2 + Math.random() * 0.5 };
         }
@@ -3249,7 +3500,25 @@
         if (!ctx) return;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         for (const p of this.particles) {
-          if (this.mode === 'matrix') {
+          if (this.mode === 'star') {
+            p.x += p.vx; p.y += p.vy;
+            p.twinkle += 0.12;
+            if (p.x < -10 || p.x > canvas.width + 10) p.vx *= -1;
+            if (p.y < -10 || p.y > canvas.height + 10) p.vy *= -1;
+            const glow = 0.45 + Math.sin(p.twinkle) * 0.35;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r * glow, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,${200 + Math.floor(Math.random() * 55)},0,${p.a * glow})`;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(p.x - p.r * 2, p.y);
+            ctx.lineTo(p.x + p.r * 2, p.y);
+            ctx.moveTo(p.x, p.y - p.r * 2);
+            ctx.lineTo(p.x, p.y + p.r * 2);
+            ctx.strokeStyle = `rgba(255,255,255,${p.a * 0.5})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          } else if (this.mode === 'matrix') {
             p.y += p.vy;
             if (p.y > canvas.height + 20) { p.y = -10; p.x = Math.random() * canvas.width; }
             ctx.fillStyle = `rgba(100,220,255,${p.a})`;
@@ -3696,13 +3965,16 @@
     const ArenaRoyale = {
       active: false,
       battleModeActive: false,
-      phase: 'draft',
+      lobbyOpen: false,
+      phase: 'lobby',
       turn: 0,
       timer: null,
       timerVal: 0,
       draftEndsAt: 0,
+      lobbyCountdownEndsAt: 0,
       combatants: {},
       draftOptions: {},
+      entrants: {},
       voteRecords: [],
       resolving: false,
       votingLocked: false,
@@ -3729,10 +4001,13 @@
         state.arena = {
           active: this.active,
           battleModeActive: this.battleModeActive,
+          lobbyOpen: this.lobbyOpen,
           phase: this.phase,
           turn: this.turn,
           timer: this.timerVal,
           draftEndsAt: this.draftEndsAt,
+          lobbyCountdownEndsAt: this.lobbyCountdownEndsAt,
+          entrants: this.serializeEntrants(),
           draftOptions: this.serializeDraftOptions(),
           combatants: this.serializeCombatants(),
           isVotingLocked: this.votingLocked,
@@ -3740,6 +4015,19 @@
           duelLog: state.arena?.duelLog || null,
           winner: state.arena?.winner || null,
         };
+      },
+
+      serializeEntrants() {
+        const out = {};
+        for (const [vid, e] of Object.entries(this.entrants)) {
+          out[vid] = {
+            playerName: e.playerName,
+            entered: true,
+            locked: !!e.locked,
+            pickedId: e.pickedId ?? null,
+          };
+        }
+        return out;
       },
 
       serializeDraftOptions() {
@@ -3782,53 +4070,212 @@
         clearInterval(this.timer);
         this.active = false;
         this.battleModeActive = false;
+        this.lobbyOpen = false;
+        this.entrants = {};
+        this.lobbyCountdownEndsAt = 0;
         this.resolving = false;
         this.votingLocked = false;
         state.arena = null;
         $('arenaDraftBanner')?.classList.add('hidden');
+        $('arenaLobbyOverlay')?.classList.add('hidden-overlay');
+        $('arenaLobbyOverlay')?.setAttribute('aria-hidden', 'true');
+        $('arenaLobbyCountdownWrap')?.classList.add('hidden');
         $('arcadeBattleOverlay').classList.add('hidden-overlay');
         $('arcadeBattleOverlay').setAttribute('aria-hidden', 'true');
         ManualScoreOverlay?.renderList?.();
       },
 
-      async start() {
+      /** Host taps ENTER ARENA ROYALE — open matching lobby overlay */
+      openLobby() {
         if (this.active) return;
-        const participants = this.collectParticipants();
-        if (!participants.length) {
-          throw new Error('No players on the leaderboard — need at least one trainer!');
-        }
-
         this.active = true;
-        this.battleModeActive = true;
-        this.phase = 'draft';
+        this.lobbyOpen = true;
+        this.battleModeActive = false;
+        this.phase = 'lobby';
         this.turn = 0;
         this.combatants = {};
         this.draftOptions = {};
+        this.entrants = {};
         this.voteRecords = [];
         this.resolving = false;
         this.votingLocked = false;
-        this.draftEndsAt = Date.now() + CONFIG.ARENA_DRAFT_SEC * 1000;
+        this.lobbyCountdownEndsAt = 0;
 
-        const overlay = $('arcadeBattleOverlay');
-        overlay.classList.remove('hidden-overlay');
-        overlay.setAttribute('aria-hidden', 'false');
-        $('arenaDraftBanner')?.classList.remove('hidden');
-        $('battleTurnLabel').textContent = 'Draft phase — phones pick their fighter!';
-        $('arenaPhaseLabel').textContent = `${participants.length} trainers entering the arena`;
-        $('arenaDuelTicker').textContent = '';
-        $('arenaCombatGrid').innerHTML = '<p class="text-blue-200 text-center col-span-full py-8">Summoning draft cards…</p>';
-        $('battleMoveTally').innerHTML = '';
-        BattleVFX.resize();
+        const lobby = $('arenaLobbyOverlay');
+        lobby?.classList.remove('hidden-overlay');
+        lobby?.setAttribute('aria-hidden', 'false');
+        $('arenaLobbyCountdownWrap')?.classList.add('hidden');
+        $('arenaLobbySubtitle').textContent = 'Trainers tap Enter Arena on their phones';
+        this.renderLobbyGrid();
+        this.updateLobbyStartBtn();
         AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 450);
+        this.syncState();
+        HostGame.broadcast();
+        ManualScoreOverlay?.renderList?.();
+      },
 
+      cancelLobby() {
+        this.abortStart();
+        HostGame.broadcast();
+        const bossBtn = $('bossBtn');
+        if (bossBtn) { bossBtn.disabled = false; bossBtn.textContent = '⚔️ ENTER ARENA ROYALE!'; }
+      },
+
+      onArenaEnter({ voterId: vid, playerName: name }) {
+        if (!this.active || !this.lobbyOpen || !vid) return;
+        if (this.phase !== 'lobby' && this.phase !== 'draft' && this.phase !== 'lobby_countdown') return;
+        const isNew = !this.entrants[vid];
+        this.entrants[vid] = {
+          voterId: vid,
+          playerName: (name || 'Trainer').trim(),
+          entered: true,
+          locked: this.entrants[vid]?.locked || false,
+          pickedId: this.entrants[vid]?.pickedId ?? null,
+        };
+        if (!this.combatants[vid]) {
+          this.combatants[vid] = {
+            voterId: vid, playerName: name, pokemon: null, moves: [],
+            hp: CONFIG.ARENA_PLAYER_HP, maxHp: CONFIG.ARENA_PLAYER_HP,
+            eliminated: false, locked: false,
+          };
+        }
+        if (isNew && this.phase === 'lobby_countdown') this.resetLobbyCountdown();
+        this.renderLobbyGrid();
+        this.updateLobbyStartBtn();
+        this.syncState();
+        HostGame.broadcast();
+      },
+
+      renderLobbyGrid() {
+        const grid = $('arenaLobbyGrid');
+        if (!grid) return;
+        const list = Object.values(this.entrants);
+        if (!list.length) {
+          grid.innerHTML = '<p class="text-neon-cyan text-center text-sm italic col-span-full py-4">Waiting for trainers to enter…</p>';
+          return;
+        }
+        grid.innerHTML = list.map(e => {
+          const status = e.locked ? '✓ Locked' : e.pickedId ? 'Picked' : 'Entered';
+          const cls = e.locked ? 'locked' : 'entered';
+          return `<div class="arena-lobby-trainer ${cls}">
+            <span class="text-lg">${e.locked ? '🔒' : e.pickedId ? '🎯' : '📱'}</span>
+            <span class="truncate w-full">${escapeHtml(e.playerName)}</span>
+            <span class="text-[0.6rem] text-cyan-200/80">${status}</span>
+          </div>`;
+        }).join('');
+      },
+
+      updateLobbyStartBtn() {
+        const count = Object.keys(this.entrants).length;
+        const btn = $('arenaLobbyStartBtn');
+        const hint = $('arenaLobbyHint');
+        if (btn) btn.disabled = count < 2 || this.phase !== 'lobby';
+        if (hint) {
+          hint.textContent = count < 2
+            ? 'Waiting for at least 2 Trainers to draft…'
+            : this.phase === 'lobby'
+              ? `${count} trainers in lobby — tap START BATTLE to open the draft!`
+              : `${count} trainers drafting…`;
+        }
+      },
+
+      async startBattleFromLobby() {
+        if (Object.keys(this.entrants).length < 2) return;
+        const participants = Object.values(this.entrants).map(e => ({
+          voterId: e.voterId, playerName: e.playerName,
+        }));
+        this.phase = 'draft';
+        $('arenaLobbySubtitle').textContent = 'Phones — pick a fighter, then Accept & Lock!';
+        $('arenaLobbyHint').textContent = 'Waiting for trainers to lock their draft picks…';
+        $('arenaLobbyStartBtn').disabled = true;
+        $('arenaCombatGrid').innerHTML = '<p class="text-blue-200 text-center col-span-full py-8">Draft in progress…</p>';
         await this.buildDraftPools(participants);
         this.syncState();
         HostGame.broadcast();
+        this.renderLobbyGrid();
+      },
+
+      onArenaLock({ voterId: vid, playerName: name, pokemonId }) {
+        if (!this.active || !vid) return;
+        if (this.phase !== 'draft' && this.phase !== 'lobby_countdown') return;
+        const opts = this.draftOptions[vid];
+        if (!opts?.length) return;
+        const pick = opts.find(p => p.id === pokemonId) || opts.find(p => p.id === this.entrants[vid]?.pickedId);
+        if (!pick) return;
+        this.lockCombatant(vid, name || this.combatants[vid]?.playerName, pick);
+        if (this.entrants[vid]) {
+          this.entrants[vid].locked = true;
+          this.entrants[vid].pickedId = pick.id;
+        }
+        this.renderLobbyGrid();
         this.renderArenaGrid();
-        ManualScoreOverlay?.renderList?.();
-        const bossBtn = $('bossBtn');
-        if (bossBtn) { bossBtn.disabled = false; bossBtn.textContent = '⚔️ ENTER ARENA ROYALE!'; }
-        this.startDraftTimer();
+        this.maybeStartLobbyCountdown();
+        this.syncState();
+        HostGame.broadcast();
+      },
+
+      maybeStartLobbyCountdown() {
+        const locked = Object.values(this.entrants).filter(e => e.locked);
+        if (locked.length < 2) return;
+        if (this.phase === 'lobby_countdown') return;
+        this.startLobbyCountdown();
+      },
+
+      startLobbyCountdown() {
+        this.phase = 'lobby_countdown';
+        this.lobbyCountdownEndsAt = Date.now() + CONFIG.ARENA_LOBBY_COUNTDOWN_SEC * 1000;
+        $('arenaLobbyCountdownWrap')?.classList.remove('hidden');
+        $('arenaLobbyHint').textContent = 'Match launching soon — new trainers reset the timer!';
+        clearInterval(this.timer);
+        this.timer = setInterval(() => this.tickLobbyCountdown(), 200);
+        this.tickLobbyCountdown();
+        this.syncState();
+        HostGame.broadcast();
+      },
+
+      resetLobbyCountdown() {
+        if (this.phase !== 'lobby_countdown') return;
+        this.lobbyCountdownEndsAt = Date.now() + CONFIG.ARENA_LOBBY_COUNTDOWN_SEC * 1000;
+        $('arenaLobbyHint').textContent = 'New trainer joined — countdown reset to 15s!';
+        this.syncState();
+        HostGame.broadcast();
+      },
+
+      tickLobbyCountdown() {
+        const secs = Math.max(0, Math.ceil((this.lobbyCountdownEndsAt - Date.now()) / 1000));
+        const el = $('arenaLobbyCountdown');
+        if (el) el.textContent = secs;
+        this.timerVal = secs;
+        const entrants = Object.values(this.entrants);
+        const allLocked = entrants.length >= 2 && entrants.every(e => e.locked);
+        if (allLocked || secs <= 0) {
+          clearInterval(this.timer);
+          this.launchMatch();
+        }
+      },
+
+      async launchMatch() {
+        this.lobbyOpen = false;
+        $('arenaLobbyOverlay')?.classList.add('hidden-overlay');
+        $('arenaLobbyOverlay')?.setAttribute('aria-hidden', 'true');
+        $('arenaLobbyCountdownWrap')?.classList.add('hidden');
+
+        const overlay = $('arcadeBattleOverlay');
+        overlay?.classList.remove('hidden-overlay');
+        overlay?.setAttribute('aria-hidden', 'false');
+        $('arenaDraftBanner')?.classList.add('hidden');
+        $('battleTurnLabel').textContent = 'Combat begins — phones pick moves every 10s!';
+        $('arenaDuelTicker').textContent = '';
+        $('battleMoveTally').innerHTML = '';
+        BattleVFX.resize();
+        this.battleModeActive = true;
+        this.autoAssignDraftPicks();
+        this.finishDraft();
+      },
+
+      /** @deprecated — use openLobby(); kept for internal launch path */
+      async start() {
+        return this.openLobby();
       },
 
       async buildDraftPools(participants) {
@@ -3877,12 +4324,18 @@
       },
 
       onDraftPick({ voterId: vid, playerName: name, pokemonId }) {
-        if (!this.active || this.phase !== 'draft' || !vid) return;
+        if (!this.active || !vid) return;
+        if (this.phase !== 'draft' && this.phase !== 'lobby_countdown') return;
         const opts = this.draftOptions[vid];
         if (!opts?.length) return;
         const pick = opts.find(p => p.id === pokemonId) || opts[0];
-        this.lockCombatant(vid, name || this.combatants[vid]?.playerName, pick);
-        this.renderArenaGrid();
+        const c = this.combatants[vid] || { voterId: vid, playerName: name };
+        c.playerName = (name || c.playerName || 'Trainer').trim();
+        c.pokemon = pick;
+        c.locked = false;
+        this.combatants[vid] = c;
+        if (this.entrants[vid]) this.entrants[vid].pickedId = pick.id;
+        this.renderLobbyGrid();
         this.syncState();
         HostGame.broadcast();
       },
@@ -4221,6 +4674,10 @@
       else path = `/pokemon/${urlOrNameOrId}`;
 
       const data = await pokeFetch(path);
+      const shinySprite = data.sprites?.front_shiny || null;
+      const shinyArtwork = data.sprites?.other?.['official-artwork']?.front_shiny
+        || data.sprites?.other?.home?.front_shiny
+        || shinySprite;
       const candidates = [
         data.sprites?.other?.['official-artwork']?.front_default,
         data.sprites?.other?.home?.front_default,
@@ -4235,6 +4692,8 @@
         name: formatName(data.name),
         rawName: data.name,
         artwork,
+        shinySprite,
+        shinyArtwork,
         types: data.types.map(t => t.type.name),
         cryUrl: data.cries?.latest || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/cries/${data.id}.ogg`,
         hp: hpStat?.base_stat || 70,
@@ -4260,23 +4719,30 @@
         const card = $('tcgCard');
         const artBg = $('tcgArtBg');
         const inner = card?.querySelector('.tcg-card-inner');
+        const isShiny = !!pokemon?.isShiny;
         if (card) {
-          card.style.border = `6px solid ${theme.border}`;
-          card.style.boxShadow = `0 18px 48px rgba(0,0,0,0.58), 0 0 0 3px ${theme.border}99, 0 0 28px ${theme.border}55`;
+          card.classList.toggle('tcg-shiny', isShiny);
+          if (isShiny) {
+            card.style.border = '';
+            card.style.boxShadow = '';
+          } else {
+            card.style.border = `6px solid ${theme.border}`;
+            card.style.boxShadow = `0 18px 48px rgba(0,0,0,0.58), 0 0 0 3px ${theme.border}99, 0 0 28px ${theme.border}55`;
+          }
         }
         if (inner && !card?.classList.contains('tcg-mystery')) {
           inner.style.background = theme.inner || theme.art;
         }
         if (artBg) artBg.style.background = theme.art;
-        const icon = $('tcgTypeIcon');
-        if (icon) { icon.src = typeIconUrl(type); icon.alt = type; }
+        const iconEl = $('tcgTypeIcon');
+        if (iconEl) iconEl.innerHTML = typeBadgeHtml(type, 'lg');
       },
 
       resetMystery() {
         const card = $('tcgCard');
         if (!card) return;
         card.classList.add('tcg-mystery');
-        card.classList.remove('tcg-revealed');
+        card.classList.remove('tcg-revealed', 'tcg-shiny');
         card.style.border = '';
         card.style.boxShadow = '';
         const inner = card.querySelector('.tcg-card-inner');
@@ -4322,43 +4788,34 @@
         const weak = TCG_TYPE_WEAKNESS[type];
         const retreat = 1 + Math.min(2, (pokemon.types?.length || 1) - 1);
         const weakHtml = weak
-          ? `<span>Weakness <img src="${escapeHtml(typeIconUrl(weak))}" alt="" width="14" height="14" />×2</span>`
+          ? `<span>Weakness ${typeBadgeHtml(weak)} ×2</span>`
           : '<span>Weakness —</span>';
         el.innerHTML = `${weakHtml}<span>Resistance —</span><span>Retreat ${this.renderEnergy('colorless', retreat)}</span>`;
       },
 
       async fetchCardLore(pokemon) {
         if (pokemon.isHero) {
-          return {
-            flavor: HERO_FLAVOR[pokemon.id] || `${pokemon.name} joined Kyrie's birthday arena!`,
-            description: `A legendary guest at Kyrie's 5th birthday party — ${pokemon.name} brings arena power and party spirit wherever it goes!`,
-          };
+          const primary = HERO_FLAVOR[pokemon.id] || `${pokemon.name} joined Kyrie's birthday arena!`;
+          const secondary = `A legendary guest at Kyrie's 5th birthday party — ${pokemon.name} brings arena power and party spirit wherever it goes!`;
+          return { flavor: primary, description: secondary };
         }
         try {
           const data = await pokeFetch(`/pokemon-species/${pokemon.id}`);
           const entries = [...new Set((data.flavor_text_entries || [])
             .filter(e => e.language?.name === 'en')
-            .map(e => e.flavor_text.replace(/\f/g, ' ').replace(/\s+/g, ' ').trim()))];
-          const genus = (data.genera || []).find(g => g.language?.name === 'en')?.genus || '';
-          const habitat = data.habitat?.name?.replace(/-/g, ' ') || '';
-          const flavor = entries.length
-            ? entries[Math.floor(Math.random() * entries.length)]
-            : KIDS_TRIVIA[Math.floor(Math.random() * KIDS_TRIVIA.length)];
-          const detailPool = entries.filter(t => t !== flavor);
-          const detail = detailPool.length
-            ? detailPool[Math.floor(Math.random() * detailPool.length)]
-            : flavor;
-          const parts = [];
-          if (genus) parts.push(`Known as the ${genus}`);
-          if (habitat) parts.push(`Often spotted near ${habitat}`);
-          if (detail) parts.push(detail);
-          return {
-            flavor,
-            description: parts.join('. ').replace(/\.\s*\./g, '.') + (parts.length ? '.' : ''),
-          };
+            .map(e => e.flavor_text.replace(/\f/g, ' ').replace(/\s+/g, ' ').trim())
+            .filter(Boolean))];
+          if (entries.length >= 2) {
+            const shuffled = shuffleArray([...entries]);
+            return { flavor: shuffled[0], description: shuffled[1] };
+          }
+          if (entries.length === 1) {
+            return { flavor: entries[0], description: entries[0] };
+          }
         } catch { /* fallback */ }
-        const trivia = KIDS_TRIVIA[Math.floor(Math.random() * KIDS_TRIVIA.length)];
-        return { flavor: trivia, description: trivia };
+        const a = KIDS_TRIVIA[Math.floor(Math.random() * KIDS_TRIVIA.length)];
+        const b = KIDS_TRIVIA[Math.floor(Math.random() * KIDS_TRIVIA.length)];
+        return { flavor: a, description: b };
       },
 
       async resolveMoveInfo(url) {
@@ -4413,10 +4870,7 @@
       },
 
       renderEnergy(type, count) {
-        const icon = type === 'colorless' ? colorlessIconUrl() : typeIconUrl(type);
-        return Array.from({ length: count }, () =>
-          `<img src="${escapeHtml(icon)}" alt="${escapeHtml(type)}" width="16" height="16" draggable="false" />`,
-        ).join('');
+        return Array.from({ length: count }, () => typeBadgeHtml(type)).join('');
       },
 
       renderMoves(moves) {
@@ -4631,18 +5085,27 @@
         $('bossBtn').onclick = async () => {
           if (!state.isRevealed || ArenaRoyale.active) return;
           const btn = $('bossBtn');
-          const label = btn.textContent;
           btn.disabled = true;
           btn.textContent = 'ENTERING ARENA…';
           try {
-            await ArenaRoyale.start();
+            ArenaRoyale.openLobby();
+            btn.textContent = '⚔️ LOBBY OPEN';
           } catch (err) {
             console.error('[ArenaRoyale]', err);
             btn.disabled = false;
-            btn.textContent = label;
-            $('battleTurnLabel').textContent = err?.message || 'Arena failed — try again.';
+            btn.textContent = '⚔️ ENTER ARENA ROYALE!';
           }
         };
+        $('arenaLobbyStartBtn')?.addEventListener('click', () => {
+          AudioEngine.playClick();
+          ArenaRoyale.startBattleFromLobby();
+        });
+        $('arenaLobbyCancelBtn')?.addEventListener('click', () => {
+          AudioEngine.playClick();
+          ArenaRoyale.cancelLobby();
+          const btn = $('bossBtn');
+          if (btn) { btn.disabled = false; btn.textContent = '⚔️ ENTER ARENA ROYALE!'; }
+        });
         $('battleSkipBtn').onclick = () => ArenaRoyale.end(true);
         $('battleVictoryBtn').onclick = () => ArenaRoyale.end(true);
         $('quitBtn').onclick = () => this.quit();
@@ -4671,11 +5134,11 @@
       },
 
       getSyncPayload(phaseOverride, opts = {}) {
-        if (state.arena?.active || ArenaRoyale.battleModeActive) {
+        if (state.arena?.active || ArenaRoyale.battleModeActive || ArenaRoyale.lobbyOpen) {
           ArenaRoyale.syncState();
           return {
             phase: 'arena_royale',
-            battleModeActive: true,
+            battleModeActive: ArenaRoyale.battleModeActive || ArenaRoyale.lobbyOpen,
             round: state.currentRound,
             arena: { ...state.arena },
             leaderboard: Leaderboard.toPayload(),
@@ -4763,11 +5226,13 @@
         state.isRevealed = false;
         state.voteRecords = [];
         const pokemon = await RoundDeck.drawNext();
+        applyShinyToPokemon(pokemon);
         state.currentPokemon = pokemon;
         const typeLabel = TYPE_OPTIONS.find(t => t.id === state.selectedType)?.label ?? 'Mixed';
         state.choices = await buildChoices(pokemon, RoundDeck.wrongAnswerPool(pokemon));
 
-        $('typeBadge').textContent = `${typeLabel} · ${pokemon.types.join(' / ')}`;
+        const shinyTag = pokemon.isShiny ? ' ✨ SHINY!' : '';
+        $('typeBadge').textContent = `${typeLabel} · ${pokemon.types.join(' / ')}${shinyTag}`;
         $('pokemonName').classList.add('hidden');
         $('pokemonName').classList.remove('name-pop');
         $('guessHint').classList.remove('hidden');
@@ -4786,10 +5251,12 @@
         pokemonImg.classList.remove('img-loaded');
         const imgFallbacks = pokemon.isHero
           ? [pokemon.artwork]
-          : [
-            Pokedex.fallbackSpriteUrl(pokemon.id),
-            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${pokemon.id}.png`,
-          ];
+          : pokemon.isShiny
+            ? [pokemon.shinyArtwork, pokemon.shinySprite, Pokedex.fallbackSpriteUrl(pokemon.id)].filter(Boolean)
+            : [
+              Pokedex.fallbackSpriteUrl(pokemon.id),
+              `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${pokemon.id}.png`,
+            ];
         bindSafeImageLoad(pokemonImg, imgFallbacks, () => {
           $('imageLoader').classList.add('hidden');
           AudioEngine.onRoundStart();
@@ -4842,6 +5309,9 @@
         $('revealFlash').classList.remove('reveal-flash');
         void $('revealFlash').offsetWidth;
         $('revealFlash').classList.add('reveal-flash');
+
+        if (pokemon.isShiny) await ShinyTakeover.run();
+
         $('pokemonImage').classList.add('revealed');
         $('guessHint').classList.add('hidden');
         $('pokemonName').classList.add('hidden');
@@ -4909,6 +5379,13 @@
         if (playerName) input.value = playerName;
 
         $('playerNameSubmit').onclick = () => this.submitName();
+        $('playerEnterArenaBtn')?.addEventListener('click', () => {
+          if (!playerName) return;
+          sync?.sendArenaEnter();
+          $('playerEnterArenaBtn')?.classList.add('hidden');
+          $('playerArenaLobbyStatus').textContent = '✓ Entered the arena!';
+          AudioEngine.playClick();
+        });
         input.addEventListener('keydown', e => {
           if (e.code === 'Enter') this.submitName();
         });
@@ -4966,9 +5443,24 @@
         this.remote = payload;
         if (!payload) return;
 
-        if (payload.battleModeActive && payload.phase === 'arena_royale' && payload.arena) {
+        if ((payload.battleModeActive || payload.arena?.active) && payload.phase === 'arena_royale' && payload.arena) {
           const arena = payload.arena;
-          if (arena.phase === 'draft') {
+          if (arena.phase === 'lobby' && arena.lobbyOpen) {
+            showPlayerScreen('arenaLobby');
+            const entered = arena.entrants?.[voterId];
+            const enterBtn = $('playerEnterArenaBtn');
+            const status = $('playerArenaLobbyStatus');
+            if (entered) {
+              enterBtn?.classList.add('hidden');
+              status.textContent = entered.locked ? '✓ Locked in!' : '✓ In the lobby — wait for draft…';
+            } else {
+              enterBtn?.classList.remove('hidden');
+              status.textContent = '';
+            }
+            $('playerArenaLobbyMsg').textContent = 'Tap Enter Arena to join the Royale!';
+            return;
+          }
+          if (arena.phase === 'draft' || arena.phase === 'lobby_countdown') {
             showPlayerScreen('draft');
             this.renderDraftCards(payload);
             return;
@@ -5074,31 +5566,32 @@
         const arena = payload.arena;
         const options = arena?.draftOptions?.[voterId] || [];
         const container = $('draftPokemonCards');
-        const draftKey = `draft-${ROOM_ID}-${payload.round ?? 0}`;
-        const saved = sessionStorage.getItem(draftKey);
-        const locked = saved !== null || this.draftPicked;
-        if (saved !== null) this.draftPicked = true;
+        const lockBtn = $('playerDraftLockBtn');
+        const draftKey = `draft-pick-${ROOM_ID}-${payload.round ?? 0}`;
+        const lockKey = `draft-lock-${ROOM_ID}-${payload.round ?? 0}`;
+        const entrant = arena?.entrants?.[voterId];
+        const isLocked = entrant?.locked || sessionStorage.getItem(lockKey) !== null;
+        const pickedId = entrant?.pickedId ?? (sessionStorage.getItem(draftKey) ? +sessionStorage.getItem(draftKey) : null);
 
-        const secs = arena?.draftEndsAt
-          ? Math.max(0, Math.ceil((arena.draftEndsAt - Date.now()) / 1000))
-          : (arena?.timer ?? CONFIG.ARENA_DRAFT_SEC);
-        $('playerDraftTimer').textContent = secs <= CONFIG.ARENA_DRAFT_SEC - CONFIG.ARENA_PICK_URGENCY_SEC
-          ? `⏰ ${secs}s left — LOCK IN NOW!`
-          : `Pick your fighter — ${secs}s`;
+        if (arena?.phase === 'lobby_countdown') {
+          const secs = arena.lobbyCountdownEndsAt
+            ? Math.max(0, Math.ceil((arena.lobbyCountdownEndsAt - Date.now()) / 1000))
+            : arena.timer ?? CONFIG.ARENA_LOBBY_COUNTDOWN_SEC;
+          $('playerDraftTimer').textContent = `⏰ Match starts in ${secs}s!`;
+        } else {
+          $('playerDraftTimer').textContent = 'Pick your fighter — then Accept & Lock!';
+        }
 
         if (!options.length) {
           container.innerHTML = '<p class="text-blue-200 text-center">Waiting for draft cards from host…</p>';
+          lockBtn?.classList.add('hidden');
           $('playerDraftStatus').textContent = '';
           return;
         }
 
         container.innerHTML = options.map(p => {
-          const fallbacks = [
-            Pokedex.fallbackSpriteUrl(p.id),
-            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${p.id}.png`,
-          ];
-          const isLocked = locked && saved === String(p.id);
-          return `<button type="button" class="draft-pokemon-card${isLocked ? ' locked' : ''}" data-id="${p.id}" ${locked ? 'disabled' : ''}>
+          const isPicked = pickedId === p.id;
+          return `<button type="button" class="draft-pokemon-card${isPicked ? ' locked' : ''}" data-id="${p.id}" ${isLocked ? 'disabled' : ''}>
             <img class="img-pending" src="${escapeHtml(p.artwork)}" alt="" draggable="false" />
             <div class="text-left">
               <p class="draft-name">${escapeHtml(p.name)}</p>
@@ -5116,23 +5609,40 @@
           ]);
         });
 
-        if (!locked) {
+        if (isLocked) {
+          lockBtn?.classList.add('hidden');
+          $('playerDraftStatus').textContent = '✓ Accept & Lock confirmed!';
+          return;
+        }
+
+        if (pickedId) {
+          lockBtn?.classList.remove('hidden');
+          lockBtn.disabled = false;
+          lockBtn.onclick = () => {
+            if (!playerName) return;
+            sessionStorage.setItem(lockKey, String(pickedId));
+            sync?.sendArenaLock(pickedId);
+            $('playerDraftStatus').textContent = '✓ Locked in!';
+            lockBtn.classList.add('hidden');
+            AudioEngine.playClick();
+          };
+          $('playerDraftStatus').textContent = 'Tap Accept & Lock to confirm!';
+        } else {
+          lockBtn?.classList.add('hidden');
           container.querySelectorAll('.draft-pokemon-card').forEach(btn => {
             btn.onclick = () => {
               if (!playerName) return;
               const id = +btn.dataset.id;
-              this.draftPicked = true;
               sessionStorage.setItem(draftKey, String(id));
               sync?.sendDraftPick(id);
-              $('playerDraftStatus').textContent = '✓ Fighter locked in!';
-              container.querySelectorAll('button').forEach(b => { b.disabled = true; b.classList.add('opacity-60'); });
+              $('playerDraftStatus').textContent = 'Fighter selected — confirm below!';
+              container.querySelectorAll('button').forEach(b => b.classList.remove('locked'));
               btn.classList.add('locked');
               AudioEngine.playClick();
+              this.renderDraftCards(payload);
             };
           });
           $('playerDraftStatus').textContent = 'Tap your Pokémon!';
-        } else {
-          $('playerDraftStatus').textContent = '✓ Fighter locked in!';
         }
       },
 
