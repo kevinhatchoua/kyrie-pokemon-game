@@ -1884,7 +1884,7 @@
         </div>
         <div class="control-bar-meta">
           <p class="control-bar-label font-arcade text-amber-400 leading-tight">SCAN TO VOTE</p>
-          <p class="text-slate-50 leading-tight hidden sm:block">Connect to house Wi-Fi</p>
+          <p class="text-slate-50 leading-tight text-xs">Phone opens <strong>voter</strong> screen (fuchsia banner)</p>
           <p id="playerCountBar" class="text-neon-cyan font-bold mt-0.5">📱 0 players</p>
           <p id="hostRoomCode" class="text-amber-300 font-mono text-xs font-bold"></p>
           <p id="syncStatusBar" class="font-bold text-neon-cyan leading-tight"></p>
@@ -2009,7 +2009,9 @@
 
   <!-- ═══════════════════ PLAYER APP ═══════════════════ -->
   <div id="playerApp" class="hidden ui-shell relative flex flex-col h-dvh overflow-hidden">
-
+    <div id="playerModeBanner" class="shrink-0 text-center py-2 px-3 bg-fuchsia-700/90 border-b-2 border-fuchsia-400 font-arcade text-sm text-white tracking-wide" aria-hidden="true">
+      📱 VOTER MODE — tap your guess each round
+    </div>
     <section id="playerConnect" class="screen flex-1 flex flex-col items-center justify-center px-6 gap-6 text-center">
       <div id="playerNameForm" class="w-full max-w-sm flex flex-col gap-4">
         <h1 class="font-arcade text-4xl text-yellow-400">Join the Party!</h1>
@@ -2806,8 +2808,9 @@
     // ── Role routing (strip legacy LAN/dev query params) ─────────────
     const params = new URLSearchParams(window.location.search);
     ['host', 'ip', 'lan', 'port', 'local', 'hostname'].forEach(k => params.delete(k));
-    const ROLE = params.get('role') === 'player' ? 'player' : 'host';
-    let ROOM_ID = (params.get('room') || '').trim().toLowerCase();
+    const joinCode = (params.get('join') || '').trim().toLowerCase();
+    const ROLE = params.get('role') === 'player' || joinCode ? 'player' : 'host';
+    let ROOM_ID = (joinCode || params.get('room') || '').trim().toLowerCase();
 
     // ── PRODUCTION URL ROUTING — Vercel origin only, never LAN IPs ──
     /** 7-char room code — host + player must share the same public URL room param */
@@ -2823,10 +2826,11 @@
       return path;
     }
 
-    /** Global player join URL — QR encodes runtime Vercel origin + room (no LAN / hardcoded domains) */
+    /** QR encodes short ?join=room — phone scanners handle this more reliably than long query strings */
     function buildPlayerJoinUrl(roomID) {
-      const id = roomID || ROOM_ID;
-      return `${window.location.origin}${window.location.pathname}?role=player&room=${id}`;
+      const id = (roomID || ROOM_ID || '').trim().toLowerCase();
+      if (!id) return `${window.location.origin}${appPathname()}`;
+      return `${window.location.origin}${appPathname()}?join=${encodeURIComponent(id)}`;
     }
 
     function buildAppUrl(queryParams = {}) {
@@ -3736,7 +3740,11 @@
 
       updatePlayerCountUI() {
         const n = this.playerCount;
-        const txt = `📱 ${n} player${n === 1 ? '' : 's'}`;
+        let txt = `📱 ${n} player${n === 1 ? '' : 's'}`;
+        if (this.isHost && this.joinedPlayers.size) {
+          const names = [...this.joinedPlayers.values()].map(p => p.name).slice(0, 4).join(', ');
+          if (names) txt += ` · ${names}`;
+        }
         const el = $('playerCountBar');
         if (el) el.textContent = txt;
       },
@@ -3755,9 +3763,10 @@
 
       updatePlayerSyncBar(hostLabel) {
         if (ROLE !== 'player') return;
-        const room = this.roomId || ROOM_ID || '—';
+        const room = (this.roomId || ROOM_ID || '').toLowerCase();
+        const remoteRoom = (PlayerCtrl.remote?.roomId || '').toLowerCase();
         const syncTxt = this.connected
-          ? (PlayerCtrl.remote?.roomId === room ? `🟢 Synced · room ${room}` : `🟡 Syncing · room ${room}`)
+          ? (remoteRoom === room ? `🟢 Synced · room ${room}` : `🟡 Syncing · room ${room}`)
           : (hostLabel || '🟡 Connecting…');
         $('playerSyncBar') && ($('playerSyncBar').textContent = syncTxt);
         $('playerWaitSyncBar') && ($('playerWaitSyncBar').textContent = syncTxt);
@@ -8447,6 +8456,7 @@
 
       onSyncReady() {
         sync?.ingestPresenceState();
+        QR.renderAll();
         this.broadcast();
       },
 
@@ -8862,6 +8872,10 @@
         this.bindVoteDelegation();
         this.bindDraftDelegation();
         this.bindBattleDelegation();
+
+        if (playerName) {
+          setTimeout(() => this.submitName(), 350);
+        }
       },
 
       bindVoteDelegation() {
