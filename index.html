@@ -185,6 +185,15 @@
       pointer-events: auto !important;
       touch-action: manipulation;
     }
+    #uiForegroundLayer #playerApp:not(.hidden) #voteButtons,
+    #uiForegroundLayer #playerApp:not(.hidden) #voteButtons .vote-btn,
+    #uiForegroundLayer #playerApp:not(.hidden) #draftPokemonCards button,
+    #uiForegroundLayer #playerApp:not(.hidden) #battleMoveButtons .vote-btn,
+    #uiForegroundLayer #playerApp:not(.hidden) #battleTargetButtons .vote-btn {
+      pointer-events: auto !important;
+      touch-action: manipulation;
+      cursor: pointer;
+    }
     .ui-panel { position: relative; z-index: 51; }
     .ui-shell { position: relative; z-index: 50; isolation: isolate; }
 
@@ -2446,6 +2455,7 @@
       reconnectTimer: null,
       reconnectAttempts: 0,
       heartbeatTimer: null,
+      joinedPlayers: new Map(),
 
       teardown() {
         if (this.heartbeatTimer) {
@@ -2489,6 +2499,7 @@
         }
         if (this.channel) this.teardown();
         this.roomId = roomId;
+        if (this.isHost) this.joinedPlayers = new Map();
         if (!this.client) {
           this.client = window.supabase.createClient(CONFIG.SUPABASE.URL, CONFIG.SUPABASE.ANON_KEY, {
             realtime: { params: { eventsPerSecond: 20 } },
@@ -2503,8 +2514,17 @@
             if (this.isHost) return;
             PlayerCtrl.onState(payload);
           })
-          .on('broadcast', { event: 'request_state' }, () => {
-            if (this.isHost) HostGame.broadcast();
+          .on('broadcast', { event: 'request_state' }, ({ payload }) => {
+            if (this.isHost) {
+              this.registerPlayer(payload?.voterId, payload?.playerName, payload?.roomId);
+              HostGame.broadcast();
+            }
+          })
+          .on('broadcast', { event: 'player_hello' }, ({ payload }) => {
+            if (!this.isHost) return;
+            this.registerPlayer(payload?.voterId, payload?.playerName, payload?.roomId);
+            HostGame.renderVoteTally();
+            setTimeout(() => HostGame.broadcast(), 150);
           })
           .on('broadcast', { event: 'vote' }, ({ payload }) => {
             if (!this.isHost) return;
@@ -2545,25 +2565,31 @@
               setTimeout(() => HostGame.broadcast(), 200);
             }
           })
-          .on('presence', { event: 'leave' }, () => {
+          .on('presence', { event: 'leave' }, ({ key }) => {
+            if (key) this.joinedPlayers.delete(key);
             this.refreshPresence();
             if (this.isHost) HostGame.renderVoteTally();
           })
-          .subscribe(async (status, err) => {
+          .subscribe((status, err) => {
             if (err) console.warn('[Sync]', status, err);
             this.connected = status === 'SUBSCRIBED';
             this.updateConnectionUI();
             if (this.connected) {
               this.reconnectAttempts = 0;
-              const tracked = await this.trackPresence();
-              if (!tracked) console.warn('[Sync] Presence not registered — player count may be wrong');
-              if (this.isHost) {
-                HostGame.onSyncReady();
-                this.startHostHeartbeat();
-              } else {
-                this.channel.send({ type: 'broadcast', event: 'request_state', payload: { at: Date.now() } });
-                PlayerCtrl.onConnected();
-              }
+              void this.trackPresence().then(() => {
+                if (this.isHost) {
+                  HostGame.onSyncReady();
+                  this.startHostHeartbeat();
+                } else {
+                  this.sendPlayerHello();
+                  this.channel.send({
+                    type: 'broadcast',
+                    event: 'request_state',
+                    payload: { at: Date.now(), voterId, playerName, roomId: this.roomId },
+                  });
+                  PlayerCtrl.onConnected();
+                }
+              });
             } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
               this.scheduleReconnect(roomId);
             }
@@ -2638,17 +2664,38 @@
         });
       },
 
-      /** Count phones with role=player in Supabase presence (not total keys − 1). */
+      registerPlayer(vid, name, roomId) {
+        if (!this.isHost || !vid) return;
+        if (roomId && roomId !== this.roomId) return;
+        this.joinedPlayers.set(vid, { name: (name || 'Trainer').trim(), at: Date.now() });
+        this.refreshPresence();
+      },
+
+      sendPlayerHello() {
+        if (this.isHost || !this.channel || !playerName) return;
+        this.channel.send({
+          type: 'broadcast',
+          event: 'player_hello',
+          payload: { voterId, playerName, roomId: this.roomId, at: Date.now() },
+        });
+      },
+
+      /** Count connected phones — presence keys + hello registry fallback */
       countPresentPlayers() {
         const state = this.channel?.presenceState?.() || {};
-        let players = 0;
-        for (const presences of Object.values(state)) {
+        const ids = new Set();
+        for (const [key, presences] of Object.entries(state)) {
+          if (this.isHost && key === voterId) continue;
           const list = Array.isArray(presences) ? presences : [presences];
           for (const meta of list) {
-            if (meta?.role === 'player') players++;
+            if (meta?.role === 'host') continue;
+            ids.add(meta?.id || key);
           }
         }
-        return players;
+        if (this.isHost) {
+          for (const vid of this.joinedPlayers.keys()) ids.add(vid);
+        }
+        return ids.size;
       },
 
       refreshPresence() {
@@ -2659,16 +2706,12 @@
       async trackPresence() {
         if (!this.channel) return false;
         try {
-          const status = await this.channel.track({
+          await this.channel.track({
             role: this.isHost ? 'host' : 'player',
             id: voterId,
             name: this.isHost ? 'Host' : (playerName || 'Trainer'),
             at: Date.now(),
           });
-          if (status !== 'ok') {
-            console.warn('[Sync] presence track status:', status);
-            return false;
-          }
           this.refreshPresence();
           return true;
         } catch (e) {
@@ -6340,6 +6383,7 @@
             round: state.currentRound,
             arena: { ...state.arena },
             leaderboard: Leaderboard.toPayload(),
+            roomId: ROOM_ID,
             arenaSchedule: {
               ...ArenaScheduler.payload(),
               slotOpen: ArenaScheduler.isTriggerRound(state.currentRound),
@@ -6353,6 +6397,7 @@
         return {
           phase,
           round: state.currentRound,
+          roomId: ROOM_ID,
           choices: state.choices,
           votingOpen: phase === 'round' && !state.isRevealed && !this.revealing,
           voteRecords: state.voteRecords.map(v => ({ ...v })),
@@ -6400,6 +6445,7 @@
         if (choiceIndex < 0 || choiceIndex > 3) return;
         const cleanName = (name || '').trim();
         if (!cleanName) return;
+        sync?.registerPlayer(vid, cleanName, ROOM_ID);
         if (state.voteRecords.some(v => v.voterId === vid)) return;
         state.voteRecords.push({ voterId: vid, playerName: cleanName, choiceIndex });
         this.renderVoteTally();
@@ -6660,6 +6706,37 @@
         input.addEventListener('keydown', e => {
           if (e.code === 'Enter') this.submitName();
         });
+        this.bindVoteDelegation();
+      },
+
+      bindVoteDelegation() {
+        if (this._voteBound) return;
+        const container = $('voteButtons');
+        if (!container) return;
+        this._voteBound = true;
+        const pickVote = (e) => {
+          const btn = e.target.closest('button[data-idx]');
+          if (!btn || btn.disabled) return;
+          const payload = this.remote;
+          if (!payload?.votingOpen || payload.round == null) return;
+          if (this.votedRound === payload.round) return;
+          if (!playerName) return;
+          const idx = +btn.dataset.idx;
+          if (Number.isNaN(idx) || idx < 0) return;
+          this.votedRound = payload.round;
+          this.pickedIndex = idx;
+          sessionStorage.setItem(`vote-${ROOM_ID}-${payload.round}`, String(idx));
+          sync?.sendVote(idx, payload.round);
+          $('playerVoteStatus').textContent = '✓ Vote sent!';
+          container.querySelectorAll('button').forEach(b => { b.disabled = true; b.classList.add('opacity-50'); });
+          btn.classList.add('ring-4', 'ring-yellow-400');
+          AudioEngine.playClick();
+        };
+        container.addEventListener('click', pickVote);
+        container.addEventListener('touchend', (e) => {
+          if (e.target.closest('button[data-idx]')) e.preventDefault();
+          pickVote(e);
+        }, { passive: false });
       },
 
       submitName() {
@@ -6679,7 +6756,7 @@
 
       onConnected() {
         showPlayerScreen('wait');
-        $('playerWaitMsg').textContent = 'Waiting for the host to start a round…';
+        $('playerWaitMsg').textContent = `You're in! Room ${ROOM_ID} — waiting for the host to start a round…`;
       },
 
       /**
@@ -6713,6 +6790,11 @@
       onState(payload) {
         this.remote = payload;
         if (!payload) return;
+        if (payload.roomId && payload.roomId !== ROOM_ID) {
+          $('playerErrorMsg').textContent = `Wrong room (${ROOM_ID}). Scan the QR on the host TV again (room ${payload.roomId}).`;
+          showPlayerScreen('error');
+          return;
+        }
 
         if ((payload.battleModeActive || payload.arena?.active) && payload.phase === 'arena_royale' && payload.arena) {
           const arena = payload.arena;
@@ -6817,29 +6899,16 @@
         }
         const alreadyVoted = this.votedRound === payload.round;
         container.innerHTML = (payload.choices || []).map((name, i) => `
-          <button data-idx="${i}" ${alreadyVoted ? 'disabled' : ''}
+          <button type="button" data-idx="${i}" ${alreadyVoted ? 'disabled' : ''}
             class="vote-btn pointer-events-auto w-full py-5 px-4 rounded-2xl border-4 border-white/30 font-arcade text-2xl sm:text-3xl text-white
-                   bg-gradient-to-r ${VOTE_COLORS[i]} shadow-lg
+                   bg-gradient-to-r ${VOTE_COLORS[i % VOTE_COLORS.length]} shadow-lg
                    ${alreadyVoted && this.pickedIndex === i ? 'ring-4 ring-yellow-400 scale-105' : ''}
                    disabled:opacity-50 disabled:cursor-not-allowed">
-            ${name}
+            ${escapeHtml(name)}
           </button>`).join('');
 
-        if (!alreadyVoted) {
-          container.querySelectorAll('[data-idx]').forEach(btn => {
-            btn.onclick = () => {
-              if (!playerName) return;
-              const idx = +btn.dataset.idx;
-              this.votedRound = payload.round;
-              this.pickedIndex = idx;
-              sessionStorage.setItem(`vote-${ROOM_ID}-${payload.round}`, idx);
-              sync?.sendVote(idx, payload.round);
-              $('playerVoteStatus').textContent = '✓ Vote sent!';
-              container.querySelectorAll('button').forEach(b => { b.disabled = true; b.classList.add('opacity-50'); });
-              btn.classList.add('ring-4', 'ring-yellow-400');
-              AudioEngine.playClick();
-            };
-          });
+        if (!alreadyVoted && !(payload.choices || []).length) {
+          $('playerVoteStatus').textContent = 'Waiting for choices from host…';
         }
       },
 
