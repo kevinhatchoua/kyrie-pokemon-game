@@ -148,7 +148,7 @@
       width: 100%;
       overflow: hidden;
     }
-    #hostApp, #playerApp {
+    #hostApp, #player-view {
       position: relative; z-index: 50;
       pointer-events: none !important;
       height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh;
@@ -187,18 +187,18 @@
     #uiForegroundLayer #randomDuelTriggerOverlay:not(.hidden-overlay),
     #uiForegroundLayer #randomDuelOverlay:not(.hidden-overlay),
     #uiForegroundLayer #audioControlDock,
-    #uiForegroundLayer #playerApp:not(.hidden) .screen:not(.hidden-screen) {
+    #uiForegroundLayer #player-view:not(.hidden) .screen:not(.hidden-screen) {
       pointer-events: auto !important;
       touch-action: manipulation;
     }
-    #uiForegroundLayer #playerApp:not(.hidden) #voteButtons,
-    #uiForegroundLayer #playerApp:not(.hidden) #voteButtons .vote-btn,
-    #uiForegroundLayer #playerApp:not(.hidden) #voteButtons .vote-choice-btn,
+    #uiForegroundLayer #player-view:not(.hidden) #voteButtons,
+    #uiForegroundLayer #player-view:not(.hidden) #voteButtons .vote-btn,
+    #uiForegroundLayer #player-view:not(.hidden) #voteButtons .vote-choice-btn,
     #uiForegroundLayer #hostVoteChoices,
     #uiForegroundLayer #hostVoteChoices .vote-choice-btn,
-    #uiForegroundLayer #playerApp:not(.hidden) #draftPokemonCards button,
-    #uiForegroundLayer #playerApp:not(.hidden) #battleMoveButtons .vote-btn,
-    #uiForegroundLayer #playerApp:not(.hidden) #battleTargetButtons .vote-btn {
+    #uiForegroundLayer #player-view:not(.hidden) #draftPokemonCards button,
+    #uiForegroundLayer #player-view:not(.hidden) #battleMoveButtons .vote-btn,
+    #uiForegroundLayer #player-view:not(.hidden) #battleTargetButtons .vote-btn {
       pointer-events: auto !important;
       touch-action: manipulation;
       cursor: pointer;
@@ -963,11 +963,11 @@
     #arenaLobbyTitle { font-family: var(--font-display); font-size: var(--pf-font-size-heading-xl) !important; font-weight: 700; }
     #arcadeBattleOverlay > p:first-of-type { font-family: var(--font-display); font-size: var(--pf-font-size-heading-lg) !important; font-weight: 700; }
     #battleVictoryHeadline { font-family: var(--font-display); font-size: var(--pf-font-size-heading-2xl) !important; font-weight: 700; line-height: var(--pf-line-height-heading) !important; }
-    #playerApp h1, #playerApp h2 { font-family: var(--font-display); font-weight: 700; line-height: var(--pf-line-height-heading); }
-    #playerApp h1 { font-size: var(--pf-font-size-heading-2xl) !important; }
-    #playerApp h2 { font-size: var(--pf-font-size-heading-xl) !important; }
-    #playerApp p { font-size: var(--pf-font-size-body-lg); line-height: var(--pf-line-height-body); }
-    #playerApp .pf-text-muted { font-size: var(--pf-font-size-body-sm); }
+    #player-view h1, #player-view h2 { font-family: var(--font-display); font-weight: 700; line-height: var(--pf-line-height-heading); }
+    #player-view h1 { font-size: var(--pf-font-size-heading-2xl) !important; }
+    #player-view h2 { font-size: var(--pf-font-size-heading-xl) !important; }
+    #player-view p { font-size: var(--pf-font-size-body-lg); line-height: var(--pf-line-height-body); }
+    #player-view .pf-text-muted { font-size: var(--pf-font-size-body-sm); }
     .vote-btn { min-height: var(--pf-btn-cta-min-height) !important; }
     /* Vote choices — static gradients (Tailwind CDN misses JS-injected utility classes) */
     .vote-choice-btn {
@@ -1008,7 +1008,7 @@
       text-align: center;
       margin: 0;
     }
-    #playerApp:not(.hidden) {
+    #player-view:not(.hidden) {
       background: linear-gradient(180deg, rgba(9, 9, 18, 0.94) 0%, rgba(9, 9, 18, 0.88) 100%);
     }
     #voteButtons {
@@ -1489,7 +1489,7 @@
         flex-wrap: wrap;
         gap: var(--pf-spacer-sm);
       }
-      #playerApp:not(.hidden) {
+      #player-view:not(.hidden) {
         pointer-events: auto !important;
         z-index: 55;
       }
@@ -1708,7 +1708,48 @@
     #crowdFavoritePanel > p:first-child {
       font-family: var(--font-display); font-size: var(--pf-font-size-body-sm) !important; font-weight: 700;
     }
+    /* Instant layout branch — applied before main bundle runs (see head router) */
+    html[data-route="player"] #hostApp,
+    html[data-route="player"] #hostControlBar,
+    html[data-route="player"] #titleHero,
+    html[data-route="player"] #entryOverlay,
+    html[data-route="player"] #bgSimulationLayer,
+    html[data-route="player"] #hostMobileVoterBanner,
+    html[data-route="player"] #manualScoreToggle,
+    html[data-route="player"] #manualScoreOverlay { display: none !important; visibility: hidden !important; }
+    html[data-route="player"] #player-view {
+      display: flex !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+    }
+    html[data-route="host"] #player-view { display: none !important; }
   </style>
+  <script>
+    /** Canonicalize legacy /join/CODE and ?join= → ?role=player&room= before paint */
+    (function pokeRouteBootstrap() {
+      function normRoom(s) { return String(s || '').trim().toLowerCase(); }
+      var loc = window.location;
+      var params = new URLSearchParams(loc.search);
+      var role = params.get('role');
+      var room = normRoom(params.get('room'));
+      var pathMatch = loc.pathname.match(/\/join\/([a-z0-9]{4,12})\/?$/i);
+      var joinParam = normRoom(params.get('join'));
+      if ((pathMatch || joinParam) && role !== 'player') {
+        var code = normRoom(pathMatch ? pathMatch[1] : joinParam);
+        var base = loc.pathname.replace(/\/join\/[^/]+\/?$/i, '').replace(/\/?index\.html$/i, '') || '/';
+        if (!base.endsWith('/')) base += '/';
+        loc.replace(loc.origin + base + '?role=player&room=' + encodeURIComponent(code) + (loc.hash || ''));
+        return;
+      }
+      var isPlayer = role === 'player' && !!room;
+      document.documentElement.setAttribute('data-route', isPlayer ? 'player' : 'host');
+      window.__POKE_ROUTE__ = {
+        isPlayer: isPlayer,
+        room: isPlayer ? room : room,
+        explicitHost: role === 'host',
+      };
+    })();
+  </script>
 </head>
 <body class="text-white relative">
 
@@ -1906,7 +1947,7 @@
         </div>
         <div class="control-bar-meta">
           <p class="control-bar-label font-arcade text-amber-400 leading-tight">SCAN TO VOTE</p>
-          <p class="text-slate-50 leading-tight text-xs">QR opens <strong>/join/room</strong> voter screen (fuchsia banner)</p>
+          <p class="text-slate-50 leading-tight text-xs">QR → <strong>?role=player&amp;room=</strong> (fuchsia voter banner)</p>
           <p id="playerCountBar" class="text-neon-cyan font-bold mt-0.5">📱 0 players</p>
           <p id="hostRoomCode" class="text-amber-300 font-mono text-xs font-bold"></p>
           <p id="syncStatusBar" class="font-bold text-neon-cyan leading-tight"></p>
@@ -2030,7 +2071,7 @@
   </div>
 
   <!-- ═══════════════════ PLAYER APP ═══════════════════ -->
-  <div id="playerApp" class="hidden ui-shell relative flex flex-col h-dvh overflow-hidden">
+  <div id="player-view" class="hidden ui-shell relative flex flex-col h-dvh overflow-hidden">
     <div id="playerModeBanner" class="shrink-0 text-center py-2 px-3 bg-fuchsia-700/90 border-b-2 border-fuchsia-400 font-arcade text-sm text-white tracking-wide" aria-hidden="true">
       📱 VOTER MODE — tap your guess each round
     </div>
@@ -2163,6 +2204,54 @@
   <script>window.__POKE_CONFIG__ = window.__POKE_CONFIG__ || {};</script>
   <script src="config.js"></script>
   <script>
+    /* ══ BULLETPROOF ROLE ROUTER — first executable block; strict ?role=player&room= ══ */
+    const urlParams = new URLSearchParams(window.location.search);
+    const _headRoute = window.__POKE_ROUTE__ || {};
+    const currentRoom = String(_headRoute.room || urlParams.get('room') || '').trim().toLowerCase();
+    const IS_PLAYER = _headRoute.isPlayer === true
+      || (urlParams.get('role') === 'player' && !!currentRoom);
+    const EXPLICIT_HOST = _headRoute.explicitHost === true || urlParams.get('role') === 'host';
+    const ROLE = IS_PLAYER && currentRoom ? 'player' : 'host';
+    let ROOM_ID = ROLE === 'player' ? currentRoom : currentRoom;
+    if (IS_PLAYER && currentRoom) localStorage.removeItem('pokePlayerName');
+
+    function forcePlayerLayout() {
+      document.documentElement.setAttribute('data-route', 'player');
+      document.body.dataset.role = 'player';
+      ['hostApp', 'bgSimulationLayer', 'entryOverlay', 'hostMobileVoterBanner'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+      });
+      document.getElementById('entryOverlay')?.classList.add('dismissed');
+      document.getElementById('player-view')?.classList.remove('hidden');
+      document.getElementById('playerModeBanner')?.setAttribute('aria-hidden', 'false');
+    }
+
+    function forceHostLayout() {
+      document.documentElement.setAttribute('data-route', 'host');
+      document.body.dataset.role = 'host';
+      document.getElementById('player-view')?.classList.add('hidden');
+      document.getElementById('hostApp')?.classList.remove('hidden');
+      document.getElementById('bgSimulationLayer')?.classList.remove('hidden');
+    }
+
+    function initPlayerController(room) {
+      ROOM_ID = String(room).trim().toLowerCase();
+      playerName = '';
+      localStorage.removeItem('pokePlayerName');
+      forcePlayerLayout();
+      PlayerCtrl.init();
+    }
+
+    function initHostScreen() {
+      forceHostLayout();
+      if (!ROOM_ID) ROOM_ID = generateRoomId();
+      ROOM_ID = ROOM_ID.toLowerCase();
+      syncHostUrlBar();
+      HostGame.init();
+    }
+
+    if (IS_PLAYER && currentRoom) forcePlayerLayout();
+
     /* ═══════════════════════════════════════════════════════════════
        CONFIG — Supabase keys injected at Vercel build (see scripts/inject-env.mjs)
        For local dev, paste keys below or set SUPABASE_URL / SUPABASE_ANON_KEY in Vercel.
@@ -2827,34 +2916,6 @@
       },
     };
 
-    // ── Role routing — join via /join/ROOM, ?join=, #join=, or ?role=player&room= ──
-    function parseJoinCode() {
-      const params = new URLSearchParams(window.location.search);
-      let code = (params.get('join') || '').trim().toLowerCase();
-      if (!code && params.get('role') === 'player') {
-        code = (params.get('room') || '').trim().toLowerCase();
-      }
-      if (!code) {
-        const hash = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
-        code = (hash.get('join') || hash.get('j') || '').trim().toLowerCase();
-      }
-      if (!code) {
-        const m = window.location.pathname.match(/\/join\/([a-z0-9]{4,12})\/?$/i);
-        if (m) code = m[1].toLowerCase();
-      }
-      return code;
-    }
-
-    const params = new URLSearchParams(window.location.search);
-    ['ip', 'lan', 'port', 'local', 'hostname'].forEach(k => params.delete(k));
-    const joinCode = parseJoinCode();
-    const EXPLICIT_HOST = params.get('role') === 'host';
-    const ROLE = joinCode || params.get('role') === 'player' ? 'player' : 'host';
-    let ROOM_ID = (joinCode || params.get('room') || '').trim().toLowerCase();
-    if (joinCode) {
-      localStorage.removeItem('pokePlayerName');
-    }
-
     // ── PRODUCTION URL ROUTING — Vercel origin only, never LAN IPs ──
     /** 7-char room code — host + player must share the same public URL room param */
     function generateRoomId() {
@@ -2869,12 +2930,13 @@
       return path;
     }
 
-    /** QR uses /join/ROOM — path URLs survive phone camera scanners better than query strings */
+    /** QR encodes canonical ?role=player&room= — survives all phone scanners */
     function buildPlayerJoinUrl(roomID) {
       const id = (roomID || ROOM_ID || '').trim().toLowerCase();
       if (!id) return `${window.location.origin}${appPathname()}`;
-      const base = appPathname().replace(/\/$/, '') || '';
-      return `${window.location.origin}${base}/join/${encodeURIComponent(id)}`;
+      const base = appPathname();
+      const path = base.endsWith('/') ? base : `${base}/`;
+      return `${window.location.origin}${path}?role=player&room=${encodeURIComponent(id)}`;
     }
 
     function buildAppUrl(queryParams = {}) {
@@ -3019,7 +3081,7 @@
     let sync = null;
     let voterId = localStorage.getItem('pokeVoterId') || crypto.randomUUID();
     localStorage.setItem('pokeVoterId', voterId);
-    let playerName = joinCode ? '' : (localStorage.getItem('pokePlayerName') || '').trim();
+    let playerName = ROLE === 'player' ? '' : (localStorage.getItem('pokePlayerName') || '').trim();
 
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
     function escapeHtml(str) {
@@ -6053,16 +6115,20 @@
         return Leaderboard.entries.size;
       },
 
-      /** Gate: ≥2 players + 30% roll + no other battle overlay active */
+      /** Gate: ≥2 connected players + 30% roll + no other battle overlay active */
       shouldTriggerOnNext() {
         if (this.active || ArenaRoyale.active || ArenaRoyale.lobbyOpen) return false;
-        if (this.activePlayerCount() < 2) return false;
+        if (ArenaRoyale.gamePlayerCount() < 2) return false;
         return Math.random() < CONFIG.DUEL_TRIGGER_CHANCE;
       },
 
       pickDuelists() {
-        const pool = shuffleArray([...Leaderboard.entries.values()]);
-        return pool.slice(0, 2).map(e => ({ voterId: e.voterId, playerName: e.playerName }));
+        let pool = ArenaRoyale.collectParticipants();
+        if (pool.length < 2) {
+          pool = shuffleArray([...Leaderboard.entries.values()])
+            .map(e => ({ voterId: e.voterId, playerName: e.playerName }));
+        }
+        return shuffleArray(pool).slice(0, 2);
       },
 
       syncState() {
@@ -8388,7 +8454,7 @@
 
       init() {
         $('hostApp').classList.remove('hidden');
-        $('playerApp').classList.add('hidden');
+        $('player-view').classList.add('hidden');
         if (!ROOM_ID) {
           ROOM_ID = generateRoomId();
         }
@@ -8866,10 +8932,7 @@
       draftPicked: false,
 
       init() {
-        $('entryOverlay')?.classList.add('dismissed');
-        $('hostApp').classList.add('hidden');
-        $('playerApp').classList.remove('hidden');
-        $('playerModeBanner')?.setAttribute('aria-hidden', 'false');
+        forcePlayerLayout();
         showPlayerScreen('connect');
 
         if (!ROOM_ID) {
@@ -9622,11 +9685,24 @@
     // BOOTSTRAP
     // ═══════════════════════════════════════════════════════════════
     (async function bootstrap() {
-      document.body.dataset.role = ROLE;
+      const urlParamsBoot = new URLSearchParams(window.location.search);
+      const roomBoot = String(window.__POKE_ROUTE__?.room || urlParamsBoot.get('room') || '').trim().toLowerCase();
+      const isPlayerBoot = window.__POKE_ROUTE__?.isPlayer === true
+        || (urlParamsBoot.get('role') === 'player' && !!roomBoot);
+
+      document.body.dataset.role = isPlayerBoot && roomBoot ? 'player' : 'host';
       bindBrokenImageGuard($('pokemonImage'), [Pokedex.fallbackSpriteUrl(25)]);
       await hydrateSupabaseConfig();
       await AudioEngine.init();
       AudioEngine.setupAudioControls();
+
+      if (isPlayerBoot && roomBoot) {
+        await Pokedex.init().catch(console.warn);
+        KeyboardNav.init();
+        initPlayerController(roomBoot);
+        return;
+      }
+
       await Pokedex.init().catch(console.warn);
       WildLandscape.init();
       ThreeParallaxScene.init();
@@ -9635,11 +9711,8 @@
       ShinyCard4D.init();
       TCGCard.initFlipHandler();
       KeyboardNav.init();
-      if (ROLE === 'player') PlayerCtrl.init();
-      else {
-        HostGame.init();
-        await HostGame.bootAudio();
-      }
+      initHostScreen();
+      await HostGame.bootAudio();
     })();
   </script>
 </body>
