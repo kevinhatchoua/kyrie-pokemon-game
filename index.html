@@ -3323,6 +3323,7 @@
       reconnectAttempts: 0,
       heartbeatTimer: null,
       handshakeTimer: null,
+      keepaliveTimer: null,
       pendingState: null,
       joinedPlayers: new Map(),
 
@@ -3330,6 +3331,10 @@
         if (this.handshakeTimer) {
           clearInterval(this.handshakeTimer);
           this.handshakeTimer = null;
+        }
+        if (this.keepaliveTimer) {
+          clearInterval(this.keepaliveTimer);
+          this.keepaliveTimer = null;
         }
         if (this.heartbeatTimer) {
           clearInterval(this.heartbeatTimer);
@@ -3378,8 +3383,9 @@
           this.reconnectTimer = null;
         }
         if (this.channel) this.teardown();
+        const roomChanged = this.roomId && this.roomId !== roomId;
         this.roomId = roomId;
-        if (this.isHost) this.joinedPlayers = new Map();
+        if (this.isHost && roomChanged) this.joinedPlayers = new Map();
         if (!this.client) {
           this.client = createClient(CONFIG.SUPABASE.URL, CONFIG.SUPABASE.ANON_KEY, {
             realtime: { params: { eventsPerSecond: 20 } },
@@ -3387,11 +3393,7 @@
         }
         const presenceKey = presenceKeyForRole(this.isHost, voterId);
         this.channel = this.client.channel(`pokemon-party-${roomId}`, {
-          config: {
-            private: false,
-            broadcast: { ack: false, self: true },
-            presence: { key: presenceKey },
-          },
+          config: { broadcast: { ack: false, self: true }, presence: { key: presenceKey } },
         });
 
         this.channel
@@ -3440,13 +3442,15 @@
             HostGame.onScoreUpdate(payload);
           })
           .on('presence', { event: 'sync' }, () => {
+            this.ingestPresenceState();
             this.refreshPresence();
             if (this.isHost) {
               HostGame.renderVoteTally();
               HostGame.broadcast();
             }
           })
-          .on('presence', { event: 'join' }, () => {
+          .on('presence', { event: 'join' }, ({ newPresences }) => {
+            this.ingestPresenceJoin(newPresences);
             this.refreshPresence();
             if (this.isHost) {
               HostGame.renderVoteTally();
@@ -3464,8 +3468,8 @@
             this.connected = status === 'SUBSCRIBED';
             this.updateConnectionUI();
             if (status === 'CHANNEL_ERROR' && ROLE === 'player') {
-              $('playerErrorMsg').textContent = 'Could not connect to live voting. Check your network and refresh.';
-              showPlayerScreen('error');
+              $('playerWaitSyncBar') && ($('playerWaitSyncBar').textContent = '🟡 Connection hiccup — retrying…');
+              $('playerSyncBar') && ($('playerSyncBar').textContent = '🟡 Connection hiccup — retrying…');
             }
             if (this.connected) {
               this.reconnectAttempts = 0;
@@ -3476,6 +3480,7 @@
                   this.startHostHeartbeat();
                 } else {
                   this.startPlayerHandshake();
+                  this.startPlayerKeepalive();
                   PlayerCtrl.onConnected();
                 }
               });
@@ -3529,20 +3534,59 @@
         let attempts = 0;
         const tick = () => {
           if (this.isHost || !this.connected) return;
-          if (PlayerCtrl.remote?.roomId === this.roomId) {
+          const remote = PlayerCtrl.remote;
+          const roomMatch = remote?.roomId?.toLowerCase() === this.roomId;
+          const hasChoices = (remote?.choices?.length ?? 0) > 0;
+          const synced = roomMatch && remote?.phase && (
+            remote.phase !== 'round' || !remote.votingOpen || hasChoices
+          );
+          if (synced) {
             clearInterval(this.handshakeTimer);
             this.handshakeTimer = null;
             return;
           }
           attempts++;
           this.requestHostState();
-          if (attempts >= 20) {
+          if (attempts >= 30) {
             clearInterval(this.handshakeTimer);
             this.handshakeTimer = null;
           }
         };
         tick();
         this.handshakeTimer = setInterval(tick, 2000);
+      },
+
+      startPlayerKeepalive() {
+        if (this.isHost) return;
+        if (this.keepaliveTimer) clearInterval(this.keepaliveTimer);
+        this.keepaliveTimer = setInterval(() => {
+          if (!this.connected || this.isHost) return;
+          this.sendPlayerHello();
+        }, 8000);
+      },
+
+      ingestPresenceJoin(newPresences) {
+        if (!this.isHost || !newPresences) return;
+        const list = Array.isArray(newPresences) ? newPresences : [newPresences];
+        for (const meta of list) {
+          if (meta?.role === 'player' && meta?.id) {
+            this.registerPlayer(meta.id, meta.name, this.roomId);
+          }
+        }
+      },
+
+      ingestPresenceState() {
+        if (!this.isHost) return;
+        const state = this.channel?.presenceState?.() || {};
+        for (const [key, presences] of Object.entries(state)) {
+          if (key === 'host') continue;
+          const list = Array.isArray(presences) ? presences : [presences];
+          for (const meta of list) {
+            if (meta?.role === 'player' && meta?.id) {
+              this.registerPlayer(meta.id, meta.name, this.roomId);
+            }
+          }
+        }
       },
 
       sendVote(choiceIndex, round) {
@@ -3604,7 +3648,13 @@
         if (!this.isHost || !vid) return;
         const rid = (roomId || '').trim().toLowerCase();
         if (rid && rid !== this.roomId) return;
-        this.joinedPlayers.set(vid, { name: (name || 'Trainer').trim(), at: Date.now() });
+        const clean = (name || 'Trainer').trim();
+        const prev = this.joinedPlayers.get(vid);
+        if (prev?.name === clean && prev?.at) {
+          this.refreshPresence();
+          return;
+        }
+        this.joinedPlayers.set(vid, { name: clean, at: Date.now() });
         this.refreshPresence();
         HostGame.renderVoteTally();
       },
@@ -3650,6 +3700,7 @@
             name: this.isHost ? 'Host' : (playerName || 'Trainer'),
             at: Date.now(),
           });
+          if (this.isHost) this.ingestPresenceState();
           this.refreshPresence();
           return true;
         } catch (e) {
@@ -8348,6 +8399,7 @@
       },
 
       onSyncReady() {
+        sync?.ingestPresenceState();
         this.broadcast();
       },
 
@@ -9192,6 +9244,7 @@
           $('playerVoteStatus').textContent = payload.connectedPlayerCount != null
             ? `Waiting for choices from host… (${payload.connectedPlayerCount} in room)`
             : 'Waiting for choices from host…';
+          sync?.requestHostState();
         }
       },
 
