@@ -193,6 +193,8 @@
     }
     #uiForegroundLayer #playerApp:not(.hidden) #voteButtons,
     #uiForegroundLayer #playerApp:not(.hidden) #voteButtons .vote-btn,
+    #uiForegroundLayer #hostVoteChoices,
+    #uiForegroundLayer #hostVoteChoices .vote-choice-btn,
     #uiForegroundLayer #playerApp:not(.hidden) #draftPokemonCards button,
     #uiForegroundLayer #playerApp:not(.hidden) #battleMoveButtons .vote-btn,
     #uiForegroundLayer #playerApp:not(.hidden) #battleTargetButtons .vote-btn {
@@ -966,6 +968,56 @@
     #playerApp p { font-size: var(--pf-font-size-body-lg); line-height: var(--pf-line-height-body); }
     #playerApp .pf-text-muted { font-size: var(--pf-font-size-body-sm); }
     .vote-btn { min-height: var(--pf-btn-cta-min-height) !important; }
+    /* Vote choices — static gradients (Tailwind CDN misses JS-injected utility classes) */
+    .vote-choice-btn {
+      width: 100%;
+      padding: 0.85rem 1rem !important;
+      font-family: var(--font-display) !important;
+      font-size: 1.15rem !important;
+      font-weight: 700 !important;
+      line-height: 1.25 !important;
+      border-radius: 0.85rem !important;
+      min-height: var(--pf-btn-cta-min-height);
+      color: #fff !important;
+      border: 3px solid rgba(255, 255, 255, 0.35) !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.38);
+      text-align: center;
+    }
+    .vote-choice-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .vote-choice-btn.pick-selected {
+      border-color: rgb(250 204 21) !important;
+      box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.45);
+      transform: scale(1.02);
+    }
+    .vote-btn--0 { background: linear-gradient(90deg, #ef4444, #f97316); }
+    .vote-btn--1 { background: linear-gradient(90deg, #3b82f6, #06b6d4); }
+    .vote-btn--2 { background: linear-gradient(90deg, #22c55e, #10b981); }
+    .vote-btn--3 { background: linear-gradient(90deg, #a855f7, #d946ef); }
+    #hostVoteChoices {
+      display: none;
+      flex-direction: column;
+      gap: 0.45rem;
+      width: 100%;
+      flex-shrink: 0;
+    }
+    .host-vote-hint {
+      font-family: var(--font-display);
+      font-size: var(--pf-font-size-body);
+      color: rgb(165 243 252);
+      text-align: center;
+      margin: 0;
+    }
+    #playerApp:not(.hidden) {
+      background: linear-gradient(180deg, rgba(9, 9, 18, 0.94) 0%, rgba(9, 9, 18, 0.88) 100%);
+    }
+    #voteButtons {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      width: 100%;
+      flex: 1 1 auto;
+      justify-content: center;
+    }
     @keyframes entryPulse { 0%,100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.03); filter: brightness(1.15); } }
     .type-btn, .vote-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
     .type-btn:hover, .vote-btn:hover:not(:disabled) { transform: scale(1.04); }
@@ -1049,12 +1101,6 @@
       pointer-events: none;
       text-align: center;
       padding: var(--pf-spacer-xs) var(--pf-spacer-md);
-    }
-    @media (min-width: 640px) {
-      .host-masthead,
-      #titleHero {
-        padding-right: calc(min(14rem, 36vw) + var(--pf-spacer-lg));
-      }
     }
     #titleHero .title-main {
       font-family: var(--font-display);
@@ -1316,7 +1362,21 @@
       padding: 0.45rem;
       box-shadow: 0 0 0 5px var(--poke-blue), 0 0 0 9px var(--poke-yellow);
     }
-    .tcg-card.tcg-mystery .tcg-art-box { aspect-ratio: 1; width: 100%; }
+    .tcg-card.tcg-mystery .tcg-art-box { aspect-ratio: 1; width: 100%; min-height: 10rem; }
+    .tcg-mystery #tcgArtBox:not(:has(img.img-loaded))::after {
+      content: '?';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 4.5rem;
+      font-weight: 700;
+      color: rgba(42, 117, 187, 0.45);
+      z-index: 1;
+      pointer-events: none;
+    }
     .tcg-card.tcg-revealed .tcg-art-box { aspect-ratio: 4 / 3; width: 100%; }
     .tcg-face-back .tcg-art-box { aspect-ratio: 4 / 3; width: 100%; }
     .tcg-art-box {
@@ -1420,6 +1480,8 @@
         pointer-events: auto !important;
         z-index: 55;
       }
+      #hostVoteChoices.host-vote-open { display: flex; }
+      #hostVoteHint:not(.hidden) { display: block; }
     }
     #hostApp:has(#deployWarning:not(.hidden)) #manualScoreToggle { top: 2.25rem; }
 
@@ -1795,6 +1857,8 @@
           <div id="nameContainer" class="flex items-center justify-center shrink-0 min-h-0">
             <h2 id="pokemonName" class="font-arcade text-2xl sm:text-4xl text-yellow-400 drop-shadow-[0_3px_0_#cc0000] hidden"></h2>
           </div>
+          <div id="hostVoteChoices" class="host-vote-choices" aria-label="Pick a Pokémon name"></div>
+          <p id="hostVoteHint" class="host-vote-hint hidden">Tap your guess!</p>
           <p id="guessHint" class="font-arcade text-base sm:text-lg text-slate-50 animate-pulse shrink-0 leading-tight">Who's that Pokémon?!</p>
           <button id="actionBtn" class="action-btn type-btn pointer-events-auto font-arcade text-lg sm:text-2xl text-white px-6 py-2.5 rounded-2xl shadow-[0_6px_0_#8b0000] border-4 border-yellow-400 tracking-widest min-w-[200px] shrink-0">REVEAL!</button>
           <button id="bossBtn" class="hidden type-btn pointer-events-auto font-arcade text-base sm:text-lg text-white px-5 py-2 rounded-2xl shadow-[0_6px_0_#6b21a8] border-4 border-fuchsia-300 tracking-widest bg-gradient-to-r from-purple-600 to-fuchsia-600 shrink-0">⚔️ ENTER ARENA ROYALE!</button>
@@ -2639,7 +2703,6 @@
       { id: 'fairy',    label: 'Fairy',     emoji: '✨', color: 'from-pink-400 to-rose-400',        border: 'border-pink-300' },
     ];
 
-    const VOTE_COLORS = ['from-red-500 to-orange-500', 'from-blue-500 to-cyan-500', 'from-green-500 to-emerald-500', 'from-purple-500 to-fuchsia-500'];
     const CONFETTI_COLORS = ['#ffcb05', '#cc0000', '#2a75bb', '#4ade80', '#f472b6', '#fb923c', '#a78bfa'];
 
     const TYPE_BY_ID = Object.fromEntries(TYPE_OPTIONS.filter(t => t.id !== 'all').map(t => [t.id, t]));
@@ -2841,17 +2904,32 @@
         const tryNext = () => {
           if (stale()) { resolve(false); return; }
           const src = urls[attempt++];
-          if (!src) { finish(false); return; }
+          if (!src) {
+            img.classList.remove('img-pending');
+            img.classList.add('img-loaded');
+            loader?.classList.add('hidden');
+            finish(false);
+            return;
+          }
           img.classList.add('img-pending');
           img.classList.remove('img-loaded');
           loader?.classList.remove('hidden');
+          const loadTimeout = setTimeout(() => {
+            if (!stale() && img.classList.contains('img-pending')) {
+              img.classList.remove('img-pending');
+              img.classList.add('img-loaded');
+              loader?.classList.add('hidden');
+              finish(false);
+            }
+          }, 12000);
           img.onload = function () {
+            clearTimeout(loadTimeout);
             if (!this.naturalWidth || !this.naturalHeight) { tryNext(); return; }
             finish(true);
           };
-          img.onerror = () => tryNext();
+          img.onerror = () => { clearTimeout(loadTimeout); tryNext(); };
           img.src = src;
-          if (img.complete && img.naturalWidth) finish(true);
+          if (img.complete && img.naturalWidth) { clearTimeout(loadTimeout); finish(true); }
         };
 
         tryNext();
@@ -2890,6 +2968,19 @@
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
     function escapeHtml(str) {
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    /** Static CSS vote buttons — safe for Tailwind CDN (no dynamic utility classes) */
+    function voteChoiceButtonHtml(name, i, { alreadyVoted = false, pickedIndex = -1 } = {}) {
+      const selected = alreadyVoted && pickedIndex === i;
+      return `<button type="button" data-idx="${i}" ${alreadyVoted ? 'disabled' : ''}
+        class="vote-btn vote-btn--${i % 4} vote-choice-btn pointer-events-auto${selected ? ' pick-selected' : ''}">
+        ${escapeHtml(name)}
+      </button>`;
+    }
+
+    function isMobileLayout() {
+      return window.matchMedia('(max-width: 639px)').matches;
     }
 
     /** Map Cursor upload refs → deployable /assets paths on Vercel */
@@ -4266,6 +4357,7 @@
       Object.entries(hostScreens).forEach(([k, el]) => el.classList.toggle('hidden-screen', k !== name));
       $('titleHero')?.classList.toggle('hidden-screen', name === 'loading');
       Leaderboard.setVisible(name !== 'loading');
+      if (name !== 'game') HostGame.renderHostVoteChoices();
     }
 
     function showPlayerScreen(name) {
@@ -8010,6 +8102,7 @@
       revealBusy: false,
       revealing: false,
       shinyRevealGen: 0,
+      hostPickedIndex: -1,
 
       /** Stop in-flight shiny takeover / cry when advancing to next round */
       cancelShinyCelebration() {
@@ -8109,6 +8202,42 @@
           sync?.pushState(this.getSyncPayload('lobby', { resetScores: true }));
           QR.renderAll();
         };
+        this.bindHostVoteChoices();
+      },
+
+      bindHostVoteChoices() {
+        if (this._hostVoteBound) return;
+        this._hostVoteBound = true;
+        const el = $('hostVoteChoices');
+        if (!el) return;
+        el.addEventListener('click', e => {
+          const btn = e.target.closest('button[data-idx]');
+          if (!btn || btn.disabled || state.isRevealed) return;
+          this.hostPickedIndex = +btn.dataset.idx;
+          this.renderHostVoteChoices();
+          AudioEngine.playClick();
+        });
+      },
+
+      renderHostVoteChoices() {
+        const el = $('hostVoteChoices');
+        const hint = $('hostVoteHint');
+        if (!el) return;
+        const open = isMobileLayout() && state.choices?.length && !state.isRevealed
+          && !hostScreens.game.classList.contains('hidden-screen');
+        if (!open) {
+          el.innerHTML = '';
+          el.classList.remove('host-vote-open');
+          hint?.classList.add('hidden');
+          this.hostPickedIndex = -1;
+          return;
+        }
+        el.classList.add('host-vote-open');
+        hint?.classList.remove('hidden');
+        el.innerHTML = state.choices.map((name, i) => voteChoiceButtonHtml(name, i, {
+          alreadyVoted: this.hostPickedIndex >= 0,
+          pickedIndex: this.hostPickedIndex,
+        })).join('');
       },
 
       /** Wire entry overlay — init runs once at bootstrap */
@@ -8312,14 +8441,15 @@
           ? uniqueUrls([pokemon.artwork])
           : artFallbackChain(pokemon, false);
         const revealGen = TCGCard.revealGen;
-        assignPokemonImage(pokemonImg, mysteryUrls[0], mysteryUrls.slice(1), revealGen).then(ok => {
-          if (!ok || revealGen !== TCGCard.revealGen) return;
+        assignPokemonImage(pokemonImg, mysteryUrls[0], mysteryUrls.slice(1), revealGen).then(() => {
+          if (revealGen !== TCGCard.revealGen) return;
           AudioEngine.onRoundStart();
         });
         if (pokemon.isShiny) {
           artFallbackChain(pokemon, true).slice(0, 3).forEach(url => preloadImage(url));
         }
 
+        this.renderHostVoteChoices();
         this.broadcast();
       },
 
@@ -8354,6 +8484,7 @@
         if (state.isRevealed || this.revealBusy || this.revealing) return;
         this.revealBusy = true;
         this.revealing = true;
+        this.renderHostVoteChoices();
         const pokemon = state.currentPokemon;
         if (!pokemon) { this.revealBusy = false; this.revealing = false; return; }
         const revealGen = TCGCard.revealGen;
@@ -8711,8 +8842,45 @@
       },
 
       onConnected() {
+        if (this.remote) {
+          this.onState(this.remote);
+          return;
+        }
         showPlayerScreen('wait');
-        $('playerWaitMsg').textContent = `You're in! Room ${ROOM_ID} — waiting for the host to start a round…`;
+        $('playerWaitMsg').textContent = `You're in! Room ${ROOM_ID} — syncing with the host…`;
+      },
+
+      /** True when this phone has no vote stored for the current quiz round */
+      missedCurrentRoundVote(round) {
+        if (round == null || round < 0) return true;
+        return sessionStorage.getItem(`vote-${ROOM_ID}-${round}`) === null;
+      },
+
+      lateJoinVoteHint(payload) {
+        const name = playerName || 'Trainer';
+        if (payload.phase === 'revealed' && payload.revealedName) {
+          return `You're in, ${name}! It was ${payload.revealedName} — you'll vote on the next Pokémon!`;
+        }
+        if (payload.phase === 'revealing') {
+          return `You're in, ${name}! Reveal in progress — you'll vote on the next one!`;
+        }
+        if (payload.phase === 'round' && !payload.votingOpen) {
+          return `You're in, ${name}! This round is locked — you'll vote on the next Pokémon!`;
+        }
+        return `You're in, ${name}! Watch the big screen — you'll vote on the next Pokémon!`;
+      },
+
+      syncVoteRoundState(payload) {
+        const round = payload.round;
+        if (round == null || round < 0) return;
+        const saved = sessionStorage.getItem(`vote-${ROOM_ID}-${round}`);
+        if (saved !== null) {
+          this.votedRound = round;
+          this.pickedIndex = +saved;
+        } else if (this.votedRound === round) {
+          this.votedRound = -1;
+          this.pickedIndex = -1;
+        }
       },
 
       /**
@@ -8861,21 +9029,26 @@
         if (payload.phase === 'revealed') {
           this.processRevealScore(payload);
           showPlayerScreen('locked');
-          $('playerLockedMsg').textContent = payload.revealedName
-            ? `It was ${payload.revealedName}!`
-            : 'Reveal in progress…';
+          const missedVote = this.missedCurrentRoundVote(payload.round);
+          $('playerLockedMsg').textContent = missedVote
+            ? this.lateJoinVoteHint(payload)
+            : (payload.revealedName ? `It was ${payload.revealedName}!` : 'Reveal in progress…');
           this.updateArenaJoinPrompt(payload);
           return;
         }
 
         if (payload.phase === 'revealing') {
           showPlayerScreen('locked');
-          $('playerLockedMsg').textContent = 'Reveal in progress…';
-          $('playerLockedJoinArenaBtn')?.classList.add('hidden');
+          $('playerLockedMsg').textContent = this.missedCurrentRoundVote(payload.round)
+            ? this.lateJoinVoteHint(payload)
+            : 'Reveal in progress…';
+          if (this.missedCurrentRoundVote(payload.round)) this.updateArenaJoinPrompt(payload);
+          else $('playerLockedJoinArenaBtn')?.classList.add('hidden');
           return;
         }
 
         if (payload.phase === 'round') {
+          this.syncVoteRoundState(payload);
           $('playerWaitJoinArenaBtn')?.classList.add('hidden');
           $('playerLockedJoinArenaBtn')?.classList.add('hidden');
           if (payload.votingOpen) {
@@ -8889,27 +9062,20 @@
             }
           } else {
             showPlayerScreen('locked');
-            $('playerLockedMsg').textContent = 'Look at the big screen!';
+            $('playerLockedMsg').textContent = this.missedCurrentRoundVote(payload.round)
+              ? this.lateJoinVoteHint(payload)
+              : 'Look at the big screen!';
           }
         }
       },
 
       renderVoteButtons(payload) {
         const container = $('voteButtons');
-        const saved = sessionStorage.getItem(`vote-${ROOM_ID}-${payload.round}`);
-        if (saved !== null) {
-          this.votedRound = payload.round;
-          this.pickedIndex = +saved;
-        }
+        this.syncVoteRoundState(payload);
         const alreadyVoted = this.votedRound === payload.round;
-        container.innerHTML = (payload.choices || []).map((name, i) => `
-          <button type="button" data-idx="${i}" ${alreadyVoted ? 'disabled' : ''}
-            class="vote-btn pointer-events-auto w-full py-5 px-4 rounded-2xl border-4 border-white/30 font-arcade text-2xl sm:text-3xl text-white
-                   bg-gradient-to-r ${VOTE_COLORS[i % VOTE_COLORS.length]} shadow-lg
-                   ${alreadyVoted && this.pickedIndex === i ? 'ring-4 ring-yellow-400 scale-105' : ''}
-                   disabled:opacity-50 disabled:cursor-not-allowed">
-            ${escapeHtml(name)}
-          </button>`).join('');
+        container.innerHTML = (payload.choices || []).map((name, i) =>
+          voteChoiceButtonHtml(name, i, { alreadyVoted, pickedIndex: this.pickedIndex })
+        ).join('');
 
         if (!alreadyVoted && !(payload.choices || []).length) {
           $('playerVoteStatus').textContent = 'Waiting for choices from host…';
