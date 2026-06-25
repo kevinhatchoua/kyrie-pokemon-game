@@ -262,6 +262,13 @@
       border-radius: var(--pf-border-radius-lg); padding: var(--pf-spacer-lg);
       box-shadow: 0 0 40px rgba(250, 204, 21, 0.15);
     }
+    .arena-lobby-join {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+      gap: var(--pf-spacer-md); padding: var(--pf-spacer-sm);
+      background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(250, 204, 21, 0.35);
+      border-radius: var(--pf-border-radius-lg);
+    }
+    #qrArenaLobby { flex-shrink: 0; }
     #arenaLobbyGrid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
       gap: 0.65rem; overflow-y: auto; min-height: 6rem; max-height: 14rem;
@@ -1380,6 +1387,13 @@
         <p id="arenaLobbyTitle" class="font-arcade text-2xl sm:text-3xl text-yellow-400">⚔️ ENTERING ARENA ROYALE…</p>
         <p id="arenaLobbySubtitle" class="text-blue-200 text-sm mt-1">Trainers tap <strong>Enter Arena</strong> on their phones</p>
       </header>
+      <div class="arena-lobby-join shrink-0">
+        <div id="qrArenaLobby" class="qr-box bg-white p-1 rounded-lg" aria-label="QR code to join arena on phone"></div>
+        <div class="text-center sm:text-left min-w-0">
+          <p class="font-arcade text-amber-400 text-sm tracking-wide">SCAN TO JOIN ARENA</p>
+          <p class="text-blue-200 text-xs mt-1 leading-snug">Scan with your phone camera, then tap <strong>Enter Arena</strong></p>
+        </div>
+      </div>
       <div id="arenaLobbyGrid" class="ui-panel" aria-live="polite">
         <p class="text-neon-cyan text-center text-sm italic col-span-full py-4">Waiting for trainers to enter…</p>
       </div>
@@ -1595,8 +1609,9 @@
       ARENA_BOUNTY: 3,
       ARENA_DUEL_WIN: 2,
       ARENA_TIE_POINTS: 1,
-      ARENA_MIN_PER_SESSION: 5,
-      ARENA_MAX_PER_SESSION: 10,
+      ARENA_MIN_PER_SESSION: 6,
+      ARENA_MAX_PER_SESSION: 12,
+      ARENA_FREQUENCY: 1.2,
       ARENA_AUTO_START_MS: 6000,
       ARENA_AUTO_LOBBY_MS: 12000,
       ARENA_MAX_COMBAT_TURNS: 12,
@@ -2517,29 +2532,31 @@
             HostGame.onScoreUpdate(payload);
           })
           .on('presence', { event: 'sync' }, () => {
-            const n = this.channel.presenceState();
-            this.playerCount = Object.keys(n).length;
-            this.updatePlayerCountUI();
+            this.refreshPresence();
             if (this.isHost) {
               HostGame.renderVoteTally();
               HostGame.broadcast();
             }
           })
           .on('presence', { event: 'join' }, () => {
-            if (this.isHost) setTimeout(() => HostGame.broadcast(), 200);
+            this.refreshPresence();
+            if (this.isHost) {
+              HostGame.renderVoteTally();
+              setTimeout(() => HostGame.broadcast(), 200);
+            }
           })
-          .subscribe((status, err) => {
+          .on('presence', { event: 'leave' }, () => {
+            this.refreshPresence();
+            if (this.isHost) HostGame.renderVoteTally();
+          })
+          .subscribe(async (status, err) => {
             if (err) console.warn('[Sync]', status, err);
             this.connected = status === 'SUBSCRIBED';
             this.updateConnectionUI();
             if (this.connected) {
               this.reconnectAttempts = 0;
-              this.channel.track({
-                role: this.isHost ? 'host' : 'player',
-                id: voterId,
-                name: this.isHost ? 'Host' : playerName,
-                at: Date.now(),
-              });
+              const tracked = await this.trackPresence();
+              if (!tracked) console.warn('[Sync] Presence not registered — player count may be wrong');
               if (this.isHost) {
                 HostGame.onSyncReady();
                 this.startHostHeartbeat();
@@ -2621,8 +2638,47 @@
         });
       },
 
+      /** Count phones with role=player in Supabase presence (not total keys − 1). */
+      countPresentPlayers() {
+        const state = this.channel?.presenceState?.() || {};
+        let players = 0;
+        for (const presences of Object.values(state)) {
+          const list = Array.isArray(presences) ? presences : [presences];
+          for (const meta of list) {
+            if (meta?.role === 'player') players++;
+          }
+        }
+        return players;
+      },
+
+      refreshPresence() {
+        this.playerCount = this.countPresentPlayers();
+        this.updatePlayerCountUI();
+      },
+
+      async trackPresence() {
+        if (!this.channel) return false;
+        try {
+          const status = await this.channel.track({
+            role: this.isHost ? 'host' : 'player',
+            id: voterId,
+            name: this.isHost ? 'Host' : (playerName || 'Trainer'),
+            at: Date.now(),
+          });
+          if (status !== 'ok') {
+            console.warn('[Sync] presence track status:', status);
+            return false;
+          }
+          this.refreshPresence();
+          return true;
+        } catch (e) {
+          console.warn('[Sync] presence track error:', e);
+          return false;
+        }
+      },
+
       updatePlayerCountUI() {
-        const n = Math.max(0, this.playerCount - (this.isHost ? 1 : 0));
+        const n = this.playerCount;
         const txt = `📱 ${n} player${n === 1 ? '' : 's'}`;
         const el = $('playerCountBar');
         if (el) el.textContent = txt;
@@ -2663,10 +2719,15 @@
         return Math.round(Math.max(72, Math.min(96, Math.floor(window.innerWidth * 0.14))));
       },
 
+      /** Larger QR for arena lobby modal */
+      sizeForLobby() {
+        return Math.round(Math.max(100, Math.min(144, Math.floor(window.innerWidth * 0.22))));
+      },
+
       render(elId = 'qrHost') {
         const el = $(elId);
         if (!el || typeof QRCode === 'undefined' || !ROOM_ID) return;
-        const px = this.sizeFor();
+        const px = elId === 'qrArenaLobby' ? this.sizeForLobby() : this.sizeFor();
         el.innerHTML = '';
         el.style.width = `${px}px`;
         el.style.height = `${px}px`;
@@ -2683,6 +2744,9 @@
       renderAll() {
         this.updateJoinUrlLabels();
         this.render('qrHost');
+        if (!$('arenaLobbyOverlay')?.classList.contains('hidden-overlay')) {
+          this.render('qrArenaLobby');
+        }
       },
 
       bindResize() {
@@ -4598,7 +4662,7 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // ARENA SCHEDULER — 5–10 battles per session, evenly spaced
+    // ARENA SCHEDULER — 6–12 battles per session (+20% rate), evenly spaced
     // ═══════════════════════════════════════════════════════════════
     const ArenaScheduler = {
       total: 0,
@@ -4616,7 +4680,8 @@
         const span = CONFIG.ARENA_MAX_PER_SESSION - CONFIG.ARENA_MIN_PER_SESSION + 1;
         this.total = CONFIG.ARENA_MIN_PER_SESSION + Math.floor(Math.random() * span);
         const base = Math.max(15, estimatedRounds);
-        const gap = Math.max(4, Math.floor(base / (this.total + 1)));
+        const freq = CONFIG.ARENA_FREQUENCY || 1;
+        const gap = Math.max(3, Math.floor(base / (this.total + 1) / freq));
         for (let i = 0; i < this.total; i++) this.triggerRounds.add((i + 1) * gap);
         console.info(`[Arena] ${this.total} battles scheduled · rounds ${[...this.triggerRounds].join(', ')}`);
       },
@@ -4796,6 +4861,7 @@
         $('arenaLobbyHint').textContent = left > 1
           ? `${left} arena battles left this session`
           : 'Final arena battle this session!';
+        QR.render('qrArenaLobby');
         this.renderLobbyGrid();
         this.updateLobbyStartBtn();
         AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 450);
@@ -6421,7 +6487,7 @@
 
       renderVoteTally() {
         const el = $('voteTally');
-        const connected = sync?.playerCount ? Math.max(0, sync.playerCount - 1) : null;
+        const connected = sync?.connected ? sync.countPresentPlayers() : null;
 
         if (!state.voteRecords.length) {
           el.innerHTML = '<p class="text-neon-cyan text-center text-sm italic">Waiting for players to vote…</p>';
