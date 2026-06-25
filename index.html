@@ -2491,7 +2491,7 @@
         await this.playVocalSting();
       },
 
-      /** REVEAL — duck 5% → cry → sparkle → ramp theme to 70% */
+      /** REVEAL — duck 5% → cry → ramp theme to 70% */
       async onReveal(pokemon) {
         this.ensureBgm();
         this.setBgmVolume(CONFIG.VOL.REVEAL);
@@ -2499,7 +2499,6 @@
         const cryUrl = pokemon.cryUrl
           || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/cries/${pokemon.id}.ogg`;
         await this.playSfxWithFallback(cryUrl, 0.95, 8000, () => this.playCrySynth());
-        await this.playSfxWithFallback(CONFIG.SPARKLE_URL, 1, 5000, () => this.playSparkleSynth());
 
         this.ensureBgm();
         await this.fadeBgm(CONFIG.VOL.CELEBRATE, 400);
@@ -4239,6 +4238,8 @@
         types: data.types.map(t => t.type.name),
         cryUrl: data.cries?.latest || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/cries/${data.id}.ogg`,
         hp: hpStat?.base_stat || 70,
+        height: data.height,
+        weight: data.weight,
         moveUrls: shuffleArray((data.moves || []).map(m => m.move.url)).slice(0, 28),
       };
     }
@@ -4433,20 +4434,23 @@
         const card = $('tcgCard');
         if (!card || !pokemon) return;
 
+        card.classList.remove('tcg-mystery');
         this.applyTheme(pokemon);
         $('tcgCardName').textContent = pokemon.name.toUpperCase();
         $('tcgCardHp').textContent = pokemon.hp || 70;
 
-        const [moves, lore] = await Promise.all([
+        const [moves, lore, meta] = await Promise.all([
           this.pickTypeMoves(pokemon, 2),
           this.fetchCardLore(pokemon),
+          this.fetchSpeciesMeta(pokemon),
         ]);
 
         this.renderMoves(moves);
+        this.renderMetaBar(meta);
+        this.renderStatsBar(pokemon);
         $('tcgFlavor').textContent = lore.flavor;
         $('tcgDescription').textContent = lore.description;
 
-        card.classList.remove('tcg-mystery');
         card.classList.add('tcg-revealed');
         card.querySelectorAll('.tcg-reveal-only').forEach(el => { el.removeAttribute('aria-hidden'); });
       },
