@@ -1018,6 +1018,18 @@
       width: 100%;
       flex: 1 1 auto;
       justify-content: center;
+      min-height: 12rem;
+    }
+    #voteButtons.vote-waiting {
+      justify-content: center;
+      align-items: center;
+    }
+    .vote-waiting-msg {
+      color: rgb(250 204 21);
+      font-weight: 700;
+      text-align: center;
+      padding: 1.5rem 1rem;
+      font-size: 1.05rem;
     }
     @keyframes entryPulse { 0%,100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.03); filter: brightness(1.15); } }
     .type-btn, .vote-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
@@ -1483,6 +1495,12 @@
       }
       #hostVoteChoices.host-vote-open { display: flex; }
       #hostVoteHint:not(.hidden) { display: block; }
+      #hostApp:has(#hostMobileVoterBanner:not(.hidden)) .host-masthead {
+        margin-top: 3.5rem;
+      }
+      #hostApp:has(#hostMobileVoterBanner:not(.hidden)) #hostControlBar {
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+      }
     }
     #hostApp:has(#deployWarning:not(.hidden)) #manualScoreToggle { top: 2.25rem; }
 
@@ -1723,6 +1741,10 @@
   <!-- ═══════════════════ HOST APP ═══════════════════ -->
   <div id="hostApp" class="host-page ui-shell">
     <div id="deployWarning" class="hidden fixed top-0 inset-x-0 z-[300] bg-amber-500/95 text-black text-center text-sm font-bold px-4 py-2 shadow-lg" role="alert"></div>
+    <div id="hostMobileVoterBanner" class="hidden fixed top-0 inset-x-0 z-[290] bg-fuchsia-800/95 text-white text-center text-sm font-bold px-3 py-2.5 shadow-lg border-b-2 border-fuchsia-400" role="status">
+      <p class="leading-snug">📺 This is the <strong>TV host</strong> screen — not for voting.</p>
+      <a id="hostMobileVoterLink" href="#" class="inline-block mt-1 text-yellow-300 underline font-arcade text-base">Tap to open VOTER MODE →</a>
+    </div>
 
     <header id="titleHero" class="host-masthead ui-panel" aria-label="Game title">
       <h1 class="title-main title-bounce">NAME THAT POKÉMON!</h1>
@@ -1884,7 +1906,7 @@
         </div>
         <div class="control-bar-meta">
           <p class="control-bar-label font-arcade text-amber-400 leading-tight">SCAN TO VOTE</p>
-          <p class="text-slate-50 leading-tight text-xs">Phone opens <strong>voter</strong> screen (fuchsia banner)</p>
+          <p class="text-slate-50 leading-tight text-xs">QR opens <strong>/join/room</strong> voter screen (fuchsia banner)</p>
           <p id="playerCountBar" class="text-neon-cyan font-bold mt-0.5">📱 0 players</p>
           <p id="hostRoomCode" class="text-amber-300 font-mono text-xs font-bold"></p>
           <p id="syncStatusBar" class="font-bold text-neon-cyan leading-tight"></p>
@@ -2805,12 +2827,33 @@
       },
     };
 
-    // ── Role routing (strip legacy LAN/dev query params) ─────────────
+    // ── Role routing — join via /join/ROOM, ?join=, #join=, or ?role=player&room= ──
+    function parseJoinCode() {
+      const params = new URLSearchParams(window.location.search);
+      let code = (params.get('join') || '').trim().toLowerCase();
+      if (!code && params.get('role') === 'player') {
+        code = (params.get('room') || '').trim().toLowerCase();
+      }
+      if (!code) {
+        const hash = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+        code = (hash.get('join') || hash.get('j') || '').trim().toLowerCase();
+      }
+      if (!code) {
+        const m = window.location.pathname.match(/\/join\/([a-z0-9]{4,12})\/?$/i);
+        if (m) code = m[1].toLowerCase();
+      }
+      return code;
+    }
+
     const params = new URLSearchParams(window.location.search);
-    ['host', 'ip', 'lan', 'port', 'local', 'hostname'].forEach(k => params.delete(k));
-    const joinCode = (params.get('join') || '').trim().toLowerCase();
-    const ROLE = params.get('role') === 'player' || joinCode ? 'player' : 'host';
+    ['ip', 'lan', 'port', 'local', 'hostname'].forEach(k => params.delete(k));
+    const joinCode = parseJoinCode();
+    const EXPLICIT_HOST = params.get('role') === 'host';
+    const ROLE = joinCode || params.get('role') === 'player' ? 'player' : 'host';
     let ROOM_ID = (joinCode || params.get('room') || '').trim().toLowerCase();
+    if (joinCode) {
+      localStorage.removeItem('pokePlayerName');
+    }
 
     // ── PRODUCTION URL ROUTING — Vercel origin only, never LAN IPs ──
     /** 7-char room code — host + player must share the same public URL room param */
@@ -2826,11 +2869,12 @@
       return path;
     }
 
-    /** QR encodes short ?join=room — phone scanners handle this more reliably than long query strings */
+    /** QR uses /join/ROOM — path URLs survive phone camera scanners better than query strings */
     function buildPlayerJoinUrl(roomID) {
       const id = (roomID || ROOM_ID || '').trim().toLowerCase();
       if (!id) return `${window.location.origin}${appPathname()}`;
-      return `${window.location.origin}${appPathname()}?join=${encodeURIComponent(id)}`;
+      const base = appPathname().replace(/\/$/, '') || '';
+      return `${window.location.origin}${base}/join/${encodeURIComponent(id)}`;
     }
 
     function buildAppUrl(queryParams = {}) {
@@ -2975,7 +3019,7 @@
     let sync = null;
     let voterId = localStorage.getItem('pokeVoterId') || crypto.randomUUID();
     localStorage.setItem('pokeVoterId', voterId);
-    let playerName = (localStorage.getItem('pokePlayerName') || '').trim();
+    let playerName = joinCode ? '' : (localStorage.getItem('pokePlayerName') || '').trim();
 
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
     function escapeHtml(str) {
@@ -3802,6 +3846,12 @@
         if (voteLink && ROOM_ID) {
           voteLink.href = this.playerUrl();
           voteLink.classList.toggle('hidden', !mobile);
+        }
+        const voterBanner = $('hostMobileVoterBanner');
+        const voterLink = $('hostMobileVoterLink');
+        if (voterBanner && voterLink && ROOM_ID) {
+          voterLink.href = this.playerUrl();
+          voterBanner.classList.toggle('hidden', !mobile || EXPLICIT_HOST);
         }
       },
 
@@ -8819,6 +8869,7 @@
         $('entryOverlay')?.classList.add('dismissed');
         $('hostApp').classList.add('hidden');
         $('playerApp').classList.remove('hidden');
+        $('playerModeBanner')?.setAttribute('aria-hidden', 'false');
         showPlayerScreen('connect');
 
         if (!ROOM_ID) {
@@ -8836,6 +8887,12 @@
         const input = $('playerNameInput');
         const form = $('playerNameForm');
         const connecting = $('playerConnecting');
+        playerName = '';
+        localStorage.removeItem('pokePlayerName');
+        if (input) input.value = '';
+        form?.classList.remove('hidden');
+        connecting?.classList.add('hidden');
+
         if (ROOM_ID) {
           const rl = $('playerRoomLabel');
           if (rl) {
@@ -8843,7 +8900,6 @@
             rl.classList.remove('hidden');
           }
         }
-        if (playerName) input.value = playerName;
 
         $('playerNameSubmit').onclick = () => this.submitName();
         $('playerEnterArenaBtn')?.addEventListener('click', () => {
@@ -8872,10 +8928,6 @@
         this.bindVoteDelegation();
         this.bindDraftDelegation();
         this.bindBattleDelegation();
-
-        if (playerName) {
-          setTimeout(() => this.submitName(), 350);
-        }
       },
 
       bindVoteDelegation() {
@@ -9061,6 +9113,7 @@
         localStorage.setItem('pokePlayerName', playerName);
         $('playerNameForm')?.classList.add('hidden');
         $('playerConnecting')?.classList.remove('hidden');
+        $('playerConnectMsg').textContent = `Joining as ${playerName}…`;
         sync = RealtimeSync.init(ROOM_ID);
       },
 
@@ -9297,16 +9350,18 @@
         const container = $('voteButtons');
         this.syncVoteRoundState(payload);
         const alreadyVoted = this.votedRound === payload.round;
-        container.innerHTML = (payload.choices || []).map((name, i) =>
+        const choices = payload.choices || [];
+        if (!choices.length) {
+          container.innerHTML = '<p class="vote-waiting-msg">Waiting for name choices from host…</p>';
+          container.classList.add('vote-waiting');
+          $('playerVoteStatus').textContent = 'Stay on this screen — choices appear when the host starts the round.';
+          sync?.requestHostState();
+          return;
+        }
+        container.classList.remove('vote-waiting');
+        container.innerHTML = choices.map((name, i) =>
           voteChoiceButtonHtml(name, i, { alreadyVoted, pickedIndex: this.pickedIndex })
         ).join('');
-
-        if (!alreadyVoted && !(payload.choices || []).length) {
-          $('playerVoteStatus').textContent = payload.connectedPlayerCount != null
-            ? `Waiting for choices from host… (${payload.connectedPlayerCount} in room)`
-            : 'Waiting for choices from host…';
-          sync?.requestHostState();
-        }
       },
 
       renderDraftCards(payload) {
