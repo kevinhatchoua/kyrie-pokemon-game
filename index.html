@@ -8,7 +8,7 @@
   <!-- Trusted CDN dependencies (no local npm packages required) -->
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -193,6 +193,7 @@
     }
     #uiForegroundLayer #playerApp:not(.hidden) #voteButtons,
     #uiForegroundLayer #playerApp:not(.hidden) #voteButtons .vote-btn,
+    #uiForegroundLayer #playerApp:not(.hidden) #voteButtons .vote-choice-btn,
     #uiForegroundLayer #hostVoteChoices,
     #uiForegroundLayer #hostVoteChoices .vote-choice-btn,
     #uiForegroundLayer #playerApp:not(.hidden) #draftPokemonCards button,
@@ -2010,6 +2011,7 @@
       <div id="playerNameForm" class="w-full max-w-sm flex flex-col gap-4">
         <h1 class="font-arcade text-4xl text-yellow-400">Join the Party!</h1>
         <p class="text-blue-200 text-sm">Enter your name so the host can see your vote</p>
+        <p id="playerRoomLabel" class="text-blue-300/70 text-xs font-mono hidden"></p>
         <input id="playerNameInput" type="text" maxlength="20" placeholder="Your name"
           class="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-yellow-400/50 text-white text-lg font-bold text-center placeholder:text-blue-300/50 focus:outline-none focus:border-yellow-400" />
         <button id="playerNameSubmit" class="type-btn font-arcade text-2xl bg-yellow-400 text-blue-900 px-8 py-3 rounded-2xl shadow-[0_4px_0_#b8960a] border-4 border-white">JOIN GAME</button>
@@ -2030,6 +2032,7 @@
         ⚔️ JOIN ARENA
       </button>
       <p id="playerWaitArenaStatus" class="text-green-400 font-bold text-lg"></p>
+      <p id="playerWaitSyncBar" class="text-blue-300/80 text-xs font-mono"></p>
       <p class="text-sm text-blue-300/60 pf-text-muted">Keep this screen open</p>
     </section>
 
@@ -2040,6 +2043,7 @@
       </header>
       <div id="voteButtons" class="flex-1 flex flex-col gap-3 justify-center max-w-md mx-auto w-full"></div>
       <p id="playerVoteStatus" class="text-center text-green-400 font-bold text-lg"></p>
+      <p id="playerSyncBar" class="text-center text-blue-300/80 text-xs font-mono"></p>
     </section>
 
     <section id="playerLocked" class="screen hidden-screen flex-1 flex flex-col items-center justify-center px-6 gap-6 text-center">
@@ -2799,7 +2803,7 @@
     const params = new URLSearchParams(window.location.search);
     ['host', 'ip', 'lan', 'port', 'local', 'hostname'].forEach(k => params.delete(k));
     const ROLE = params.get('role') === 'player' ? 'player' : 'host';
-    let ROOM_ID = (params.get('room') || '').trim();
+    let ROOM_ID = (params.get('room') || '').trim().toLowerCase();
 
     // ── PRODUCTION URL ROUTING — Vercel origin only, never LAN IPs ──
     /** 7-char room code — host + player must share the same public URL room param */
@@ -3288,6 +3292,23 @@
       return buildAppUrl({ role: 'host', room: ROOM_ID, ...extra });
     }
 
+    function getSupabaseCreateClient() {
+      const g = window.supabase;
+      if (!g) return null;
+      if (typeof g.createClient === 'function') return g.createClient.bind(g);
+      if (typeof g.default?.createClient === 'function') return g.default.createClient.bind(g.default);
+      return null;
+    }
+
+    function presenceKeyForRole(isHost, vid) {
+      return isHost ? 'host' : `player-${vid}`;
+    }
+
+    function voterIdFromPresenceKey(key) {
+      if (!key || key === 'host') return null;
+      return String(key).replace(/^player-/, '');
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // REALTIME SYNC (Supabase Broadcast — global, any network)
     // Host on Wi-Fi + players on 4G/5G share one Supabase channel per room.
@@ -3301,9 +3322,15 @@
       reconnectTimer: null,
       reconnectAttempts: 0,
       heartbeatTimer: null,
+      handshakeTimer: null,
+      pendingState: null,
       joinedPlayers: new Map(),
 
       teardown() {
+        if (this.handshakeTimer) {
+          clearInterval(this.handshakeTimer);
+          this.handshakeTimer = null;
+        }
         if (this.heartbeatTimer) {
           clearInterval(this.heartbeatTimer);
           this.heartbeatTimer = null;
@@ -3329,12 +3356,19 @@
       },
 
       init(roomId) {
+        roomId = (roomId || '').trim().toLowerCase();
+        if (!roomId) {
+          console.warn('[Sync] Missing room id');
+          this.updateConnectionUI();
+          return this;
+        }
         if (!CONFIG.SUPABASE.URL || !CONFIG.SUPABASE.ANON_KEY) {
           console.warn('[Sync] Supabase not configured — set SUPABASE_URL + SUPABASE_ANON_KEY on Vercel.');
           this.updateConnectionUI();
           return this;
         }
-        if (!window.supabase?.createClient) {
+        const createClient = getSupabaseCreateClient();
+        if (!createClient) {
           console.warn('[Sync] Supabase JS SDK failed to load.');
           this.updateConnectionUI();
           return this;
@@ -3347,12 +3381,17 @@
         this.roomId = roomId;
         if (this.isHost) this.joinedPlayers = new Map();
         if (!this.client) {
-          this.client = window.supabase.createClient(CONFIG.SUPABASE.URL, CONFIG.SUPABASE.ANON_KEY, {
+          this.client = createClient(CONFIG.SUPABASE.URL, CONFIG.SUPABASE.ANON_KEY, {
             realtime: { params: { eventsPerSecond: 20 } },
           });
         }
+        const presenceKey = presenceKeyForRole(this.isHost, voterId);
         this.channel = this.client.channel(`pokemon-party-${roomId}`, {
-          config: { broadcast: { ack: false, self: true }, presence: { key: voterId } },
+          config: {
+            private: false,
+            broadcast: { ack: false, self: true },
+            presence: { key: presenceKey },
+          },
         });
 
         this.channel
@@ -3363,6 +3402,7 @@
           .on('broadcast', { event: 'request_state' }, ({ payload }) => {
             if (this.isHost) {
               this.registerPlayer(payload?.voterId, payload?.playerName, payload?.roomId);
+              HostGame.renderVoteTally();
               HostGame.broadcast();
             }
           })
@@ -3414,7 +3454,8 @@
             }
           })
           .on('presence', { event: 'leave' }, ({ key }) => {
-            if (key) this.joinedPlayers.delete(key);
+            const vid = voterIdFromPresenceKey(key);
+            if (vid) this.joinedPlayers.delete(vid);
             this.refreshPresence();
             if (this.isHost) HostGame.renderVoteTally();
           })
@@ -3422,19 +3463,19 @@
             if (err) console.warn('[Sync]', status, err);
             this.connected = status === 'SUBSCRIBED';
             this.updateConnectionUI();
+            if (status === 'CHANNEL_ERROR' && ROLE === 'player') {
+              $('playerErrorMsg').textContent = 'Could not connect to live voting. Check your network and refresh.';
+              showPlayerScreen('error');
+            }
             if (this.connected) {
               this.reconnectAttempts = 0;
               void this.trackPresence().then(() => {
+                this.flushPendingState();
                 if (this.isHost) {
                   HostGame.onSyncReady();
                   this.startHostHeartbeat();
                 } else {
-                  this.sendPlayerHello();
-                  this.channel.send({
-                    type: 'broadcast',
-                    event: 'request_state',
-                    payload: { at: Date.now(), voterId, playerName, roomId: this.roomId },
-                  });
+                  this.startPlayerHandshake();
                   PlayerCtrl.onConnected();
                 }
               });
@@ -3454,7 +3495,54 @@
 
       pushState(payload) {
         if (!this.channel || !this.isHost) return;
+        if (!this.connected) {
+          this.pendingState = payload;
+          return;
+        }
+        this.pendingState = null;
         this.channel.send({ type: 'broadcast', event: 'room_state', payload });
+      },
+
+      flushPendingState() {
+        if (!this.isHost || !this.pendingState) return;
+        const payload = this.pendingState;
+        this.pendingState = null;
+        this.pushState(payload);
+      },
+
+      requestHostState() {
+        if (this.isHost || !this.channel || !this.connected) return;
+        this.sendPlayerHello();
+        this.channel.send({
+          type: 'broadcast',
+          event: 'request_state',
+          payload: { at: Date.now(), voterId, playerName, roomId: this.roomId },
+        });
+      },
+
+      startPlayerHandshake() {
+        if (this.isHost) return;
+        if (this.handshakeTimer) {
+          clearInterval(this.handshakeTimer);
+          this.handshakeTimer = null;
+        }
+        let attempts = 0;
+        const tick = () => {
+          if (this.isHost || !this.connected) return;
+          if (PlayerCtrl.remote?.roomId === this.roomId) {
+            clearInterval(this.handshakeTimer);
+            this.handshakeTimer = null;
+            return;
+          }
+          attempts++;
+          this.requestHostState();
+          if (attempts >= 20) {
+            clearInterval(this.handshakeTimer);
+            this.handshakeTimer = null;
+          }
+        };
+        tick();
+        this.handshakeTimer = setInterval(tick, 2000);
       },
 
       sendVote(choiceIndex, round) {
@@ -3514,9 +3602,11 @@
 
       registerPlayer(vid, name, roomId) {
         if (!this.isHost || !vid) return;
-        if (roomId && roomId !== this.roomId) return;
+        const rid = (roomId || '').trim().toLowerCase();
+        if (rid && rid !== this.roomId) return;
         this.joinedPlayers.set(vid, { name: (name || 'Trainer').trim(), at: Date.now() });
         this.refreshPresence();
+        HostGame.renderVoteTally();
       },
 
       sendPlayerHello() {
@@ -3528,16 +3618,16 @@
         });
       },
 
-      /** Count connected phones — presence keys + hello registry fallback */
+      /** Count connected phones — presence + hello registry fallback */
       countPresentPlayers() {
         const state = this.channel?.presenceState?.() || {};
         const ids = new Set();
         for (const [key, presences] of Object.entries(state)) {
-          if (this.isHost && key === voterId) continue;
+          if (key === 'host') continue;
           const list = Array.isArray(presences) ? presences : [presences];
           for (const meta of list) {
             if (meta?.role === 'host') continue;
-            ids.add(meta?.id || key);
+            ids.add(meta?.id || voterIdFromPresenceKey(key) || key);
           }
         }
         if (this.isHost) {
@@ -3584,6 +3674,17 @@
         }
         const el = $('syncStatusBar');
         if (el) el.textContent = ROLE === 'host' ? label : '';
+        this.updatePlayerSyncBar(label);
+      },
+
+      updatePlayerSyncBar(hostLabel) {
+        if (ROLE !== 'player') return;
+        const room = this.roomId || ROOM_ID || '—';
+        const syncTxt = this.connected
+          ? (PlayerCtrl.remote?.roomId === room ? `🟢 Synced · room ${room}` : `🟡 Syncing · room ${room}`)
+          : (hostLabel || '🟡 Connecting…');
+        $('playerSyncBar') && ($('playerSyncBar').textContent = syncTxt);
+        $('playerWaitSyncBar') && ($('playerWaitSyncBar').textContent = syncTxt);
       },
     };
 
@@ -8134,6 +8235,7 @@
         if (!ROOM_ID) {
           ROOM_ID = generateRoomId();
         }
+        ROOM_ID = ROOM_ID.toLowerCase();
         syncHostUrlBar();
         if (isLocalDevOrigin()) {
           const warn = $('deployWarning');
@@ -8287,6 +8389,7 @@
           roomId: ROOM_ID,
           choices: state.choices,
           votingOpen: phase === 'round' && !state.isRevealed && !this.revealing,
+          connectedPlayerCount: sync?.countPresentPlayers?.() ?? 0,
           voteRecords: state.voteRecords.map(v => ({ ...v })),
           revealedName: state.isRevealed ? state.currentPokemon?.name : null,
           correctChoiceIndex: state.isRevealed && state.choices?.length
@@ -8624,6 +8727,13 @@
         const input = $('playerNameInput');
         const form = $('playerNameForm');
         const connecting = $('playerConnecting');
+        if (ROOM_ID) {
+          const rl = $('playerRoomLabel');
+          if (rl) {
+            rl.textContent = `Room ${ROOM_ID}`;
+            rl.classList.remove('hidden');
+          }
+        }
         if (playerName) input.value = playerName;
 
         $('playerNameSubmit').onclick = () => this.submitName();
@@ -8913,8 +9023,9 @@
 
       onState(payload) {
         this.remote = payload;
+        sync?.updatePlayerSyncBar();
         if (!payload) return;
-        if (payload.roomId && payload.roomId !== ROOM_ID) {
+        if (payload.roomId && payload.roomId.toLowerCase() !== ROOM_ID) {
           $('playerErrorMsg').textContent = `Wrong room (${ROOM_ID}). Scan the QR on the host TV again (room ${payload.roomId}).`;
           showPlayerScreen('error');
           return;
@@ -9078,7 +9189,9 @@
         ).join('');
 
         if (!alreadyVoted && !(payload.choices || []).length) {
-          $('playerVoteStatus').textContent = 'Waiting for choices from host…';
+          $('playerVoteStatus').textContent = payload.connectedPlayerCount != null
+            ? `Waiting for choices from host… (${payload.connectedPlayerCount} in room)`
+            : 'Waiting for choices from host…';
         }
       },
 
