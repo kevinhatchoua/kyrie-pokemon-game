@@ -1048,7 +1048,13 @@
       z-index: 52;
       pointer-events: none;
       text-align: center;
-      padding: var(--pf-spacer-xs) calc(min(14rem, 36vw) + var(--pf-spacer-lg)) var(--pf-spacer-xs) var(--pf-spacer-md);
+      padding: var(--pf-spacer-xs) var(--pf-spacer-md);
+    }
+    @media (min-width: 640px) {
+      .host-masthead,
+      #titleHero {
+        padding-right: calc(min(14rem, 36vw) + var(--pf-spacer-lg));
+      }
     }
     #titleHero .title-main {
       font-family: var(--font-display);
@@ -1126,6 +1132,7 @@
       gap: var(--pf-spacer-sm);
       grid-template-columns: repeat(2, minmax(0, 1fr));
       grid-auto-rows: 3.5rem;
+      flex-shrink: 0;
     }
     #typeGrid .type-btn {
       cursor: pointer;
@@ -1272,6 +1279,7 @@
       flex-direction: column;
       align-items: center;
       gap: var(--pf-spacer-xs);
+      flex-shrink: 0;
     }
 
     /* ── TCG card ── */
@@ -1369,6 +1377,49 @@
     body:not([data-role="host"]) #manualScoreOverlay { display: none !important; }
     @media (max-width: 639px) {
       body[data-role="host"] #manualScoreToggle { display: none !important; }
+      /* Free vertical space for type grid / TCG card on phones */
+      body[data-role="host"] #hostApp:has(#gameScreen:not(.hidden-screen)) #titleHero {
+        display: none;
+      }
+      #titleHero .title-main {
+        font-size: clamp(1.15rem, 5.5vw, var(--pf-font-size-heading-2xl));
+      }
+      #titleHero .title-sub {
+        font-size: clamp(0.95rem, 4.2vw, var(--pf-font-size-heading-lg));
+      }
+      #startScreen:not(.hidden-screen) {
+        justify-content: flex-start;
+        padding-bottom: var(--pf-spacer-lg);
+      }
+      #liveVotesPanel {
+        position: static !important;
+        width: 100%;
+        max-width: var(--game-stage-max);
+        max-height: none;
+        margin: 0 auto var(--pf-spacer-xs);
+        order: -1;
+      }
+      #hostStage > #gameScreen:not(.hidden-screen) {
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #gameScrollPane {
+        flex: 1 1 auto;
+        min-height: min(42vh, 22rem);
+        overflow-y: auto;
+      }
+      #gameControlDock {
+        flex-shrink: 0;
+      }
+      #hostControlBar .control-bar-inner {
+        flex-wrap: wrap;
+        gap: var(--pf-spacer-sm);
+      }
+      #playerApp:not(.hidden) {
+        pointer-events: auto !important;
+        z-index: 55;
+      }
     }
     #hostApp:has(#deployWarning:not(.hidden)) #manualScoreToggle { top: 2.25rem; }
 
