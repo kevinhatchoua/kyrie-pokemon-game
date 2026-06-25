@@ -1886,8 +1886,11 @@
           <p class="control-bar-label font-arcade text-amber-400 leading-tight">SCAN TO VOTE</p>
           <p class="text-slate-50 leading-tight hidden sm:block">Connect to house Wi-Fi</p>
           <p id="playerCountBar" class="text-neon-cyan font-bold mt-0.5">📱 0 players</p>
+          <p id="hostRoomCode" class="text-amber-300 font-mono text-xs font-bold"></p>
           <p id="syncStatusBar" class="font-bold text-neon-cyan leading-tight"></p>
-          <p id="joinUrlBar" class="text-slate-400 truncate max-w-[14rem] font-mono hidden md:block"></p>
+          <p id="joinUrlBar" class="text-slate-400 truncate max-w-[14rem] font-mono text-xs"></p>
+          <a id="hostVoteOnPhoneBtn" href="#" class="hidden text-fuchsia-300 text-xs font-bold underline mt-1">Vote on this phone →</a>
+          <p id="hostMobileTvHint" class="hidden text-blue-300/80 text-xs mt-1 leading-snug">Other phones: scan the QR (this screen is the host TV)</p>
         </div>
         <div class="control-bar-scores">
           <p class="control-bar-label font-arcade text-amber-400 mb-0.5 tracking-wide">🏆 SCORES</p>
@@ -2010,7 +2013,8 @@
     <section id="playerConnect" class="screen flex-1 flex flex-col items-center justify-center px-6 gap-6 text-center">
       <div id="playerNameForm" class="w-full max-w-sm flex flex-col gap-4">
         <h1 class="font-arcade text-4xl text-yellow-400">Join the Party!</h1>
-        <p class="text-blue-200 text-sm">Enter your name so the host can see your vote</p>
+        <p class="text-blue-200 text-sm">Enter your name — then tap your guess each round</p>
+        <p class="text-fuchsia-300 text-xs font-bold">Scan the QR on the host TV (not the main game URL)</p>
         <p id="playerRoomLabel" class="text-blue-300/70 text-xs font-mono hidden"></p>
         <input id="playerNameInput" type="text" maxlength="20" placeholder="Your name"
           class="w-full px-4 py-3 rounded-xl bg-white/10 border-2 border-yellow-400/50 text-white text-lg font-bold text-center placeholder:text-blue-300/50 focus:outline-none focus:border-yellow-400" />
@@ -3309,6 +3313,22 @@
       return String(key).replace(/^player-/, '');
     }
 
+    /** Supabase broadcast envelope → inner payload (handles API shape changes) */
+    function broadcastPayload(envelope) {
+      if (!envelope || typeof envelope !== 'object') return envelope;
+      if (envelope.payload != null && (envelope.type === 'broadcast' || envelope.event)) return envelope.payload;
+      return envelope;
+    }
+
+    function presenceMetas(presences) {
+      if (!presences) return [];
+      if (Array.isArray(presences)) return presences;
+      if (typeof presences === 'object') {
+        return Object.values(presences).flatMap(v => Array.isArray(v) ? v : [v]);
+      }
+      return [presences];
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // REALTIME SYNC (Supabase Broadcast — global, any network)
     // Host on Wi-Fi + players on 4G/5G share one Supabase channel per room.
@@ -3397,49 +3417,52 @@
         });
 
         this.channel
-          .on('broadcast', { event: 'room_state' }, ({ payload }) => {
+          .on('broadcast', { event: 'room_state' }, (msg) => {
             if (this.isHost) return;
-            PlayerCtrl.onState(payload);
+            PlayerCtrl.onState(broadcastPayload(msg));
           })
-          .on('broadcast', { event: 'request_state' }, ({ payload }) => {
+          .on('broadcast', { event: 'request_state' }, (msg) => {
+            const payload = broadcastPayload(msg);
             if (this.isHost) {
               this.registerPlayer(payload?.voterId, payload?.playerName, payload?.roomId);
               HostGame.renderVoteTally();
               HostGame.broadcast();
             }
           })
-          .on('broadcast', { event: 'player_hello' }, ({ payload }) => {
+          .on('broadcast', { event: 'player_hello' }, (msg) => {
+            const payload = broadcastPayload(msg);
             if (!this.isHost) return;
             this.registerPlayer(payload?.voterId, payload?.playerName, payload?.roomId);
             HostGame.renderVoteTally();
             setTimeout(() => HostGame.broadcast(), 150);
           })
-          .on('broadcast', { event: 'vote' }, ({ payload }) => {
+          .on('broadcast', { event: 'vote' }, (msg) => {
             if (!this.isHost) return;
-            HostGame.onVote(payload);
+            HostGame.onVote(broadcastPayload(msg));
           })
-          .on('broadcast', { event: 'battle_vote' }, ({ payload }) => {
+          .on('broadcast', { event: 'battle_vote' }, (msg) => {
             if (!this.isHost) return;
+            const payload = broadcastPayload(msg);
             if (RandomDuel.active) RandomDuel.onBattleVote(payload);
             else ArenaRoyale.onVote(payload);
           })
-          .on('broadcast', { event: 'draft_pick' }, ({ payload }) => {
+          .on('broadcast', { event: 'draft_pick' }, (msg) => {
             if (!this.isHost) return;
+            const payload = broadcastPayload(msg);
             if (RandomDuel.active) RandomDuel.onDraftPick(payload);
             else ArenaRoyale.onDraftPick(payload);
           })
-          .on('broadcast', { event: 'arena_enter' }, ({ payload }) => {
+          .on('broadcast', { event: 'arena_enter' }, (msg) => {
             if (!this.isHost) return;
-            ArenaRoyale.onArenaEnter(payload);
+            ArenaRoyale.onArenaEnter(broadcastPayload(msg));
           })
-          .on('broadcast', { event: 'arena_lock' }, ({ payload }) => {
+          .on('broadcast', { event: 'arena_lock' }, (msg) => {
             if (!this.isHost) return;
-            ArenaRoyale.onArenaLock(payload);
+            ArenaRoyale.onArenaLock(broadcastPayload(msg));
           })
-          .on('broadcast', { event: 'score_update' }, ({ payload }) => {
-            /* Player phones → host: localStorage-validated cumulative score */
+          .on('broadcast', { event: 'score_update' }, (msg) => {
             if (!this.isHost) return;
-            HostGame.onScoreUpdate(payload);
+            HostGame.onScoreUpdate(broadcastPayload(msg));
           })
           .on('presence', { event: 'sync' }, () => {
             this.ingestPresenceState();
@@ -3449,8 +3472,8 @@
               HostGame.broadcast();
             }
           })
-          .on('presence', { event: 'join' }, ({ newPresences }) => {
-            this.ingestPresenceJoin(newPresences);
+          .on('presence', { event: 'join' }, (msg) => {
+            this.ingestPresenceJoin(msg?.key, msg?.newPresences);
             this.refreshPresence();
             if (this.isHost) {
               HostGame.renderVoteTally();
@@ -3565,13 +3588,18 @@
         }, 8000);
       },
 
-      ingestPresenceJoin(newPresences) {
-        if (!this.isHost || !newPresences) return;
-        const list = Array.isArray(newPresences) ? newPresences : [newPresences];
-        for (const meta of list) {
+      ingestPresenceJoin(key, newPresences) {
+        if (!this.isHost) return;
+        for (const meta of presenceMetas(newPresences)) {
           if (meta?.role === 'player' && meta?.id) {
             this.registerPlayer(meta.id, meta.name, this.roomId);
           }
+        }
+        const vid = voterIdFromPresenceKey(key);
+        if (vid) {
+          const metas = presenceMetas(newPresences);
+          const meta = metas.find(m => m?.id === vid) || metas[0];
+          this.registerPlayer(vid, meta?.name, this.roomId);
         }
       },
 
@@ -3580,10 +3608,12 @@
         const state = this.channel?.presenceState?.() || {};
         for (const [key, presences] of Object.entries(state)) {
           if (key === 'host') continue;
-          const list = Array.isArray(presences) ? presences : [presences];
-          for (const meta of list) {
+          for (const meta of presenceMetas(presences)) {
             if (meta?.role === 'player' && meta?.id) {
               this.registerPlayer(meta.id, meta.name, this.roomId);
+            } else {
+              const vid = voterIdFromPresenceKey(key);
+              if (vid) this.registerPlayer(vid, meta?.name, this.roomId);
             }
           }
         }
@@ -3648,12 +3678,7 @@
         if (!this.isHost || !vid) return;
         const rid = (roomId || '').trim().toLowerCase();
         if (rid && rid !== this.roomId) return;
-        const clean = (name || 'Trainer').trim();
-        const prev = this.joinedPlayers.get(vid);
-        if (prev?.name === clean && prev?.at) {
-          this.refreshPresence();
-          return;
-        }
+        const clean = (name || this.joinedPlayers.get(vid)?.name || 'Trainer').trim();
         this.joinedPlayers.set(vid, { name: clean, at: Date.now() });
         this.refreshPresence();
         HostGame.renderVoteTally();
@@ -3755,6 +3780,20 @@
         const url = this.playerUrl();
         const el = $('joinUrlBar');
         if (el) el.textContent = url;
+        const roomEl = $('hostRoomCode');
+        if (roomEl && ROOM_ID) roomEl.textContent = `Room ${ROOM_ID}`;
+        this.updateHostMobileHints();
+      },
+
+      updateHostMobileHints() {
+        if (ROLE !== 'host') return;
+        const mobile = isMobileLayout();
+        $('hostMobileTvHint')?.classList.toggle('hidden', !mobile);
+        const voteLink = $('hostVoteOnPhoneBtn');
+        if (voteLink && ROOM_ID) {
+          voteLink.href = this.playerUrl();
+          voteLink.classList.toggle('hidden', !mobile);
+        }
       },
 
       /** Compact QR for bottom control bar */
@@ -3797,10 +3836,18 @@
         this._resizeBound = true;
         window.addEventListener('resize', () => {
           clearTimeout(this.resizeTimer);
-          this.resizeTimer = setTimeout(() => this.renderAll(), 180);
+          this.resizeTimer = setTimeout(() => {
+            this.renderAll();
+            this.updateHostMobileHints();
+            HostGame.renderHostVoteChoices();
+          }, 180);
         });
         window.addEventListener('orientationchange', () => {
-          setTimeout(() => this.renderAll(), 280);
+          setTimeout(() => {
+            this.renderAll();
+            this.updateHostMobileHints();
+            HostGame.renderHostVoteChoices();
+          }, 280);
         });
       },
     };
@@ -4509,7 +4556,7 @@
       Object.entries(hostScreens).forEach(([k, el]) => el.classList.toggle('hidden-screen', k !== name));
       $('titleHero')?.classList.toggle('hidden-screen', name === 'loading');
       Leaderboard.setVisible(name !== 'loading');
-      if (name !== 'game') HostGame.renderHostVoteChoices();
+      HostGame.renderHostVoteChoices();
     }
 
     function showPlayerScreen(name) {
