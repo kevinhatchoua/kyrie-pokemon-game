@@ -547,10 +547,20 @@
       to { background: rgb(185 28 28 / 0.96); }
     }
     #randomDuelTriggerOverlay.hidden-overlay { opacity: 0; visibility: hidden; }
-    #randomDuelTriggerOverlay p {
-      font-family: var(--font-display); font-size: clamp(1.75rem, 6vw, 3.5rem); font-weight: 800;
-      color: rgb(254 240 138); text-align: center; text-shadow: 0 4px 0 rgb(153 27 27);
-      letter-spacing: 0.06em; padding: 1rem;
+    #randomDuelTriggerOverlay p { margin: 0; }
+    .challenger-splash { text-align: center; padding: 1.5rem; animation: challengerZoom 0.45s ease-out infinite alternate; }
+    @keyframes challengerZoom {
+      from { transform: scale(1); filter: brightness(1); }
+      to { transform: scale(1.04); filter: brightness(1.12); }
+    }
+    .challenger-splash-main {
+      font-family: var(--font-display); font-size: clamp(1.35rem, 5.5vw, 3.25rem); font-weight: 800;
+      color: rgb(254 240 138); text-shadow: 0 4px 0 rgb(153 27 27), 0 0 24px rgba(255, 200, 0, 0.55);
+      letter-spacing: 0.04em; line-height: 1.15;
+    }
+    .challenger-splash-sub {
+      margin-top: 0.75rem !important; font-family: var(--font-display); font-size: clamp(0.95rem, 3.2vw, 1.35rem);
+      font-weight: 700; color: rgb(254 226 226); letter-spacing: 0.12em;
     }
     #randomDuelOverlay {
       position: fixed; inset: 0; z-index: 275; display: flex; flex-direction: column;
@@ -559,21 +569,697 @@
     }
     #randomDuelOverlay.hidden-overlay { opacity: 0; visibility: hidden; pointer-events: none; }
     #randomDuelOverlay.battle-shake { animation: battleShake 0.48s ease-out; }
+    body.showdown-shake-global #randomDuelOverlay,
+    body.showdown-shake-global #bgSimulationLayer {
+      animation: showdownViewportShake 0.52s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+    @keyframes showdownViewportShake {
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      10% { transform: translate3d(-9px, 5px, 0); }
+      25% { transform: translate3d(8px, -6px, 0); }
+      40% { transform: translate3d(-6px, 4px, 0); }
+      55% { transform: translate3d(5px, -3px, 0); }
+      70% { transform: translate3d(-3px, 2px, 0); }
+    }
+    #showdownThreeContainer {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none !important;
+      overflow: hidden;
+    }
+    #showdownThreeContainer canvas { display: block; width: 100% !important; height: 100% !important; }
+    #randomDuelArenaWrap.showdown-3d-active .showdown-stadium-bg { opacity: 0.35; }
+    .showdown-side-arrows {
+      position: absolute; left: 0.35rem; top: 50%; z-index: 5; pointer-events: none;
+      transform: translateY(-50%); font-size: clamp(1.5rem, 4vw, 2.5rem); color: #f472b6;
+      text-shadow: 0 0 16px rgba(244, 114, 182, 0.75); opacity: 0.55;
+      animation: sideArrowPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes sideArrowPulse {
+      0%, 100% { opacity: 0.35; transform: translateY(-50%) scale(1); }
+      50% { opacity: 0.85; transform: translateY(-50%) scale(1.08); }
+    }
+    .showdown-bench-card { position: relative; }
+    .showdown-bench-card.cmd-attack-slam { animation: cmdAttackSlam 0.58s cubic-bezier(0.34, 1.45, 0.64, 1); }
+    @keyframes cmdAttackSlam {
+      0% { transform: translate3d(0, 0, 0) scale(1) rotateX(0deg); }
+      22% { transform: translate3d(0, -10px, 0) scale(0.9) rotateX(14deg); }
+      52% { transform: translate3d(var(--lunge-x, 0), var(--lunge-y, -18px), 0) scale(1.1) rotateX(-10deg); }
+      100% { transform: translate3d(0, 0, 0) scale(1) rotateX(0deg); }
+    }
+    .showdown-cmd-shield {
+      position: absolute; inset: -10%; z-index: 6; pointer-events: none;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      border: 3px solid rgba(56, 189, 248, 0.95);
+      background: rgba(56, 189, 248, 0.18);
+      box-shadow: 0 0 24px rgba(56, 189, 248, 0.55), inset 0 0 20px rgba(147, 197, 253, 0.35);
+      animation: shieldPulse 1s ease-out forwards;
+    }
+    @keyframes shieldPulse {
+      0% { opacity: 0; transform: scale(0.5); }
+      35% { opacity: 1; transform: scale(1.08); }
+      100% { opacity: 0.85; transform: scale(1); }
+    }
+    .showdown-cmd-buff-sparks {
+      position: absolute; inset: -15%; z-index: 6; pointer-events: none; overflow: hidden;
+      animation: buffScale 0.85s ease-out;
+    }
+    .showdown-cmd-buff-sparks::before,
+    .showdown-cmd-buff-sparks::after {
+      content: '✦'; position: absolute; left: 50%; font-size: 1.25rem; color: #fde047;
+      text-shadow: 0 0 12px rgba(250, 204, 21, 0.9);
+      animation: buffSparkRise 0.9s ease-out infinite;
+    }
+    .showdown-cmd-buff-sparks::before { bottom: 10%; animation-delay: 0s; margin-left: -1.2rem; }
+    .showdown-cmd-buff-sparks::after { bottom: 15%; animation-delay: 0.25s; margin-left: 0.6rem; content: '★'; }
+    @keyframes buffScale {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.12); }
+      100% { transform: scale(1.06); }
+    }
+    @keyframes buffSparkRise {
+      0% { opacity: 0; transform: translate3d(0, 20px, 0) scale(0.4); }
+      40% { opacity: 1; }
+      100% { opacity: 0; transform: translate3d(0, -40px, 0) scale(1.2); }
+    }
+    .showdown-cmd-heal-ring {
+      position: absolute; inset: 0; z-index: 6; pointer-events: none; border-radius: 50%;
+      border: 4px solid rgba(74, 222, 128, 0.85);
+      box-shadow: 0 0 28px rgba(74, 222, 128, 0.55);
+      animation: healRingExpand 0.85s ease-out forwards;
+    }
+    @keyframes healRingExpand {
+      0% { opacity: 0.9; transform: scale(0.35); }
+      100% { opacity: 0; transform: scale(1.45); }
+    }
+    .showdown-cmd-buff-active { transform: scale(1.06); transition: transform 0.35s ease; }
+    .showdown-cmd-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem;
+    }
+    .showdown-cmd-btn {
+      font-family: var(--font-display); font-size: 0.78rem; font-weight: 800;
+      padding: 0.55rem 0.35rem; border-radius: 0.65rem;
+      border: 2px solid rgba(250, 204, 21, 0.45); background: rgba(9, 9, 11, 0.88);
+      color: rgb(254 240 138);
+    }
+    #bgmTrackSelect {
+      max-width: 7.5rem; font-size: 0.58rem; font-weight: 700; padding: 0.15rem 0.25rem;
+      border-radius: 0.35rem; border: 1px solid rgba(250, 204, 21, 0.45);
+      background: rgba(9, 9, 11, 0.92); color: rgb(253 224 71);
+    }
     #randomDuelOverlay header {
       padding: 0.75rem 1rem; text-align: center; border-bottom: 2px solid rgb(250 204 21 / 0.35);
       background: rgb(9 9 11 / 0.98); flex-shrink: 0;
     }
     #randomDuelArenaWrap {
       position: relative; flex: 1; min-height: 0; overflow: hidden;
+      background: #0a1628;
+    }
+    #randomDuelArenaWrap .arena-gradient { opacity: 0.35; }
+    .showdown-stadium-bg {
+      position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 120% 80% at 50% 100%, rgba(34, 197, 94, 0.35) 0%, transparent 55%),
+        radial-gradient(ellipse 90% 50% at 50% 0%, rgba(59, 130, 246, 0.22) 0%, transparent 60%),
+        linear-gradient(180deg, #0c1445 0%, #1e3a5f 38%, #14532d 72%, #166534 100%);
+    }
+    .showdown-stadium-lights {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(255,255,255,0.14) 0%, transparent 28%),
+        radial-gradient(circle at 88% 8%, rgba(255,255,255,0.14) 0%, transparent 28%),
+        repeating-linear-gradient(90deg, transparent 0, transparent 48px, rgba(255,255,255,0.03) 48px, rgba(255,255,255,0.03) 50px);
+      animation: stadiumLightsPulse 4s ease-in-out infinite;
+    }
+    @keyframes stadiumLightsPulse {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+    .showdown-stadium-field {
+      position: absolute; left: -5%; right: -5%; bottom: 0; height: 42%;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(250, 204, 21, 0.18) 0%, transparent 70%),
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.08) 0, rgba(0,0,0,0.08) 2px, transparent 2px, transparent 14px);
+      transform: perspective(500px) rotateX(52deg);
+      transform-origin: center bottom;
+      border-top: 3px solid rgba(250, 204, 21, 0.45);
+      box-shadow: 0 -8px 40px rgba(250, 204, 21, 0.15);
+    }
+    .showdown-stadium-pokeball {
+      position: absolute; width: min(28vw, 220px); aspect-ratio: 1; border-radius: 50%;
+      left: 50%; top: 50%; transform: translate(-50%, -58%);
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08) 0%, transparent 45%),
+        linear-gradient(180deg, #ef4444 0%, #ef4444 48%, #1a1a2e 48%, #1a1a2e 52%, #f8fafc 52%, #f8fafc 100%);
+      opacity: 0.12; border: 4px solid rgba(255,255,255,0.15);
+    }
+    .showdown-stadium-pokeball::after {
+      content: ''; position: absolute; left: 50%; top: 50%; width: 18%; height: 18%;
+      transform: translate(-50%, -50%); border-radius: 50%;
+      background: #fff; border: 3px solid #1a1a2e;
+    }
+    .showdown-turn-banner {
+      position: absolute; top: 0.4rem; left: 50%; z-index: 7;
+      transform: translate3d(-50%, 0, 0);
+      padding: 0.35rem 1.1rem; border-radius: 999px;
+      font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(0.75rem, 2.4vw, 1.05rem);
+      color: #fef08a; background: rgba(0,0,0,0.72);
+      border: 2px solid rgba(250, 204, 21, 0.65);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+      white-space: nowrap; pointer-events: none;
+    }
+    .showdown-action-banner {
+      position: absolute; left: 50%; bottom: 38%; z-index: 9;
+      transform: translate3d(-50%, 0, 0) scale(0.85);
+      min-width: min(92vw, 36rem); max-width: 94vw;
+      padding: 0.65rem 1rem; border-radius: 1rem; text-align: center;
+      background: rgba(0, 0, 0, 0.82); border: 3px solid rgba(250, 204, 21, 0.55);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.65);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.4, 0.64, 1);
+    }
+    .showdown-action-banner.visible {
+      opacity: 1; transform: translate3d(-50%, 0, 0) scale(1);
+    }
+    .showdown-action-banner .action-trainer {
+      font-family: var(--font-display); font-size: clamp(0.85rem, 2.8vw, 1.15rem);
+      font-weight: 800; color: #fde047; margin: 0 0 0.2rem;
+    }
+    .showdown-action-banner .action-detail {
+      font-size: clamp(0.95rem, 3.2vw, 1.35rem); font-weight: 800; color: #fff; margin: 0;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+    .showdown-action-banner .action-sub { font-size: clamp(0.7rem, 2vw, 0.9rem); color: #93c5fd; margin: 0.25rem 0 0; }
+    .showdown-attack-spotlight {
+      position: absolute; inset: 0; z-index: 11; pointer-events: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.92);
+      transition: opacity 0.18s ease, transform 0.28s cubic-bezier(0.22, 1.2, 0.36, 1);
+    }
+    .showdown-attack-spotlight.active {
+      opacity: 1; transform: scale(1);
+    }
+    .showdown-attack-spotlight.hidden { display: none; }
+    .showdown-spotlight-glow {
+      position: absolute; width: min(70vw, 420px); height: min(70vw, 420px); border-radius: 50%;
+      filter: blur(40px); opacity: 0.65;
+      background: var(--spotlight-color, rgba(250,204,21,0.5));
+    }
+    .showdown-spotlight-art {
+      position: relative; z-index: 2; width: min(58vw, 380px); height: min(58vw, 380px);
+      display: flex; align-items: center; justify-content: center;
+      transform: translate3d(0, 0, 0); will-change: transform;
+    }
+    .showdown-spotlight-art.spotlight-anim-kick { animation: spotlightKick 0.9s cubic-bezier(0.34, 1.35, 0.64, 1); }
+    .showdown-spotlight-art.spotlight-anim-punch { animation: spotlightPunch 0.85s cubic-bezier(0.34, 1.35, 0.64, 1); }
+    .showdown-spotlight-art.spotlight-anim-chop { animation: spotlightChop 0.8s ease-out; }
+    .showdown-spotlight-art.spotlight-anim-beam { animation: spotlightBeam 1s ease-out; }
+    .showdown-spotlight-art.spotlight-anim-brawl { animation: spotlightBrawl 0.95s cubic-bezier(0.22, 1.2, 0.36, 1); }
+    .showdown-spotlight-art.spotlight-anim-leap { animation: spotlightLeap 0.9s cubic-bezier(0.34, 1.35, 0.64, 1); }
+    .showdown-spotlight-art.spotlight-anim-strike { animation: spotlightLunge 0.75s cubic-bezier(0.34, 1.35, 0.64, 1); }
+    @keyframes spotlightKick {
+      0% { transform: translate3d(-40px, 20px, 0) scale(0.5) rotate(-15deg); opacity: 0.2; }
+      40% { transform: translate3d(30px, -20px, 0) scale(1.12) rotate(8deg); opacity: 1; }
+      100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }
+    }
+    @keyframes spotlightPunch {
+      0% { transform: translate3d(0, 40px, 0) scale(0.55); opacity: 0.25; }
+      35% { transform: translate3d(0, -18px, 0) scale(1.15); opacity: 1; }
+      55% { transform: translate3d(0, 8px, 0) scale(0.98); }
+      100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+    }
+    @keyframes spotlightChop {
+      0% { transform: translate3d(20px, -30px, 0) scale(0.6) rotate(25deg); opacity: 0.3; }
+      45% { transform: translate3d(-10px, 10px, 0) scale(1.1) rotate(-12deg); opacity: 1; }
+      100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }
+    }
+    @keyframes spotlightBeam {
+      0% { transform: scale(0.4); opacity: 0.2; filter: brightness(2); }
+      30% { transform: scale(1.08); opacity: 1; filter: brightness(1.4); }
+      100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+    }
+    @keyframes spotlightBrawl {
+      0% { transform: translate3d(0, 30px, 0) scale(0.5); opacity: 0.2; }
+      25% { transform: translate3d(-12px, -8px, 0) scale(1.05) rotate(-4deg); }
+      50% { transform: translate3d(12px, -12px, 0) scale(1.1) rotate(4deg); opacity: 1; }
+      100% { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); opacity: 1; }
+    }
+    @keyframes spotlightLeap {
+      0% { transform: translate3d(0, 60px, 0) scale(0.45); opacity: 0.2; }
+      40% { transform: translate3d(0, -40px, 0) scale(1.12); opacity: 1; }
+      100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+    }
+    .showdown-spotlight-bg {
+      position: absolute; inset: 8%; z-index: 1; opacity: 0.35;
+      object-fit: contain; filter: blur(2px) brightness(1.1);
+    }
+    .showdown-spotlight-sprite {
+      position: relative; z-index: 3; width: 88%; height: 88%; object-fit: contain;
+      filter: drop-shadow(0 16px 32px rgba(0,0,0,0.75)) drop-shadow(0 0 40px var(--spotlight-color, rgba(255,203,5,0.4)));
+      image-rendering: pixelated;
+    }
+    .showdown-move-fx {
+      position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0;
+    }
+    .showdown-move-fx.active { opacity: 1; }
+    .showdown-move-fx.fx-kick::after {
+      content: '💥'; position: absolute; right: 8%; top: 35%; font-size: 3rem;
+      animation: fxKickHit 0.7s ease-out forwards;
+    }
+    .showdown-move-fx.fx-punch::after {
+      content: '👊'; position: absolute; left: 50%; top: 40%; font-size: 3.5rem;
+      transform: translateX(-50%); animation: fxPunchHit 0.65s ease-out forwards;
+    }
+    .showdown-move-fx.fx-chop::after {
+      content: '⚔'; position: absolute; left: 20%; top: 30%; font-size: 3rem;
+      animation: fxChopSlash 0.6s ease-out forwards;
+    }
+    .showdown-move-fx.fx-beam::before {
+      content: ''; position: absolute; left: 10%; top: 50%; width: 80%; height: 6px;
+      background: linear-gradient(90deg, transparent, var(--spotlight-color, #fbbf24), transparent);
+      box-shadow: 0 0 24px var(--spotlight-color, #fbbf24);
+      animation: fxBeamLine 0.75s ease-out forwards;
+    }
+    .showdown-move-fx.fx-brawl::after {
+      content: '✦'; position: absolute; inset: 0; font-size: 5rem; color: var(--spotlight-color, #fbbf24);
+      display: flex; align-items: center; justify-content: center;
+      animation: fxBrawlBurst 0.8s ease-out forwards;
+    }
+    @keyframes fxKickHit { 0% { transform: scale(0.2); opacity: 0; } 40% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
+    @keyframes fxPunchHit { 0% { transform: translateX(-50%) scale(0.3); opacity: 0; } 35% { transform: translateX(-50%) scale(1.4); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 0.5; } }
+    @keyframes fxChopSlash { 0% { transform: rotate(40deg) scale(0.3); opacity: 0; } 50% { transform: rotate(-20deg) scale(1.2); opacity: 1; } 100% { transform: rotate(0) scale(1); opacity: 0.4; } }
+    @keyframes fxBeamLine { 0% { transform: scaleX(0); opacity: 0; } 30% { transform: scaleX(1); opacity: 1; } 100% { opacity: 0.3; } }
+    @keyframes fxBrawlBurst { 0% { transform: scale(0.2); opacity: 0; } 40% { transform: scale(1.2); opacity: 0.9; } 100% { transform: scale(1.5); opacity: 0; } }
+    .showdown-spotlight-type {
+      position: relative; z-index: 4; width: 2.5rem; height: 1rem; object-fit: contain;
+      margin-top: 0.35rem; image-rendering: pixelated;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+    }
+    @keyframes spotlightLunge {
+      0% { transform: translate3d(0, 30px, 0) scale(0.55); opacity: 0.3; }
+      35% { transform: translate3d(0, -12px, 0) scale(1.08); opacity: 1; }
+      100% { transform: translate3d(0, 0, 0) scale(1); opacity: 1; }
+    }
+    .showdown-spotlight-art img.showdown-spotlight-bg {
+      width: 100%; height: 100%;
+    }
+    .showdown-spotlight-move {
+      position: relative; z-index: 3; margin-top: 0.5rem;
+      font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(1.25rem, 4.5vw, 2.25rem); color: #fff;
+      text-shadow: 0 0 20px var(--spotlight-color, #fbbf24), 0 4px 0 #7f1d1d;
+      letter-spacing: 0.04em;
+    }
+    .showdown-spotlight-trainer {
+      position: relative; z-index: 3; margin-top: 0.15rem;
+      font-size: clamp(0.8rem, 2.5vw, 1.1rem); font-weight: 800; color: #fde047;
     }
     #randomDuelVfxCanvas {
       position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3;
     }
     #randomDuelCombatGrid {
-      position: absolute; inset: 0; z-index: 2; display: grid;
-      grid-template-columns: 1fr auto 1fr; gap: 0.5rem; padding: 1rem 0.75rem;
-      align-items: center; align-content: center;
+      position: absolute; inset: 0; z-index: 4;
+      display: flex; flex-direction: column; min-height: 0;
+      padding: 0.35rem 0.5rem;
     }
+    .showdown-field-root, .showdown-field {
+      display: flex; flex-direction: column; flex: 1; min-height: 0; gap: 0.25rem;
+    }
+    .showdown-half {
+      flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 0.4rem;
+      border-radius: 0.85rem; padding: 0.45rem 0.55rem;
+      background: rgba(0, 0, 0, 0.52); border: 2px solid rgba(255,255,255,0.14);
+      backdrop-filter: blur(6px);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .showdown-half.showdown-active {
+      border-color: rgba(250, 204, 21, 0.85);
+      box-shadow: 0 0 28px rgba(250, 204, 21, 0.35), inset 0 0 20px rgba(250, 204, 21, 0.08);
+    }
+    .showdown-half--top { justify-content: flex-start; }
+    .showdown-half--bottom { justify-content: flex-end; }
+    .showdown-trainer-bar {
+      display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;
+      padding: 0.25rem 0.35rem; border-radius: 0.5rem;
+      background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.12);
+    }
+    .showdown-trainer-name {
+      font-family: var(--font-display); font-size: clamp(0.85rem, 2.8vw, 1.15rem);
+      font-weight: 800; color: rgb(254 240 138); max-width: 32%; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+    .showdown-trainer-hp-wrap {
+      flex: 1; height: 0.75rem; border-radius: 999px; overflow: hidden;
+      background: rgba(0,0,0,0.65); border: 2px solid rgba(255,255,255,0.2);
+    }
+    .showdown-trainer-hp-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #ef4444, #f97316);
+      transition: width 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+      will-change: width;
+    }
+    .showdown-trainer-hp-num { font-size: clamp(0.7rem, 2vw, 0.9rem); font-weight: 800; color: rgb(254 202 202); white-space: nowrap; }
+    .showdown-energy-pip {
+      font-size: clamp(0.7rem, 2vw, 0.95rem); font-weight: 800; color: rgb(250 204 21);
+      background: rgba(250,204,21,0.18); padding: 0.15rem 0.45rem; border-radius: 999px;
+      border: 1px solid rgba(250,204,21,0.45);
+    }
+    .showdown-combo-strip {
+      display: flex; flex-wrap: wrap; gap: 0.2rem; justify-content: center;
+      flex-shrink: 0; padding: 0.1rem 0.2rem 0.2rem;
+    }
+    .showdown-combo-chip {
+      font-size: clamp(0.48rem, 1.35vw, 0.58rem); font-weight: 800;
+      padding: 0.12rem 0.35rem; border-radius: 999px;
+      background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.45);
+      color: rgb(254 240 138); white-space: nowrap;
+      animation: comboChipPop 0.45s cubic-bezier(0.34, 1.35, 0.64, 1);
+    }
+    @keyframes comboChipPop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .hs-minion-card.hs-combo-buff {
+      box-shadow: 0 0 18px rgba(250, 204, 21, 0.35), 0 10px 28px rgba(0,0,0,0.55);
+    }
+    .hs-minion-card .hs-atk.hs-stat-boost { color: #15803d; text-shadow: 0 0 6px rgba(74, 222, 128, 0.5); }
+    .showdown-hud-combos {
+      font-size: 0.62rem; font-weight: 800; color: rgb(253 224 71); text-align: center;
+      line-height: 1.25; margin-top: 0.15rem;
+    }
+    .showdown-bench {
+      flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+      gap: 0.35rem; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+      padding: 0.2rem 0.1rem; scrollbar-width: none;
+    }
+    .showdown-bench::-webkit-scrollbar { display: none; }
+    .showdown-bench-slot.empty {
+      width: min(7rem, 16vw); min-width: 5.25rem; aspect-ratio: 3/4; border-radius: 0.65rem;
+      border: 2px dashed rgba(255,255,255,0.2); opacity: 0.5;
+      background: rgba(0,0,0,0.25);
+    }
+    .showdown-bench-card {
+      width: min(8.75rem, 19vw); min-width: 6.75rem; flex-shrink: 0;
+      transform: translate3d(0, 0, 0); will-change: transform;
+    }
+    .showdown-bench-card .sd-arena-card.sd-shiny {
+      box-shadow: 0 0 24px rgba(232,121,249,0.55), 0 10px 28px rgba(0,0,0,0.55);
+    }
+    /* ── Trainer Showdown bench cards — HP meter + readable header ── */
+    .sd-arena-card {
+      position: relative; width: 100%; aspect-ratio: 5 / 7;
+      border-radius: 0.75rem; overflow: hidden;
+      background: linear-gradient(175deg, #faf6e8 0%, #ede0c4 55%, #dcc9a0 100%);
+      border: 4px solid var(--sd-frame, #2a75bb);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 0 18px color-mix(in srgb, var(--sd-glow, #2a75bb) 42%, transparent),
+        0 8px 22px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column;
+      font-family: var(--font-body);
+    }
+    .sd-arena-card.sd-shiny {
+      border-color: #e879f9;
+      box-shadow: 0 0 20px rgba(232,121,249,0.5), 0 8px 22px rgba(0,0,0,0.5);
+    }
+    .sd-arena-card.sd-combo-buff { box-shadow: 0 0 16px rgba(74, 222, 128, 0.45), 0 8px 22px rgba(0,0,0,0.5); }
+    .sd-card-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.25rem;
+      padding: 0.28rem 0.38rem 0.18rem; z-index: 3;
+      background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.08));
+      border-bottom: 1px solid rgba(0,0,0,0.12);
+    }
+    .sd-mana {
+      min-width: 1.45rem; height: 1.45rem; padding: 0 0.15rem;
+      clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+      background: linear-gradient(145deg, #93c5fd, #2563eb 55%, #1e3a8a);
+      border: 1.5px solid #bfdbfe;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 800; font-size: 0.72rem; color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+      flex-shrink: 0;
+    }
+    .sd-header-hp {
+      display: flex; align-items: baseline; gap: 0.2rem; margin-left: auto;
+      font-family: var(--font-display); font-weight: 800; line-height: 1;
+    }
+    .sd-hp-label {
+      font-size: clamp(0.52rem, 1.4vw, 0.62rem); color: #7f1d1d; letter-spacing: 0.04em;
+    }
+    .sd-hp-value {
+      font-size: clamp(0.68rem, 1.85vw, 0.82rem); color: #b91c1c;
+    }
+    .sd-hp-max { font-size: 0.85em; color: #991b1b; opacity: 0.85; }
+    .sd-portrait {
+      flex: 1 1 auto; min-height: 0; margin: 0.2rem 0.35rem 0.15rem;
+      border-radius: 0.45rem; overflow: hidden;
+      border: 2px solid rgba(0,0,0,0.22);
+      background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(0,0,0,0.08));
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sd-portrait img {
+      width: 92%; height: 92%; object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+    }
+    .sd-type-row {
+      display: flex; justify-content: center; gap: 0.2rem;
+      padding: 0 0.35rem 0.12rem; min-height: 1.1rem;
+    }
+    .sd-type-row .arena-type-pills { justify-content: center; }
+    .sd-hp-meter {
+      height: 0.42rem; margin: 0 0.38rem 0.28rem;
+      background: rgba(0,0,0,0.22); border-radius: 999px; overflow: hidden;
+      border: 1px solid rgba(0,0,0,0.28);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.25);
+    }
+    .sd-hp-fill {
+      height: 100%; border-radius: 999px;
+      background: linear-gradient(90deg, #4ade80, #22c55e);
+      box-shadow: 0 0 8px rgba(74, 222, 128, 0.45);
+    }
+    .sd-hp-fill.low { background: linear-gradient(90deg, #fbbf24, #f97316); box-shadow: 0 0 8px rgba(251, 191, 36, 0.4); }
+    .sd-hp-fill.critical { background: linear-gradient(90deg, #f87171, #ef4444); box-shadow: 0 0 8px rgba(248, 113, 113, 0.45); }
+    .sd-name {
+      padding: 0.22rem 0.35rem 0.32rem; text-align: center;
+      font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(0.58rem, 1.65vw, 0.72rem); color: #1a1208;
+      letter-spacing: 0.02em; line-height: 1.1;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      border-top: 1px solid rgba(0,0,0,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.25), rgba(0,0,0,0.04));
+    }
+    .sd-atk {
+      position: absolute; left: 0.22rem; bottom: 0.22rem; z-index: 4;
+      min-width: 1.55rem; height: 1.55rem; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 800; font-size: 0.62rem;
+      background: linear-gradient(145deg, #fde68a, #d97706); color: #1a1208;
+      border: 2px solid #ca8a04; box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    /* ── Hearthstone-style Pokémon minion cards ── */
+    .hs-minion-card {
+      position: relative; width: 100%; aspect-ratio: 5 / 7.2;
+      border-radius: 0.85rem; overflow: hidden;
+      background: var(--hs-inner, linear-gradient(175deg,#faf6e8,#e8d9a8));
+      border: 5px solid var(--hs-frame, #2a75bb);
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.35), 0 10px 28px rgba(0,0,0,0.55),
+        inset 0 0 18px rgba(255,255,255,0.12);
+      font-family: var(--font-body);
+    }
+    .hs-minion-card::before {
+      content: ''; position: absolute; inset: 3px; border-radius: 0.65rem; pointer-events: none;
+      border: 2px solid rgba(255,255,255,0.22);
+      box-shadow: inset 0 0 12px rgba(0,0,0,0.15);
+    }
+    .hs-mana {
+      position: absolute; top: 0.15rem; left: 0.15rem; z-index: 4;
+      width: 1.65rem; height: 1.65rem;
+      clip-path: polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%);
+      background: linear-gradient(145deg, #93c5fd, #2563eb 55%, #1e3a8a);
+      border: 2px solid #bfdbfe;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    }
+    .hs-mana span {
+      font-family: var(--font-display); font-weight: 800; font-size: 0.85rem; color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    }
+    .hs-portrait-ring {
+      position: absolute; left: 50%; top: 14%; transform: translateX(-50%);
+      width: 78%; aspect-ratio: 1; z-index: 2;
+    }
+    .hs-portrait {
+      width: 100%; height: 100%; border-radius: 50%;
+      overflow: hidden; border: 4px solid rgba(0,0,0,0.45);
+      background: linear-gradient(180deg, rgba(255,255,255,0.35), rgba(0,0,0,0.15));
+      box-shadow: 0 6px 16px rgba(0,0,0,0.45), inset 0 0 20px rgba(255,255,255,0.15);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hs-portrait img {
+      width: 108%; height: 108%; object-fit: cover; object-position: center 35%;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+    }
+    .hs-name-banner {
+      position: absolute; left: 4%; right: 4%; top: 52%; z-index: 3;
+      padding: 0.2rem 0.35rem; text-align: center;
+      background: linear-gradient(180deg, #f5e6c8 0%, #d4b896 100%);
+      border: 2px solid rgba(0,0,0,0.35); border-radius: 0.35rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+    }
+    .hs-name-banner span {
+      font-family: var(--font-display); font-weight: 800;
+      font-size: clamp(0.58rem, 1.7vw, 0.72rem); color: #1a1208;
+      letter-spacing: 0.02em; line-height: 1.1;
+      display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .hs-text-box {
+      position: absolute; left: 5%; right: 5%; top: 62%; bottom: 22%; z-index: 2;
+      padding: 0.28rem 0.35rem; border-radius: 0.3rem;
+      background: linear-gradient(180deg, rgba(240,236,228,0.95), rgba(210,200,185,0.92));
+      border: 2px solid rgba(0,0,0,0.28);
+      overflow: hidden;
+    }
+    .hs-ability {
+      margin: 0; font-size: clamp(0.48rem, 1.35vw, 0.58rem); line-height: 1.25;
+      color: #1a1208; font-weight: 600;
+    }
+    .hs-ability strong { font-weight: 800; }
+    .hs-move-tag {
+      display: block; margin-top: 0.12rem; font-size: 0.48rem; color: #4a3728; opacity: 0.85;
+    }
+    .hs-atk, .hs-hp {
+      position: absolute; bottom: 0.2rem; z-index: 4;
+      min-width: 1.85rem; height: 1.85rem; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; gap: 0.05rem;
+      font-family: var(--font-display); font-weight: 800; font-size: 0.82rem;
+      border: 3px solid #ca8a04; box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+    }
+    .hs-atk { left: 0.2rem; background: linear-gradient(145deg, #fde68a, #d97706); color: #1a1208; }
+    .hs-hp { right: 0.2rem; background: linear-gradient(145deg, #fecaca, #dc2626); color: #fff; }
+    .hs-gem-icon { font-size: 0.62rem; line-height: 1; }
+    .hs-tribe {
+      position: absolute; left: 50%; bottom: 0.35rem; transform: translateX(-50%);
+      z-index: 3; font-size: 0.48rem; font-weight: 800; letter-spacing: 0.06em;
+      color: rgba(26,18,8,0.75); text-transform: uppercase;
+    }
+    .hs-minion-card.tcg-shiny {
+      border-color: #e879f9;
+      box-shadow: 0 0 22px rgba(232,121,249,0.45), 0 10px 28px rgba(0,0,0,0.55);
+    }
+    .hs-minion-card.hs-compact { aspect-ratio: 3 / 4.2; }
+    .hs-minion-card.hs-compact .hs-text-box { display: none; }
+    .hs-minion-card.hs-compact .hs-name-banner { top: 58%; }
+    .hs-minion-card.hs-compact .hs-portrait-ring { top: 10%; width: 72%; }
+    .showdown-hand-card .hs-minion-card { width: 100%; pointer-events: none; }
+    .showdown-hand-card:disabled .hs-minion-card { filter: grayscale(0.6) brightness(0.7); }
+    .showdown-hand-card--view { pointer-events: none; cursor: default; opacity: 0.92; }
+    .showdown-mid-divider {
+      flex-shrink: 0; text-align: center; font-family: var(--font-display);
+      font-size: clamp(1.35rem, 4vw, 2rem); font-weight: 800; color: rgb(248 113 113);
+      text-shadow: 0 0 16px rgba(248,113,113,0.6), 0 3px 0 rgb(127 29 29); line-height: 1;
+      padding: 0.15rem 0;
+    }
+    #randomDuelTicker {
+      flex-shrink: 0; text-align: center; font-weight: 800; color: rgb(254 240 138);
+      padding: 0.5rem 1rem; font-size: clamp(0.85rem, 2.5vw, 1.05rem); min-height: 1.75rem;
+      background: rgba(0,0,0,0.45); border-top: 1px solid rgba(250,204,21,0.25);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+    #showdownToastStack {
+      width: min(92vw, 28rem);
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      align-items: stretch;
+      pointer-events: none;
+    }
+    .showdown-toast {
+      margin: 0;
+      padding: 0.5rem 0.85rem;
+      border-radius: 0.65rem;
+      background: rgba(0, 0, 0, 0.84);
+      border: 2px solid rgba(250, 204, 21, 0.45);
+      color: rgb(224 242 254);
+      font-weight: 700;
+      font-size: clamp(0.78rem, 2.2vw, 0.92rem);
+      line-height: 1.3;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      transform: translate3d(0, 10px, 0) scale(0.96);
+      transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.34, 1.35, 0.64, 1);
+    }
+    .showdown-toast.visible {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    .showdown-toast.exiting {
+      opacity: 0;
+      transform: translate3d(0, -6px, 0) scale(0.98);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .showdown-toast--turn { border-color: rgba(96, 165, 250, 0.55); color: rgb(191 219 254); }
+    .showdown-toast--action { border-color: rgba(250, 204, 21, 0.55); color: rgb(254 240 138); }
+    .showdown-bench-card.showdown-lunge {
+      animation: showdownLunge 0.52s cubic-bezier(0.34, 1.45, 0.64, 1) forwards;
+    }
+    .showdown-bench-card.showdown-hit {
+      animation: showdownHit 0.42s ease;
+    }
+    @keyframes showdownLunge {
+      0% { transform: translate3d(0, 0, 0) scale(1) rotateY(0deg); }
+      35% { transform: translate3d(0, -6px, 0) scale(0.92) rotateY(-8deg); }
+      55% { transform: translate3d(var(--lunge-x, 0), var(--lunge-y, -12px), 0) scale(1.08) rotateY(0deg); }
+      100% { transform: translate3d(0, 0, 0) scale(1) rotateY(0deg); }
+    }
+    @keyframes showdownHit {
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      25% { transform: translate3d(-6px, 0, 0) rotate(-2deg); }
+      50% { transform: translate3d(6px, 0, 0) rotate(2deg); }
+      75% { transform: translate3d(-3px, 0, 0); }
+    }
+    .showdown-damage-layer {
+      position: absolute; inset: 0; z-index: 8; pointer-events: none; overflow: hidden;
+    }
+    .showdown-damage-float {
+      position: absolute; left: 50%; top: 50%; transform: translate3d(-50%, -50%, 0) scale(0.4);
+      font-family: var(--font-display); font-weight: 800; font-size: clamp(1.5rem, 5vw, 2.75rem);
+      color: #fff; text-shadow: 0 0 12px rgba(255,80,80,0.9), 0 4px 0 #7f1d1d;
+      opacity: 0; will-change: transform, opacity;
+    }
+    .showdown-damage-float.active {
+      animation: showdownDamagePop 0.85s cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
+    }
+    @keyframes showdownDamagePop {
+      0% { opacity: 0; transform: translate3d(-50%, -20%, 0) scale(0.35); }
+      25% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1.15); }
+      70% { opacity: 1; transform: translate3d(-50%, -65%, 0) scale(1); }
+      100% { opacity: 0; transform: translate3d(-50%, -90%, 0) scale(0.95); }
+    }
+    /* Mobile showdown hand + mirror */
+    .showdown-mobile-hud { padding: 0.35rem 0.5rem; border-radius: 0.65rem; background: rgba(0,0,0,0.45); border: 1px solid rgba(250,204,21,0.35); }
+    .showdown-hud-row { display: flex; justify-content: space-between; gap: 0.5rem; font-weight: 800; font-size: 0.85rem; }
+    .showdown-hud-energy { color: rgb(250 204 21); }
+    .showdown-hud-hp { color: rgb(248 113 113); }
+    .showdown-hand-grid {
+      display: flex; gap: 0.3rem; overflow-x: auto; overflow-y: hidden;
+      padding: 0.35rem 0.15rem; -webkit-overflow-scrolling: touch;
+      min-height: 7rem; max-height: 8.5rem;
+    }
+    .showdown-hand-card {
+      flex: 0 0 min(5.5rem, 22vw); position: relative;
+      transform: translate3d(0,0,0); will-change: transform;
+      border: none; background: transparent; padding: 0;
+      touch-action: manipulation; cursor: pointer;
+    }
+    .showdown-hand-card:disabled { opacity: 0.55; cursor: not-allowed; }
+    .showdown-field-mirror { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.35rem; align-items: center; padding: 0.25rem; }
+    .showdown-mirror-side { text-align: center; font-size: 0.62rem; font-weight: 800; color: rgb(191 219 254); }
+    .showdown-mirror-bench { display: flex; gap: 0.2rem; justify-content: center; flex-wrap: wrap; }
+    .showdown-mirror-chip {
+      width: 1.75rem; height: 1.75rem; border-radius: 0.35rem; border: 1px solid rgba(255,255,255,0.25);
+      overflow: hidden; background: rgba(0,0,0,0.4);
+    }
+    .showdown-mirror-chip img { width: 100%; height: 100%; object-fit: contain; }
     .random-duel-side {
       display: flex; flex-direction: column; align-items: center; gap: 0.35rem; min-width: 0;
     }
@@ -706,6 +1392,71 @@
     }
     .draft-pokemon-card img { width: 5.5rem; height: 5.5rem; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45)); }
     .draft-pokemon-card .draft-name { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; color: white; text-align: center; line-height: 1.15; }
+    /* Master Roster — scrollable TCG draft deck on mobile */
+    #playerDraft.master-roster-mode { overflow: hidden; }
+    #playerDraft.master-roster-mode #draftPokemonCards.master-roster-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+      gap: 0.55rem;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.25rem 0.15rem 0.5rem;
+      align-content: start;
+    }
+    .master-roster-card {
+      position: relative; min-height: 9.5rem;
+      background: linear-gradient(165deg, rgba(30,30,50,0.95) 0%, rgba(12,12,24,0.98) 100%);
+      border: 2px solid rgba(250, 204, 21, 0.45); border-radius: 0.75rem;
+      padding: 0.35rem 0.3rem 0.45rem;
+    }
+    .master-roster-card.roster-shiny {
+      border-color: rgba(232, 121, 249, 0.85);
+      box-shadow: 0 0 16px rgba(232, 121, 249, 0.35);
+    }
+    .master-roster-card.picked, .master-roster-card.locked {
+      border-color: rgb(250 204 21); box-shadow: 0 0 18px rgba(250, 204, 21, 0.45);
+    }
+    .master-roster-hp {
+      position: absolute; top: 0.3rem; right: 0.35rem; font-size: 0.55rem; font-weight: 800;
+      color: rgb(254 240 138); background: rgba(0,0,0,0.55); padding: 0.1rem 0.3rem; border-radius: 0.25rem;
+    }
+    .master-roster-sparkle { position: absolute; top: 0.25rem; left: 0.3rem; font-size: 0.75rem; }
+    .master-roster-card img { width: 4.5rem; height: 4.5rem; object-fit: contain; margin: 0.15rem auto 0; display: block; }
+    .master-roster-name { font-size: 0.68rem !important; margin-top: 0.2rem; }
+    /* TCG battle cards — host duel + mobile mirror */
+    .tcg-battle-card {
+      width: 100%; max-width: 11rem; border-radius: 0.85rem; overflow: hidden;
+      background: linear-gradient(165deg, #faf6e8 0%, #e8d9a8 100%);
+      border: 4px solid #2a75bb; box-shadow: 0 10px 28px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column; gap: 0.25rem; padding: 0.4rem;
+    }
+    .tcg-battle-card.tcg-shiny { border-color: #e879f9; box-shadow: 0 0 22px rgba(232,121,249,0.45); }
+    .tcg-battle-hd { display: flex; justify-content: space-between; align-items: center; gap: 0.25rem; font-size: 0.6rem; font-weight: 800; }
+    .tcg-battle-trainer { color: #1e3a5f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%; }
+    .tcg-battle-hp { color: #b91c1c; }
+    .tcg-battle-art img { width: 100%; aspect-ratio: 1; object-fit: contain; background: linear-gradient(180deg,#b8e0f8,#5aa878); border-radius: 0.35rem; }
+    .tcg-battle-name { font-family: var(--font-display); font-size: 0.72rem; font-weight: 800; text-align: center; color: #1a1a2e; }
+    .tcg-battle-wrap { width: 100%; max-width: 11rem; }
+    .tcg-battle-trainer-tag {
+      font-size: 0.58rem; font-weight: 800; color: rgb(254 240 138); text-align: center;
+      margin-bottom: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .tcg-battle-wrap .hs-minion-card { width: 100%; }
+    .random-duel-side .tcg-battle-wrap { max-width: min(14rem, 42vw); margin-inline: auto; }
+    .duel-card-shake-wrap.duel-hit { animation: duelCardShake 0.45s ease; }
+    @keyframes duelCardShake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px) rotate(-1deg); }
+      40% { transform: translateX(8px) rotate(1deg); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+    .player-tcg-duel-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.35rem; align-items: center; margin-bottom: 0.5rem; }
+    .player-tcg-vs { font-family: var(--font-display); font-weight: 800; color: rgb(250 204 21); font-size: 0.85rem; }
+    #playerDuelTcgMirror { flex-shrink: 0; }
     .arena-type-pills { display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; }
     .arena-type-pill {
       display: inline-flex; align-items: center; justify-content: center;
@@ -2041,24 +2792,48 @@
     </div>
   </div>
 
-  <!-- ═══ MID-GAME RANDOM 1v1 DUEL — 30% interrupt on NEXT ═══ -->
+  <!-- ═══ MID-GAME TRAINER SHOWDOWN — 40% interrupt on NEXT ═══ -->
   <div id="randomDuelTriggerOverlay" class="hidden-overlay" aria-hidden="true" aria-live="assertive">
-    <p>⚠️ RANDOM DUEL TRIGGERED! ⚠️</p>
+    <div class="challenger-splash">
+      <p class="challenger-splash-main">⚠️ HERE COMES A NEW CHALLENGER! ⚠️</p>
+      <p class="challenger-splash-sub">TRAINER SHOWDOWN — DEAL YOUR HAND!</p>
+    </div>
   </div>
   <div id="randomDuelOverlay" class="hidden-overlay ui-panel" aria-hidden="true">
     <header>
-      <p id="randomDuelHeadline" class="font-arcade text-2xl sm:text-3xl text-yellow-400">⚔️ RANDOM DUEL ⚔️</p>
-      <p id="randomDuelPhaseLabel" class="text-blue-200 font-bold mt-1">Drafting fighters…</p>
+      <p id="randomDuelHeadline" class="font-arcade text-2xl sm:text-3xl text-yellow-400">⚔️ TRAINER SHOWDOWN ⚔️</p>
+      <p id="randomDuelPhaseLabel" class="text-blue-200 font-bold mt-1">Deploy hand — then pick a command!</p>
     </header>
     <div id="randomDuelArenaWrap">
+      <div id="showdownThreeContainer" aria-hidden="true"></div>
+      <div class="showdown-side-arrows" aria-hidden="true">⇅</div>
+      <div class="showdown-stadium-bg" aria-hidden="true">
+        <div class="showdown-stadium-lights"></div>
+        <div class="showdown-stadium-pokeball"></div>
+        <div class="showdown-stadium-field"></div>
+      </div>
       <div class="arena-gradient" aria-hidden="true"></div>
       <div class="arena-floor" aria-hidden="true"></div>
+      <div id="showdownTurnBanner" class="showdown-turn-banner" aria-live="polite"></div>
+      <div id="showdownActionBanner" class="showdown-action-banner" aria-live="assertive"></div>
+      <div id="showdownAttackSpotlight" class="showdown-attack-spotlight hidden" aria-hidden="true">
+        <div id="showdownSpotlightGlow" class="showdown-spotlight-glow"></div>
+        <div id="showdownSpotlightArtWrap" class="showdown-spotlight-art">
+          <div id="showdownSpotlightMoveFx" class="showdown-move-fx" aria-hidden="true"></div>
+          <img id="showdownSpotlightBg" class="showdown-spotlight-bg img-pending" alt="" draggable="false" />
+          <img id="showdownSpotlightSprite" class="showdown-spotlight-sprite img-pending" alt="" draggable="false" />
+        </div>
+        <img id="showdownSpotlightTypeIcon" class="showdown-spotlight-type" alt="" draggable="false" />
+        <p id="showdownSpotlightMove" class="showdown-spotlight-move"></p>
+        <p id="showdownSpotlightTrainer" class="showdown-spotlight-trainer"></p>
+      </div>
       <div id="randomDuelMoveFlash" class="move-flash" aria-hidden="true"></div>
       <div id="randomDuelLightning" class="lightning-veins" aria-hidden="true"></div>
       <div id="randomDuelImpactBurst" class="impact-burst" aria-hidden="true"></div>
       <div id="randomDuelCriticalSplash" aria-hidden="true">CRITICAL HIT!</div>
       <canvas id="randomDuelVfxCanvas" aria-hidden="true"></canvas>
-      <div id="randomDuelCombatGrid" aria-live="polite"></div>
+      <div id="randomDuelDamageLayer" class="showdown-damage-layer" aria-hidden="true"></div>
+      <div id="randomDuelCombatGrid" class="showdown-field-root" aria-live="polite"></div>
       <div id="randomDuelVictoryBanner" class="hidden" aria-live="assertive">
         <p id="randomDuelVictoryText"></p>
       </div>
@@ -2066,7 +2841,7 @@
     <p id="randomDuelTicker"></p>
     <div class="flex flex-col items-center gap-2 px-4 pb-4 shrink-0">
       <div id="randomDuelTimer" class="battle-timer-ring font-arcade text-3xl text-yellow-400 w-16 h-16 rounded-full border-4 border-yellow-400 flex items-center justify-center">10</div>
-      <div id="randomDuelMoveTally" class="grid grid-cols-2 gap-2 max-w-xl w-full text-sm"></div>
+      <div id="showdownToastStack" class="showdown-toast-stack" aria-live="polite"></div>
     </div>
   </div>
 
@@ -2136,16 +2911,17 @@
       <p id="playerArenaLobbyStatus" class="text-green-400 font-bold text-lg"></p>
     </section>
 
-    <section id="playerDraft" class="screen hidden-screen flex-1 flex flex-col px-3 py-4 gap-3 overflow-y-auto">
+    <section id="playerDraft" class="screen hidden-screen master-roster-mode flex-1 flex flex-col px-3 py-4 gap-3 overflow-hidden">
       <header class="text-center shrink-0">
-        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ DRAFT</p>
+        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ MASTER ROSTER</p>
+        <p class="text-blue-200 text-xs font-bold">Swipe the deck — tap your fighter</p>
         <p id="playerDraftTimer" class="text-yellow-300 font-bold mt-1 text-lg">Tap a fighter</p>
         <div class="arena-step-bar" aria-hidden="true">
           <span class="arena-step active">1 Pick</span>
           <span class="arena-step" id="playerDraftStepLock">2 Lock</span>
         </div>
       </header>
-      <div id="draftPokemonCards" class="draft-pick-grid flex-1 content-center"></div>
+      <div id="draftPokemonCards" class="draft-pick-grid master-roster-grid flex-1 min-h-0"></div>
       <button id="playerDraftLockBtn" type="button" disabled
         class="hidden draft-lock-fab pointer-events-auto disabled:opacity-40">
         🔒 LOCK IN
@@ -2153,9 +2929,18 @@
       <p id="playerDraftStatus" class="text-center text-green-400 font-bold text-sm shrink-0" aria-live="polite"></p>
     </section>
 
-    <section id="playerBattle" class="screen hidden-screen flex-1 flex flex-col px-3 py-4 gap-3 overflow-y-auto">
+    <section id="playerBattle" class="screen hidden-screen flex-1 flex flex-col px-3 py-4 gap-3 overflow-hidden">
+      <div id="playerShowdownHud" class="showdown-mobile-hud hidden shrink-0" aria-hidden="true">
+        <div class="showdown-hud-row">
+          <span id="playerShowdownEnergy" class="showdown-hud-energy">⚡ 0/0</span>
+          <span id="playerShowdownTrainerHp" class="showdown-hud-hp">❤️ 30</span>
+        </div>
+        <p id="playerShowdownCombos" class="showdown-hud-combos hidden" aria-hidden="true"></p>
+      </div>
+      <div id="playerFieldMirror" class="showdown-field-mirror hidden shrink-0" aria-hidden="true"></div>
+      <div id="playerHandGrid" class="showdown-hand-grid hidden shrink-0" aria-hidden="true"></div>
       <header class="text-center shrink-0">
-        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ FIGHT</p>
+        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ SHOWDOWN</p>
         <p id="playerBattleLabel" class="text-yellow-300 font-bold mt-1">Turn 1</p>
         <div class="arena-step-bar" id="playerBattleSteps">
           <span class="arena-step active" data-step="target">1 Target</span>
@@ -2192,6 +2977,7 @@
   </div>
 
   <div id="audioControlDock" class="ui-interactive" role="group" aria-label="Sound controls">
+    <select id="bgmTrackSelect" aria-label="Background music track" title="Switch BGM track"></select>
     <button id="audioVolDown" type="button" class="audio-ctl-btn" aria-label="Volume down">−</button>
     <button id="audioMuteBtn" type="button" class="audio-ctl-btn audio-ctl-mute" aria-label="Mute sound" title="Mute / unmute">🔊</button>
     <span id="audioVolLabel" aria-live="polite">100%</span>
@@ -2278,11 +3064,19 @@
       LANDSCAPE_BG: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80',
       /** Classic Pokémon anime theme — Archive.org direct CDN (avoids redirect load failures) */
       THEME_URLS: [
-        'https://ia800507.us.archive.org/15/items/tvtunes_11549/Pokemon.mp3',
         'https://archive.org/download/tvtunes_11549/Pokemon.mp3',
+        'https://ia600204.us.archive.org/21/items/tvtunes_24522/Pokémon%20-%20Battle%20Theme.mp3',
+        'https://ia801609.us.archive.org/25/items/tvtunes_13039/Pokemon%20Theme.mp3',
       ],
-      THEME_LABELS: ['Pokémon Theme', 'Pokémon Theme (mirror)'],
-      THEME_URL: 'https://ia800507.us.archive.org/15/items/tvtunes_11549/Pokemon.mp3',
+      THEME_LABELS: ['Classic Anime Theme', 'Battle Remix Arena', 'Route 1 Adventure'],
+      THEME_URL: 'https://archive.org/download/tvtunes_11549/Pokemon.mp3',
+      /** Trainer Showdown command SFX — unique per mobile action */
+      SHOWDOWN_CMD_AUDIO: {
+        attack: 'https://www.soundboard.com/media/s2/2012/10/75564887-f273-4560-9cc0-4965df1ba2db.mp3',
+        defend: 'https://www.fesliyanstudios.com/play-mp3/4383',
+        buff: 'https://www.fesliyanstudios.com/play-mp3/2658',
+        heal: 'https://www.soundboard.com/media/s2/2012/10/75565158-bdae-4007-bcba-1a76c66ee69e.mp3',
+      },
       /** Iconic "Who's That Pokémon!" vocal — every new round */
       /** Direct classic anime vocal — soundboard.com raw MP3 stream */
       VOCAL_URL: 'https://www.soundboard.com/media/s2/2012/10/75565551-7132-416b-a8be-ccbb9fb197ff.mp3',
@@ -2290,7 +3084,7 @@
       SPARKLE_URL: 'https://www.fesliyanstudios.com/play-mp3/2650',
 
       /** Volume ducking — 70% lobby · 15% round/guess · 5% reveal cry · 70% celebrate */
-      VOL: { LOBBY: 0.7, ROUND: 0.15, REVEAL: 0.05, CELEBRATE: 0.7 },
+      VOL: { LOBBY: 0.7, ROUND: 0.15, REVEAL: 0.05, CELEBRATE: 0.7, CHALLENGER_DUCK: 0.10 },
       FADE_MS: 800,
       BATTLE_INTERVAL: [3200, 4800],
       BIOME_CYCLE_MS: 30000,
@@ -2319,14 +3113,20 @@
       ARENA_AUTO_START_MS: 6000,
       ARENA_AUTO_LOBBY_MS: 12000,
       ARENA_MAX_COMBAT_TURNS: 12,
-      /** Mid-game 1v1 — 30% roll on NEXT when ≥2 players in leaderboard */
-      DUEL_TRIGGER_CHANCE: 0.30,
-      DUEL_DRAFT_SEC: 10,
-      DUEL_WIN_POINTS: 5,
-      DUEL_HP: 100,
-      DUEL_TURN_SEC: 8,
-      DUEL_TRIGGER_FLASH_MS: 1800,
-      DUEL_VICTORY_HOLD_MS: 3000,
+      /** Mid-game Trainer Showdown — 40% roll on NEXT when ≥2 active players */
+      DUEL_TRIGGER_CHANCE: 0.40,
+      DUEL_WIN_POINTS: 10,
+      DUEL_TRAINER_HP: 30,
+      DUEL_BENCH_MAX: 5,
+      DUEL_STARTING_HAND: 5,
+      DUEL_HAND_LIMIT: 5,
+      DUEL_MAX_ENERGY: 6,
+      DUEL_MATCH_MAX_REROLLS: 10,
+      DUEL_BENCH_MON_HP: 55,
+      DUEL_TURN_SEC: 15,
+      DUEL_TRIGGER_FLASH_MS: 2200,
+      DUEL_VICTORY_HOLD_MS: 4000,
+      CHALLENGER_STING_URL: 'https://www.myinstants.com/media/sounds/here-comes-a-new-challenger.mp3',
       /** 10% shiny spawn roll per round */
       SHINY_CHANCE: 0.1,
       SHINY_TAKEOVER_MS: 3000,
@@ -2372,7 +3172,7 @@
       grass:    ['Leaf Blade', 'Seed Bomb', 'Vine Whip', 'Solar Beam'],
       electric: ['Thunder Shock', 'Volt Tackle', 'Charge Beam', 'Zap Cannon'],
       ice:      ['Ice Shard', 'Blizzard', 'Frost Breath', 'Avalanche'],
-      fighting: ['Brick Break', 'Cross Chop', 'Focus Punch', 'Close Combat'],
+      fighting: ['Arm Thrust', 'Aura Sphere', 'Brick Break', 'Close Combat', 'Cross Chop', 'Drain Punch', 'Dynamic Punch', 'Focus Blast', 'Focus Punch', 'High Jump Kick', 'Jump Kick', 'Karate Chop', 'Low Sweep', 'Mach Punch', 'Rock Smash', 'Seismic Toss', 'Sky Uppercut', 'Superpower', 'Vacuum Wave'],
       poison:   ['Sludge Bomb', 'Poison Jab', 'Toxic Wave', 'Venoshock'],
       ground:   ['Earthquake', 'Mud Shot', 'Bulldoze', 'Sand Tomb'],
       flying:   ['Air Slash', 'Brave Bird', 'Wing Attack', 'Sky Strike'],
@@ -2407,6 +3207,201 @@
       steel:    { border: '#b8b8d0', art: 'linear-gradient(160deg,#f0f0f8 0%,#b0b8c8 45%,#687080 100%)', inner: 'linear-gradient(175deg,#f8f8ff 0%,#c8d0e0 50%,#98a0b0 100%)' },
       fairy:    { border: '#ee99ac', art: 'linear-gradient(160deg,#ffe8f0 0%,#f0a0b8 45%,#c06078 100%)', inner: 'linear-gradient(175deg,#fff0f4 0%,#f8b8c8 50%,#e08098 100%)' },
     };
+
+    /** Hearthstone-style tribe labels per Pokémon type */
+    const HS_TYPE_TRIBE = {
+      normal: 'Beast', fire: 'Elemental', water: 'Beast', grass: 'Beast', electric: 'Mech',
+      ice: 'Elemental', fighting: 'Warrior', poison: 'Beast', ground: 'Beast', flying: 'Dragon',
+      psychic: 'Beast', bug: 'Beast', rock: 'Elemental', ghost: 'Undead', dragon: 'Dragon',
+      dark: 'Beast', steel: 'Mech', fairy: 'Beast',
+    };
+
+    /** Board-based team combos — buffs when specific Pokémon lineups share the bench */
+    const SHOWDOWN_TEAM_COMBOS = [
+      {
+        id: 'type-twin',
+        name: 'Type Twin',
+        emoji: '🔗',
+        desc: '2+ same-type Pokémon',
+        test(bench) {
+          const counts = {};
+          for (const m of bench) {
+            const t = (m.pokemon?.types?.[0] || 'normal').toLowerCase();
+            counts[t] = (counts[t] || 0) + 1;
+            if (counts[t] >= 2) return true;
+          }
+          return false;
+        },
+        buffs: { atkBonus: 2 },
+      },
+      {
+        id: 'starter-squad',
+        name: 'Starter Squad',
+        emoji: '🔥💧🌿',
+        desc: 'Fire, Water & Grass together',
+        test(bench) {
+          const primaries = new Set(bench.map(m => (m.pokemon?.types?.[0] || '').toLowerCase()));
+          return primaries.has('fire') && primaries.has('water') && primaries.has('grass');
+        },
+        buffs: { atkBonus: 3 },
+      },
+      {
+        id: 'thunder-storm',
+        name: 'Thunder Storm',
+        emoji: '⚡🌧️',
+        desc: 'Electric + Water synergy',
+        test(bench) {
+          const primaries = new Set(bench.map(m => (m.pokemon?.types?.[0] || '').toLowerCase()));
+          return primaries.has('electric') && primaries.has('water');
+        },
+        buffs: { atkBonus: 2, critBonus: 0.06 },
+      },
+      {
+        id: 'dragon-dance',
+        name: 'Dragon Dance',
+        emoji: '🐉',
+        desc: '2+ Dragon-type Pokémon',
+        test(bench) {
+          return bench.filter(m => (m.pokemon?.types || []).includes('dragon')).length >= 2;
+        },
+        buffs: { atkBonus: 4 },
+      },
+      {
+        id: 'iron-wall',
+        name: 'Iron Wall',
+        emoji: '🛡️',
+        desc: '2+ Steel-type — bench takes −2 dmg',
+        test(bench) {
+          return bench.filter(m => (m.pokemon?.types || []).includes('steel')).length >= 2;
+        },
+        buffs: { defBonus: 2 },
+      },
+      {
+        id: 'fairy-blessing',
+        name: 'Fairy Blessing',
+        emoji: '✨',
+        desc: '2+ Fairy-type — heal 2 per attack',
+        test(bench) {
+          return bench.filter(m => (m.pokemon?.types || []).includes('fairy')).length >= 2;
+        },
+        buffs: { healOnAttack: 2 },
+      },
+      {
+        id: 'shadow-pact',
+        name: 'Shadow Pact',
+        emoji: '👻',
+        desc: 'Ghost + Dark — +3 Trainer strikes',
+        test(bench) {
+          const types = new Set(bench.flatMap(m => m.pokemon?.types || []));
+          return types.has('ghost') && types.has('dark');
+        },
+        buffs: { trainerStrikeBonus: 3 },
+      },
+      {
+        id: 'grasslands',
+        name: 'Grasslands',
+        emoji: '🌿',
+        desc: '3+ Grass/Bug — +8 HP to bench',
+        test(bench) {
+          return bench.filter(m => {
+            const t = (m.pokemon?.types?.[0] || '').toLowerCase();
+            return t === 'grass' || t === 'bug';
+          }).length >= 3;
+        },
+        buffs: { atkBonus: 1, hpBonus: 8 },
+      },
+    ];
+
+    const ShowdownCombos = {
+      evaluate(trainer) {
+        const bench = (trainer?.bench || []).filter(m => m && m.hp > 0);
+        const active = SHOWDOWN_TEAM_COMBOS.filter(c => c.test(bench));
+        const totals = { atkBonus: 0, defBonus: 0, hpBonus: 0, trainerStrikeBonus: 0, healOnAttack: 0, critBonus: 0 };
+        for (const c of active) {
+          for (const [k, v] of Object.entries(c.buffs || {})) totals[k] = (totals[k] || 0) + v;
+        }
+        totals.atkBonus = Math.min(8, totals.atkBonus);
+        totals.trainerStrikeBonus = Math.min(6, totals.trainerStrikeBonus);
+        return {
+          active,
+          totals,
+          labels: active.map(c => `${c.emoji} ${c.name}`),
+          summary: active.length
+            ? active.map(c => `${c.emoji} ${c.name}: ${c.desc}`).join(' · ')
+            : '',
+        };
+      },
+
+      /** Recompute bench HP when hpBonus combos change */
+      refreshBenchStats(trainer) {
+        if (!trainer?.bench) return null;
+        const { active, totals } = this.evaluate(trainer);
+        const sig = active.map(c => c.id).sort().join(',');
+        const prev = trainer._comboSig || '';
+        const changed = sig !== prev;
+        trainer._comboSig = sig;
+        trainer.activeCombos = active.map(c => ({ id: c.id, name: c.name, emoji: c.emoji, desc: c.desc }));
+
+        for (const m of trainer.bench) {
+          if (m.hp <= 0) continue;
+          if (!m.baseMaxHp) m.baseMaxHp = m.maxHp;
+          const newMax = m.baseMaxHp + (totals.hpBonus || 0);
+          const oldMax = m.maxHp;
+          m.maxHp = newMax;
+          if (newMax > oldMax) m.hp = Math.min(m.hp + (newMax - oldMax), newMax);
+          else m.hp = Math.min(m.hp, newMax);
+        }
+        if (!changed) return null;
+        return { active, totals };
+      },
+
+      announceIfNew(trainer, playerName) {
+        const prevSig = trainer._comboSig || '';
+        const result = this.refreshBenchStats(trainer);
+        if (!result?.active?.length || result.active.map(c => c.id).sort().join(',') === prevSig) return;
+        const names = result.active.map(c => `${c.emoji} ${c.name}`).join(' + ');
+        ShowdownArenaUI.showToast(`🔗 TEAM COMBO! ${names}`, { variant: 'action', ttl: 3600 });
+        ShowdownArenaUI.showAction({
+          trainer: playerName || trainer.playerName,
+          detail: `🔗 ${result.active[0].name} active!`,
+          sub: result.active.map(c => c.desc).join(' · '),
+        });
+      },
+    };
+
+    /** Animated battle sprite (Showdown gen5) — falls back to artwork */
+    function pokemonAnimSpriteUrl(pokemon) {
+      if (!pokemon || pokemon.isHero) return pokemon?.artwork || '';
+      const raw = (pokemon.rawName || pokemon.name || '').toLowerCase()
+        .replace(/\s+/g, '').replace(/['.:%]/g, '').replace('♀', 'f').replace('♂', 'm');
+      if (!raw) return pokemon.artwork || '';
+      return `https://play.pokemonshowdown.com/sprites/gen5ani/${raw}.gif`;
+    }
+
+    /** Serebii type badge GIF for move spotlight */
+    function serebiiTypeGif(type = 'normal') {
+      return `https://www.serebii.net/pokedex-bw/type/${encodeURIComponent(type)}.gif`;
+    }
+
+    /** Map move name + type → CSS animation profile (Serebii attack dex inspired) */
+    function getMoveAnimProfile(moveName = '', atkType = 'normal') {
+      const m = (moveName || '').toLowerCase();
+      if (/kick|sweep|rolling|triple kick|double kick/.test(m)) return 'kick';
+      if (/punch|fist|box|slap|thrust|bullet punch|power-up punch/.test(m)) return 'punch';
+      if (/chop|break|slash|claw|cut|blade|sacred sword|secret sword/.test(m)) return 'chop';
+      if (/aura|sphere|blast|beam|wave|pulse|bolt|shot|ray|cannon|laser/.test(m)) return 'beam';
+      if (/throw|toss|press|submission|combat|storm|power|crush|smash|hammer|vitality/.test(m)) return 'brawl';
+      if (/jump|fly|dive|aerial|sky|wing|bird|drill/.test(m)) return 'leap';
+      if (/fire|flame|heat|burn|ember|blaze|inferno/.test(m)) return 'fire';
+      if (/water|aqua|hydro|bubble|surf|tidal|rain|liquid/.test(m)) return 'water';
+      if (/thunder|volt|electric|spark|zap|charge|bolt strike/.test(m)) return 'electric';
+      if (/leaf|vine|seed|grass|petal|solar|jungle|wood/.test(m)) return 'grass';
+      if (/ice|frost|blizzard|freeze|snow|hail|cold/.test(m)) return 'ice';
+      if (/psychic|psy|mind|future|confusion|telekinesis/.test(m)) return 'psychic';
+      if (/shadow|dark|night|phantom|hex|crunch|bite|snarl/.test(m)) return 'dark';
+      const fb = { fighting: 'punch', fire: 'fire', water: 'water', grass: 'grass', electric: 'electric', ice: 'ice', psychic: 'psychic', dark: 'dark', dragon: 'leap', flying: 'leap', ghost: 'dark', poison: 'beam', ground: 'brawl', rock: 'brawl', steel: 'chop', fairy: 'beam', bug: 'chop', normal: 'strike' };
+      return fb[atkType] || 'strike';
+    }
 
     /** Simplified weakness lookup for TCG stat bar */
     const TCG_TYPE_WEAKNESS = {
@@ -2709,6 +3704,7 @@
         if (!this.poolIds.length) throw new Error('No Pokémon found for this type!');
         this.legendaryPool = legendaryPoolForType(typeId);
         this.deck = this.newShuffledCycle();
+        MasterRoster.invalidate();
         console.info(`[RoundDeck] ${this.poolIds.length} Pokémon · ${this.legendaryPool.length} legendaries · ${typeId}`);
       },
 
@@ -2719,6 +3715,7 @@
         this.deck = [];
         this.history = [];
         this.cyclesCompleted = 0;
+        MasterRoster.invalidate();
       },
 
       async fetchPoolIds(typeId) {
@@ -2802,6 +3799,46 @@
       },
     };
 
+    /** Iconic Gen 1 roster — used when full pool is too heavy for mobile draft */
+    const GEN1_ICONIC_IDS = [
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 25, 26, 39, 40, 52, 53, 54, 55, 58, 59, 60,
+      63, 64, 65, 66, 67, 68, 74, 75, 76, 92, 93, 94, 129, 130, 131, 133, 134, 135, 136, 143, 150,
+    ];
+
+    const MasterRoster = {
+      cache: null,
+      cacheKey: null,
+
+      poolIds() {
+        if (RoundDeck.poolIds?.length) {
+          const ids = RoundDeck.poolIds.map(id => (typeof id === 'number' ? id : +id)).filter(Boolean);
+          return ids.length > 48 ? shuffleArray(ids).slice(0, 48) : ids;
+        }
+        return GEN1_ICONIC_IDS;
+      },
+
+      async loadForSession() {
+        const key = `${RoundDeck.typeId || 'gen1'}:${this.poolIds().join(',')}`;
+        if (this.cache && this.cacheKey === key) return this.cache;
+        const ids = this.poolIds();
+        const picks = [];
+        for (const id of ids) {
+          try {
+            const p = await fetchPokemonDetails(id);
+            if (p) picks.push({ ...p, rosterShiny: Math.random() < CONFIG.SHINY_CHANCE });
+          } catch { /* skip */ }
+        }
+        this.cache = picks;
+        this.cacheKey = key;
+        return picks;
+      },
+
+      invalidate() {
+        this.cache = null;
+        this.cacheKey = null;
+      },
+    };
+
     const TYPE_OPTIONS = [
       { id: 'all',      label: 'All Types', emoji: '🎲', color: 'from-purple-500 to-pink-500',    border: 'border-purple-300' },
       { id: 'normal',   label: 'Normal',    emoji: '⭐', color: 'from-slate-400 to-stone-400',    border: 'border-slate-300' },
@@ -2858,11 +3895,18 @@
       },
 
       draftCardHtml(p, { picked = false, disabled = false } = {}) {
-        return `<button type="button" class="draft-pokemon-card pointer-events-auto${picked ? ' locked' : ''}"
+        return this.rosterCardHtml(p, { picked, disabled });
+      },
+
+      rosterCardHtml(p, { picked = false, disabled = false } = {}) {
+        const shiny = !!(p.rosterShiny || p.isShiny);
+        return `<button type="button" class="draft-pokemon-card master-roster-card pointer-events-auto${picked ? ' locked' : ''}${shiny ? ' roster-shiny' : ''}"
           data-id="${p.id}" ${disabled ? 'disabled' : ''} aria-pressed="${picked}">
+          <span class="master-roster-hp">HP 100</span>
+          ${shiny ? '<span class="master-roster-sparkle" aria-hidden="true">✨</span>' : ''}
           <img class="img-pending" data-pid="${p.id}" src="${escapeHtml(p.artwork)}" alt="${escapeHtml(p.name)}" draggable="false" />
-          <div class="arena-type-pills">${this.typePills(p.types)}</div>
-          <p class="draft-name">${escapeHtml(p.name)}</p>
+          <div class="arena-type-pills">${this.typePills(p.types, true)}</div>
+          <p class="draft-name master-roster-name">${escapeHtml(p.name)}</p>
         </button>`;
       },
 
@@ -3286,7 +4330,7 @@
         this.adjustScore(voterId, CONFIG.ARENA_TIE_POINTS);
       },
 
-      /** Random mid-game 1v1 duel winner — +5 */
+      /** Random mid-game Trainer Showdown winner — +10 */
       addRandomDuelWin(voterId, playerName) {
         if (!voterId) return;
         this.lastScorers.add(voterId);
@@ -3556,6 +4600,10 @@
             if (RandomDuel.active) RandomDuel.onBattleVote(payload);
             else ArenaRoyale.onVote(payload);
           })
+          .on('broadcast', { event: 'showdown_action' }, (msg) => {
+            if (!this.isHost) return;
+            if (RandomDuel.active) RandomDuel.onShowdownAction(broadcastPayload(msg));
+          })
           .on('broadcast', { event: 'draft_pick' }, (msg) => {
             if (!this.isHost) return;
             const payload = broadcastPayload(msg);
@@ -3577,18 +4625,12 @@
           .on('presence', { event: 'sync' }, () => {
             this.ingestPresenceState();
             this.refreshPresence();
-            if (this.isHost) {
-              HostGame.renderVoteTally();
-              HostGame.broadcast();
-            }
+            if (this.isHost) HostGame.renderVoteTally();
           })
           .on('presence', { event: 'join' }, (msg) => {
             this.ingestPresenceJoin(msg?.key, msg?.newPresences);
             this.refreshPresence();
-            if (this.isHost) {
-              HostGame.renderVoteTally();
-              setTimeout(() => HostGame.broadcast(), 200);
-            }
+            if (this.isHost) HostGame.renderVoteTally();
           })
           .on('presence', { event: 'leave' }, ({ key }) => {
             const vid = voterIdFromPresenceKey(key);
@@ -3625,10 +4667,7 @@
       },
 
       startHostHeartbeat() {
-        if (!this.isHost || this.heartbeatTimer) return;
-        this.heartbeatTimer = setInterval(() => {
-          if (this.connected && ROLE === 'host') HostGame.broadcast();
-        }, 4000);
+        /* State broadcasts only on concrete host events — no recurring phase rebuilds */
       },
 
       pushState(payload) {
@@ -3744,6 +4783,15 @@
           type: 'broadcast',
           event: 'battle_vote',
           payload: { voterId, playerName, choiceIndex, targetVoterId, turn },
+        });
+      },
+
+      sendShowdownAction(actionPayload) {
+        if (!this.channel || !playerName) return;
+        this.channel.send({
+          type: 'broadcast',
+          event: 'showdown_action',
+          payload: { voterId, playerName, ...actionPayload },
         });
       },
 
@@ -4170,6 +5218,44 @@
         $('audioVolDown')?.addEventListener('touchend', volTap(() => this.adjustUserVolume(-0.1)), { passive: false });
         $('audioVolUp')?.addEventListener('touchend', volTap(() => this.adjustUserVolume(0.1)), { passive: false });
         $('audioMuteBtn')?.addEventListener('touchend', volTap(() => this.toggleMute()), { passive: false });
+        this.setupBgmTrackSelect();
+      },
+
+      setupBgmTrackSelect() {
+        const sel = $('bgmTrackSelect');
+        if (!sel || sel.dataset.bound) return;
+        sel.dataset.bound = '1';
+        const urls = this.themeUrls();
+        sel.innerHTML = urls.map((_, i) =>
+          `<option value="${i}">${escapeHtml(this.themeLabel(i))}</option>`,
+        ).join('');
+        sel.value = String(this.themeUrlIndex);
+        sel.addEventListener('change', () => {
+          this.selectThemeByIndex(+sel.value);
+          this.playClick();
+        });
+      },
+
+      selectThemeByIndex(idx) {
+        const urls = this.themeUrls();
+        if (idx == null || idx < 0 || idx >= urls.length) return;
+        this.unlock();
+        const vol = this.getBgmTarget();
+        this.themeUrlIndex = idx;
+        this.queuePos = Math.max(0, this.shuffleQueue.indexOf(idx));
+        if (this.queuePos < 0) this.queuePos = 0;
+        if (this.synthBgmActive) this.stopThemeSynth();
+        this.assignThemeSrc();
+        this.setBgmVolume(vol);
+        bgmPlayer.play()
+          .then(() => { this.bgmStarted = true; this.startBgmGuard(); })
+          .catch(() => this.startThemeSynth());
+        this.updateMusicSwitcherLabel();
+      },
+
+      playShowdownCommand(cmd) {
+        const url = CONFIG.SHOWDOWN_CMD_AUDIO?.[cmd];
+        if (url) this.playBattleFxUrl(url, 0.82);
       },
 
       themeUrls() {
@@ -4266,7 +5352,10 @@
         this.playClick();
       },
 
-      updateMusicSwitcherLabel() { /* single-theme mode — no switcher UI */ },
+      updateMusicSwitcherLabel() {
+        const sel = $('bgmTrackSelect');
+        if (sel && sel.options.length) sel.value = String(this.themeUrlIndex);
+      },
 
       onThemeLoadError() {
         const urls = this.themeUrls();
@@ -4371,6 +5460,8 @@
         this.queuePos = 0;
         return this.selectWorkingTheme().then(() => {
           this.assignThemeSrc();
+          this.setupBgmTrackSelect();
+          this.updateMusicSwitcherLabel();
           this.vocalSrc = CONFIG.VOCAL_URL;
           document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') this.ensureBgm();
@@ -4423,6 +5514,66 @@
           };
           tick();
         });
+      },
+
+      /** "Here comes a new challenger!" — duck theme to 10% and play announcer sting */
+      playChallengerSting() {
+        const restore = this.getBgmTarget() > CONFIG.VOL.CHALLENGER_DUCK
+          ? this.getBgmTarget()
+          : CONFIG.VOL.ROUND;
+        void this.fadeBgm(CONFIG.VOL.CHALLENGER_DUCK, 80);
+        const url = CONFIG.CHALLENGER_STING_URL;
+        if (!url) return;
+        this.playBattleFxUrl(url, 0.85);
+        setTimeout(() => {
+          const target = RandomDuel.active ? CONFIG.VOL.ROUND : restore;
+          void this.fadeBgm(target, CONFIG.FADE_MS);
+        }, 3200);
+      },
+
+      _fxPool: [],
+      _fxPoolMax: 8,
+
+      playBattleFx(kind = 'attack') {
+        if (kind === 'summon') {
+          this.playBattleFxSynth(880, 0.08, 'sine');
+          return;
+        }
+        this.playBattleFxSynth(220, 0.12, 'square');
+        this.playAttackBlastSynth?.();
+      },
+
+      playBattleFxUrl(url, vol = 0.7) {
+        if (!url) return;
+        this.initRouting();
+        while (this._fxPool.length >= this._fxPoolMax) {
+          const old = this._fxPool.shift();
+          try { old.pause(); old.src = ''; } catch {}
+        }
+        const clip = new Audio(url);
+        clip.volume = vol * this.effectiveMul();
+        this._fxPool.push(clip);
+        clip.play().catch(() => {});
+      },
+
+      playBattleFxSynth(freq, dur, type = 'square') {
+        const ctx = this.ensureAudioCtx();
+        if (!ctx) return;
+        try {
+          this.initRouting();
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = type;
+          osc.frequency.value = freq;
+          g.gain.value = 0.0001;
+          osc.connect(g);
+          g.connect(this.sfxGain || this.masterGain || ctx.destination);
+          const t0 = ctx.currentTime;
+          g.gain.exponentialRampToValueAtTime(0.12 * this.effectiveMul(), t0 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.02);
+        } catch { /* ignore */ }
       },
 
       /** Play on sfxPlayer — resolves false if network/play fails */
@@ -6087,11 +7238,530 @@
           });
         }
       },
+
+      /** CSS lunge + canvas burst + floating damage + attack spotlight */
+      showdownStrike(fromEl, toEl, atkType, damage, label = 'HP', meta = {}) {
+        const wrap = $('randomDuelArenaWrap');
+        if (!wrap) return;
+        const colors = TYPE_BURST_COLORS[atkType] || TYPE_BURST_COLORS.normal;
+
+        if (meta?.pokemon) this.showAttackSpotlight(meta);
+
+        if (fromEl && toEl) {
+          const wr = wrap.getBoundingClientRect();
+          const fr = fromEl.getBoundingClientRect();
+          const tr = toEl.getBoundingClientRect();
+          if (!meta.skipAudio) {
+            const dx = ((tr.left + tr.width / 2) - (fr.left + fr.width / 2)) * 0.35;
+            const dy = ((tr.top + tr.height / 2) - (fr.top + fr.height / 2)) * 0.35;
+            fromEl.style.setProperty('--lunge-x', `${dx}px`);
+            fromEl.style.setProperty('--lunge-y', `${dy}px`);
+            fromEl.classList.remove('showdown-lunge', 'showdown-hit');
+            void fromEl.offsetWidth;
+            fromEl.classList.add('showdown-lunge');
+            setTimeout(() => {
+              toEl.classList?.add('showdown-hit');
+              setTimeout(() => toEl.classList?.remove('showdown-hit'), 450);
+            }, 280);
+            setTimeout(() => fromEl.classList.remove('showdown-lunge'), 560);
+          }
+          const cx = ((fr.left + fr.width / 2) + (tr.left + tr.width / 2)) / 2 - wr.left;
+          const cy = ((fr.top + fr.height / 2) + (tr.top + tr.height / 2)) / 2 - wr.top;
+          for (let i = 0; i < 42; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const sp = 3 + Math.random() * 10;
+            this.particles.push({
+              x: cx, y: cy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 1.2,
+              life: 0.5 + Math.random() * 0.4, age: 0, r: 2 + Math.random() * 4,
+              color: colors[Math.floor(Math.random() * colors.length)], glow: true,
+            });
+          }
+          this.spawnDamageFloat(cx, cy, `−${damage} ${label}`, wrap);
+        }
+
+        if (!meta.skipAudio) {
+          $('randomDuelOverlay')?.classList.remove('battle-shake');
+          void $('randomDuelOverlay')?.offsetWidth;
+          $('randomDuelOverlay')?.classList.add('battle-shake');
+        }
+      },
+
+      showAttackSpotlight(meta = {}) {
+        this.showEngageSpotlight({ ...meta, mode: 'attack' });
+      },
+
+      /** Enlarged animated Pokémon + move-matched VFX for audience */
+      showEngageSpotlight(meta = {}) {
+        const wrap = $('showdownAttackSpotlight');
+        const artWrap = $('showdownSpotlightArtWrap');
+        const bg = $('showdownSpotlightBg');
+        const sprite = $('showdownSpotlightSprite');
+        const fx = $('showdownSpotlightMoveFx');
+        const typeIcon = $('showdownSpotlightTypeIcon');
+        const moveEl = $('showdownSpotlightMove');
+        const trainerEl = $('showdownSpotlightTrainer');
+        const glow = $('showdownSpotlightGlow');
+        if (!wrap || !sprite || !meta.pokemon) return;
+
+        const type = meta.atkType || TCGCard.primaryType(meta.pokemon);
+        const profile = getMoveAnimProfile(meta.move, type);
+        const glowCol = (TYPE_BURST_COLORS[type] || TYPE_BURST_COLORS.normal)[0];
+        wrap.style.setProperty('--spotlight-color', glowCol);
+        if (glow) glow.style.background = glowCol;
+
+        const animCls = `spotlight-anim-${profile === 'fire' || profile === 'water' || profile === 'electric' || profile === 'grass' || profile === 'ice' || profile === 'psychic' || profile === 'dark' ? 'beam' : profile}`;
+        if (artWrap) {
+          artWrap.className = `showdown-spotlight-art ${animCls}`;
+        }
+        if (fx) {
+          const fxProfile = ['kick', 'punch', 'chop', 'beam', 'brawl'].includes(profile) ? profile : 'brawl';
+          fx.className = `showdown-move-fx fx-${fxProfile} active`;
+        }
+        if (typeIcon) {
+          typeIcon.src = serebiiTypeGif(type);
+          typeIcon.alt = `${type} type`;
+        }
+
+        const animUrl = pokemonAnimSpriteUrl(meta.pokemon);
+        const artUrl = meta.pokemon.artwork || '';
+        if (bg) {
+          bg.dataset.pid = String(meta.pokemon.id);
+          bg.src = artUrl;
+          bg.alt = meta.pokemon.name || '';
+        }
+        sprite.dataset.pid = String(meta.pokemon.id);
+        sprite.src = animUrl;
+        sprite.alt = meta.pokemon.name || '';
+        bindSafeImageLoad(sprite, [artUrl, ...ArenaUX.pokemonFallbacks(meta.pokemon.id)]);
+
+        const emoji = ArenaUX.typeMeta(type).emoji;
+        const moveLabel = meta.move || (meta.mode === 'summon' ? 'Enters the Arena!' : 'Attack');
+        moveEl.textContent = `${emoji} ${moveLabel}!${meta.crit ? ' ★ CRIT!' : ''}`;
+        trainerEl.textContent = meta.trainerName
+          ? `${meta.trainerName}'s ${meta.pokemon.name}`
+          : meta.pokemon.name;
+
+        wrap.classList.remove('hidden');
+        void wrap.offsetWidth;
+        wrap.classList.add('active');
+        ArenaUX.bindSprites(wrap);
+
+        clearTimeout(this._spotlightTimer);
+        const holdMs = meta.mode === 'summon' ? 1800 : 2400;
+        this._spotlightTimer = setTimeout(() => {
+          wrap.classList.remove('active');
+          if (fx) fx.classList.remove('active');
+          setTimeout(() => wrap.classList.add('hidden'), 220);
+        }, holdMs);
+      },
+
+      spawnDamageFloat(x, y, text, wrap) {
+        const layer = $('randomDuelDamageLayer');
+        if (!layer || !wrap) return;
+        const el = document.createElement('span');
+        el.className = 'showdown-damage-float';
+        el.textContent = text;
+        el.style.left = `${(x / wrap.clientWidth) * 100}%`;
+        el.style.top = `${(y / wrap.clientHeight) * 100}%`;
+        layer.appendChild(el);
+        void el.offsetWidth;
+        el.classList.add('active');
+        setTimeout(() => el.remove(), 900);
+      },
+    };
+
+    /** Trainer Showdown — cinematic mountain WebGL backdrop + action camera shifts */
+    const ShowdownBattleScene = {
+      active: false,
+      scene: null, camera: null, renderer: null, loader: null, raf: null,
+      drifters: [], mountains: [], idle: true, idlePhase: 0,
+      focusTarget: { x: 0, y: 0, z: 28, rx: 0.06, ry: 0 },
+      cam: { x: 0, y: 0, z: 28, rx: 0.06, ry: 0 },
+      _onResize: null,
+
+      mount() {
+        if (!window.THREE || this.active) return;
+        const container = $('showdownThreeContainer');
+        if (!container) return;
+        container.replaceChildren();
+        this.loader = new THREE.TextureLoader();
+        this.loader.crossOrigin = 'anonymous';
+        this.scene = new THREE.Scene();
+        this.scene.fog = new THREE.Fog(0x1a2744, 18, 95);
+        this.scene.background = new THREE.Color(0x0c1445);
+        const w = container.clientWidth || innerWidth;
+        const h = container.clientHeight || innerHeight;
+        this.camera = new THREE.PerspectiveCamera(52, w / h, 0.1, 120);
+        this.camera.position.set(0, 1.2, 28);
+        this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+        this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        this.renderer.setSize(w, h);
+        this.renderer.setClearColor(0x000000, 0);
+        container.appendChild(this.renderer.domElement);
+        this.buildLandscape();
+        this.spawnDrifters(7);
+        this.idle = true;
+        this.idlePhase = 0;
+        this.focusTarget = { x: 0, y: 0, z: 28, rx: 0.06, ry: 0 };
+        this.cam = { ...this.focusTarget };
+        this._onResize = () => this.onResize();
+        window.addEventListener('resize', this._onResize);
+        this.active = true;
+        this.lastFrame = performance.now();
+        this.loop();
+      },
+
+      buildLandscape() {
+        const ground = new THREE.Mesh(
+          new THREE.PlaneGeometry(120, 48, 1, 1),
+          new THREE.MeshLambertMaterial({ color: 0x1e4d2b }),
+        );
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.set(0, -6.5, -8);
+        this.scene.add(ground);
+        const sky = new THREE.Mesh(
+          new THREE.PlaneGeometry(140, 50),
+          new THREE.MeshBasicMaterial({ color: 0x3b82c4, transparent: true, opacity: 0.55 }),
+        );
+        sky.position.set(0, 8, -42);
+        this.scene.add(sky);
+        const peaks = [
+          { x: -22, h: 14, c: 0x334155 }, { x: -8, h: 18, c: 0x475569 },
+          { x: 6, h: 22, c: 0x64748b }, { x: 18, h: 16, c: 0x334155 },
+          { x: 28, h: 12, c: 0x1e293b },
+        ];
+        peaks.forEach(p => {
+          const m = new THREE.Mesh(
+            new THREE.ConeGeometry(7 + p.h * 0.15, p.h, 5),
+            new THREE.MeshLambertMaterial({ color: p.c }),
+          );
+          m.position.set(p.x, -6.5 + p.h * 0.45, -28 - Math.random() * 6);
+          this.mountains.push(m);
+          this.scene.add(m);
+        });
+        this.scene.add(new THREE.AmbientLight(0x8899cc, 0.65));
+        const sun = new THREE.DirectionalLight(0xffe4a8, 0.85);
+        sun.position.set(12, 24, 18);
+        this.scene.add(sun);
+      },
+
+      spawnDrifters(n) {
+        const ids = [25, 133, 143, 6, 9, 150, 39, 52];
+        for (let i = 0; i < n; i++) {
+          const pid = ids[i % ids.length];
+          const geom = new THREE.PlaneGeometry(2.4, 2.4);
+          const mat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.88, depthWrite: false, side: THREE.DoubleSide });
+          const mesh = new THREE.Mesh(geom, mat);
+          const z = -10 - Math.random() * 14;
+          const y = -3 + Math.random() * 2.5;
+          mesh.position.set(-18 + Math.random() * 36, y, z);
+          mesh.userData = {
+            t: Math.random(), speed: 0.015 + Math.random() * 0.02,
+            amp: 1.2 + Math.random() * 2.5, baseY: y, z,
+            curveX: -14 + Math.random() * 28,
+          };
+          this.loader.load(
+            Pokedex.spriteUrl(pid),
+            tex => {
+              if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+              mat.map = tex;
+              mat.opacity = 0.9;
+              mat.needsUpdate = true;
+            },
+            undefined,
+            () => {
+              this.loader.load(Pokedex.fallbackSpriteUrl(pid), tex => {
+                mat.map = tex;
+                mat.needsUpdate = true;
+              });
+            },
+          );
+          this.drifters.push(mesh);
+          this.scene.add(mesh);
+        }
+      },
+
+      onResize() {
+        if (!this.renderer || !this.camera) return;
+        const container = $('showdownThreeContainer');
+        const w = container?.clientWidth || innerWidth;
+        const h = container?.clientHeight || innerHeight;
+        this.camera.aspect = w / h;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(w, h);
+      },
+
+      focusSide(side) {
+        this.idle = false;
+        if (side === 'top') {
+          this.focusTarget = { x: 0.8, y: 5.2, z: 22, rx: -0.28, ry: 0.12 };
+        } else {
+          this.focusTarget = { x: -0.8, y: -5.2, z: 22, rx: 0.28, ry: -0.12 };
+        }
+      },
+
+      setIdle(on) {
+        this.idle = !!on;
+        if (on) this.focusTarget = { x: 0, y: 0, z: 28, rx: 0.06, ry: 0 };
+      },
+
+      loop() {
+        if (!this.active) return;
+        const now = performance.now();
+        const dt = Math.min(0.05, (now - (this.lastFrame || now)) / 1000);
+        this.lastFrame = now;
+        if (this.idle) {
+          this.idlePhase += dt * 0.35;
+          this.focusTarget.x = Math.sin(this.idlePhase) * 1.8;
+          this.focusTarget.y = Math.sin(this.idlePhase * 0.7) * 0.9;
+          this.focusTarget.ry = Math.sin(this.idlePhase * 0.5) * 0.08;
+          this.focusTarget.rx = 0.06 + Math.sin(this.idlePhase * 0.4) * 0.04;
+        }
+        const lerp = this.idle ? 0.035 : 0.22;
+        this.cam.x += (this.focusTarget.x - this.cam.x) * lerp;
+        this.cam.y += (this.focusTarget.y - this.cam.y) * lerp;
+        this.cam.z += (this.focusTarget.z - this.cam.z) * lerp;
+        this.cam.rx += (this.focusTarget.rx - this.cam.rx) * lerp;
+        this.cam.ry += (this.focusTarget.ry - this.cam.ry) * lerp;
+        this.camera.position.set(this.cam.x, this.cam.y + 1.2, this.cam.z);
+        this.camera.rotation.set(this.cam.rx, this.cam.ry, 0);
+        this.drifters.forEach(mesh => {
+          const u = mesh.userData;
+          u.t = (u.t + u.speed * dt) % 1;
+          const ang = u.t * Math.PI * 2;
+          mesh.position.x = u.curveX + Math.cos(ang) * u.amp * 3.2;
+          mesh.position.y = u.baseY + Math.sin(ang * 2) * 0.35;
+          mesh.position.z = u.z + Math.sin(ang) * 0.6;
+          mesh.rotation.y = Math.sin(ang) * 0.15;
+        });
+        this.renderer.render(this.scene, this.camera);
+        this.raf = requestAnimationFrame(() => this.loop());
+      },
+
+      unmount() {
+        this.active = false;
+        if (this.raf) cancelAnimationFrame(this.raf);
+        this.raf = null;
+        if (this._onResize) window.removeEventListener('resize', this._onResize);
+        this.drifters = [];
+        this.mountains = [];
+        if (this.renderer) {
+          this.renderer.dispose();
+          this.renderer.domElement?.remove();
+        }
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        $('showdownThreeContainer')?.replaceChildren();
+      },
+    };
+
+    /** Per-command audiovisual profiles for mobile → TV dispatch */
+    const ShowdownCommandVFX = {
+      play(cmd, opts = {}) {
+        AudioEngine.playShowdownCommand(cmd);
+        const { cardEl, benchEl, fromEl, toEl, atkType, damage, label, vsTrainer } = opts;
+        const src = fromEl || cardEl;
+        switch (cmd) {
+          case 'attack':
+            if (src && toEl) {
+              const wrap = $('randomDuelArenaWrap');
+              const wr = wrap?.getBoundingClientRect();
+              const fr = src.getBoundingClientRect();
+              const tr = toEl.getBoundingClientRect();
+              if (wr) {
+                const dx = ((tr.left + tr.width / 2) - (fr.left + fr.width / 2)) * 0.35;
+                const dy = ((tr.top + tr.height / 2) - (fr.top + fr.height / 2)) * 0.35;
+                src.style.setProperty('--lunge-x', `${dx}px`);
+                src.style.setProperty('--lunge-y', `${dy}px`);
+              }
+              src.classList.remove('cmd-attack-slam');
+              void src.offsetWidth;
+              src.classList.add('cmd-attack-slam');
+              setTimeout(() => src.classList.remove('cmd-attack-slam'), 620);
+            }
+            BattleVFX.showdownStrike(src, toEl, atkType || 'normal', damage || 0, label || 'HP', {
+              pokemon: opts.pokemon, move: opts.move, trainerName: opts.trainerName,
+              atkType: atkType || 'normal', crit: opts.crit, skipAudio: true,
+            });
+            break;
+          case 'defend':
+            if (src) {
+              const shield = document.createElement('div');
+              shield.className = 'showdown-cmd-shield';
+              src.appendChild(shield);
+              setTimeout(() => shield.remove(), 1100);
+            }
+            break;
+          case 'buff':
+            if (src) {
+              src.classList.add('showdown-cmd-buff-active');
+              const sparks = document.createElement('div');
+              sparks.className = 'showdown-cmd-buff-sparks';
+              src.appendChild(sparks);
+              setTimeout(() => sparks.remove(), 950);
+            }
+            break;
+          case 'heal': {
+            const host = benchEl || src?.closest('.showdown-bench') || src;
+            if (host) {
+              const ring = document.createElement('div');
+              ring.className = 'showdown-cmd-heal-ring';
+              host.style.position = 'relative';
+              host.appendChild(ring);
+              setTimeout(() => ring.remove(), 900);
+            }
+            break;
+          }
+          default:
+            break;
+        }
+      },
+
+      viewportShake(heavy = false) {
+        document.body.classList.remove('showdown-shake-global');
+        void document.body.offsetWidth;
+        document.body.classList.add('showdown-shake-global');
+        if (heavy) document.body.dataset.shakeHeavy = '1';
+        setTimeout(() => {
+          document.body.classList.remove('showdown-shake-global');
+          delete document.body.dataset.shakeHeavy;
+        }, heavy ? 620 : 540);
+      },
+    };
+
+    const SHOWDOWN_LEGENDARY_IDS = new Set(LEGENDARY_ENTRIES.map(e => e.id));
+
+    const ShowdownHelpers = {
+      uid() { return `sd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`; },
+
+      async energyCost(pokemon) {
+        if (SHOWDOWN_LEGENDARY_IDS.has(pokemon.id)) return 4;
+        try {
+          const evo = await TCGCard.fetchEvolutionInfo(pokemon);
+          if (evo.depth >= 2 || evo.stageLabel === 'STAGE 2') return 3;
+          if (evo.depth === 1 || evo.isEvolution) return 2;
+        } catch { /* fallback */ }
+        return 1;
+      },
+
+      benchHp(cost) { return CONFIG.DUEL_BENCH_MON_HP + (cost - 1) * 12; },
+
+      async enrichCard(pokemon) {
+        const energyCost = await this.energyCost(pokemon);
+        return {
+          ...pokemon,
+          energyCost,
+          rosterShiny: !!(pokemon.rosterShiny || pokemon.isShiny || Math.random() < 0.2),
+        };
+      },
+
+      async buildShuffledPool() {
+        const roster = await MasterRoster.loadForSession();
+        const enriched = await Promise.all(shuffleArray([...roster]).map(p => this.enrichCard(p)));
+        return enriched;
+      },
+
+      drawCards(trainer, pool, count = 1) {
+        for (let i = 0; i < count; i++) {
+          if (trainer.hand.length >= CONFIG.DUEL_HAND_LIMIT || !pool.length) break;
+          trainer.hand.push(pool.pop());
+        }
+      },
+
+      activeBench(bench) {
+        return (bench || []).filter(m => m && m.hp > 0);
+      },
+
+      serializeHandCard(c) {
+        return {
+          id: c.id, name: c.name, types: c.types, artwork: c.artwork, rawName: c.rawName,
+          energyCost: c.energyCost, rosterShiny: !!c.rosterShiny,
+        };
+      },
+
+      serializeBenchMon(m) {
+        return {
+          uid: m.uid, hp: m.hp, maxHp: m.maxHp, energyCost: m.energyCost,
+          pokemon: {
+            id: m.pokemon.id, name: m.pokemon.name, types: m.pokemon.types, rawName: m.pokemon.rawName,
+            artwork: m.pokemon.artwork, rosterShiny: !!(m.pokemon.rosterShiny || m.pokemon.isShiny),
+          },
+          moves: [...(m.moves || [])],
+          stealthCapable: !!m.stealthCapable,
+        };
+      },
+    };
+
+    /** Host arena audience overlays — turn banner, action callouts, attack spotlight, toasts */
+    const ShowdownArenaUI = {
+      _toasts: [],
+      _actionTimer: null,
+      MAX_TOASTS: 2,
+
+      reset() {
+        this._toasts.forEach(t => clearTimeout(t.timer));
+        this._toasts = [];
+        clearTimeout(this._actionTimer);
+        $('showdownToastStack')?.replaceChildren();
+        const turn = $('showdownTurnBanner');
+        if (turn) turn.textContent = '';
+        $('showdownActionBanner')?.classList.remove('visible');
+        const spot = $('showdownAttackSpotlight');
+        spot?.classList.add('hidden');
+        spot?.classList.remove('active');
+      },
+
+      showTurnBanner(trainer) {
+        const el = $('showdownTurnBanner');
+        if (!el || !trainer) return;
+        el.textContent = `⚡ ${trainer.playerName}'s TURN · ${trainer.energy}/${trainer.maxEnergy} Energy · ${trainer.hand?.length ?? 0} in hand`;
+      },
+
+      dismissToast(id) {
+        const idx = this._toasts.findIndex(t => t.id === id);
+        if (idx < 0) return;
+        const { el, timer } = this._toasts[idx];
+        clearTimeout(timer);
+        el.classList.remove('visible');
+        el.classList.add('exiting');
+        setTimeout(() => el.remove(), 240);
+        this._toasts.splice(idx, 1);
+      },
+
+      showToast(text, { variant = 'action', ttl = 3400 } = {}) {
+        const stack = $('showdownToastStack');
+        if (!stack || !text) return;
+        while (this._toasts.length >= this.MAX_TOASTS) this.dismissToast(this._toasts[0].id);
+
+        const id = `sd-toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+        const el = document.createElement('p');
+        el.className = `showdown-toast showdown-toast--${variant}`;
+        el.textContent = text;
+        stack.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('visible'));
+
+        const timer = setTimeout(() => this.dismissToast(id), ttl);
+        this._toasts.push({ id, el, timer });
+      },
+
+      showAction({ trainer, detail, sub = '' }) {
+        const banner = $('showdownActionBanner');
+        if (!banner) return;
+        banner.innerHTML = `<p class="action-trainer">${escapeHtml(trainer)}</p>
+          <p class="action-detail">${detail}</p>
+          ${sub ? `<p class="action-sub">${escapeHtml(sub)}</p>` : ''}`;
+        banner.classList.add('visible');
+        clearTimeout(this._actionTimer);
+        this._actionTimer = setTimeout(() => banner.classList.remove('visible'), 2600);
+        const plain = `${trainer}: ${detail.replace(/<[^>]*>/g, '')}${sub ? ` — ${sub}` : ''}`;
+        this.showToast(plain, { variant: 'action' });
+      },
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // RANDOM DUEL — 30% mid-game 1v1 interrupt on NEXT (≥2 leaderboard players)
-    // Auto-picks duelists · 10s phone draft · turn combat · +5 pts · resume quiz
+    // TRAINER SHOWDOWN — 40% mid-game deck duel (Hearthstone-inspired)
+    // Trainer HP 30 · Energy 1–6 · 5-hand / 5-bench · matchmaking guards · +10 pts
     // ═══════════════════════════════════════════════════════════════
     const RandomDuel = {
       active: false,
@@ -6099,51 +7769,133 @@
       duelistIds: [],
       trainerA: null,
       trainerB: null,
-      combatants: {},
-      draftOptions: {},
-      voteRecords: [],
+      trainers: {},
+      deckPools: {},
+      activePlayerId: null,
       turn: 0,
       timer: null,
-      draftEndsAt: 0,
       timerVal: 0,
       resolving: false,
       votingLocked: false,
       victoryTimer: null,
+      attackedThisTurn: false,
+      /** UUID pair from the immediate prior showdown — anti back-to-back guard */
+      lastDuelPair: null,
+      /** Rounds since last duel per voterId — longest-sit-out fallback */
+      duelSitOut: new Map(),
 
-      /** Master leaderboard count — mobile + manual entries */
-      activePlayerCount() {
-        return Leaderboard.entries.size;
+      resetMatchmaker() {
+        this.lastDuelPair = null;
+        this.duelSitOut.clear();
       },
 
-      /** Gate: ≥2 connected players + 30% roll + no other battle overlay active */
-      shouldTriggerOnNext() {
-        if (this.active || ArenaRoyale.active || ArenaRoyale.lobbyOpen) return false;
-        if (ArenaRoyale.gamePlayerCount() < 2) return false;
-        return Math.random() < CONFIG.DUEL_TRIGGER_CHANCE;
-      },
-
-      pickDuelists() {
+      collectPool() {
         let pool = ArenaRoyale.collectParticipants();
         if (pool.length < 2) {
           pool = shuffleArray([...Leaderboard.entries.values()])
             .map(e => ({ voterId: e.voterId, playerName: e.playerName }));
         }
-        return shuffleArray(pool).slice(0, 2);
+        const seen = new Set();
+        return pool.filter(p => {
+          if (!p?.voterId || seen.has(p.voterId)) return false;
+          seen.add(p.voterId);
+          return true;
+        });
+      },
+
+      activeSessionCount() {
+        return this.collectPool().length;
+      },
+
+      isValidPair(a, b, { enforceNoRematch = true } = {}) {
+        if (!a?.voterId || !b?.voterId) return false;
+        if (a.voterId === b.voterId) return false;
+        if (!enforceNoRematch) return true;
+        const poolSize = this.activeSessionCount();
+        if (poolSize < 3 || !this.lastDuelPair?.length) return true;
+        const last = new Set(this.lastDuelPair);
+        return !last.has(a.voterId) && !last.has(b.voterId);
+      },
+
+      sitOutScore(vid) {
+        return this.duelSitOut.get(vid) || 0;
+      },
+
+      recordDuelParticipants(vidA, vidB) {
+        this.lastDuelPair = [vidA, vidB].sort();
+        for (const p of this.collectPool()) {
+          const sid = p.voterId;
+          this.duelSitOut.set(sid, (sid === vidA || sid === vidB) ? 0 : (this.sitOutScore(sid) + 1));
+        }
+      },
+
+      pickLongestSitOutPair(pool) {
+        const sorted = [...pool].sort((a, b) =>
+          this.sitOutScore(b.voterId) - this.sitOutScore(a.voterId)
+          || a.playerName.localeCompare(b.playerName));
+        for (let i = 0; i < sorted.length; i++) {
+          for (let j = i + 1; j < sorted.length; j++) {
+            if (this.isValidPair(sorted[i], sorted[j], { enforceNoRematch: false })) {
+              return [sorted[i], sorted[j]];
+            }
+          }
+        }
+        return sorted.length >= 2 ? [sorted[0], sorted[1]] : [];
+      },
+
+      pickDuelists() {
+        const pool = this.collectPool();
+        if (pool.length < 2) return [];
+
+        const maxRolls = CONFIG.DUEL_MATCH_MAX_REROLLS || 10;
+        for (let roll = 0; roll < maxRolls; roll++) {
+          const shuffled = shuffleArray([...pool]);
+          const a = shuffled[0];
+          const b = shuffled[1];
+          if (this.isValidPair(a, b)) return [a, b];
+          if (pool.length > 2) {
+            const idx = shuffleArray(pool.map((_, i) => i));
+            const pA = pool[idx[0]];
+            const pB = pool[idx[1]];
+            if (this.isValidPair(pA, pB)) return [pA, pB];
+          }
+        }
+        return this.pickLongestSitOutPair(pool);
+      },
+
+      shouldTriggerOnNext() {
+        if (this.active || ArenaRoyale.active || ArenaRoyale.lobbyOpen) return false;
+        if (this.activeSessionCount() < 2) return false;
+        return Math.random() < CONFIG.DUEL_TRIGGER_CHANCE;
+      },
+
+      getTrainer(vid) { return this.trainers[vid] || null; },
+
+      opponentId(vid) { return this.duelistIds.find(id => id !== vid) || null; },
+
+      playerSide(vid) { return vid === this.duelistIds[1] ? 'top' : 'bottom'; },
+
+      lockTurnAction() {
+        this.attackedThisTurn = true;
+        clearInterval(this.timer);
+        this.votingLocked = true;
+        if (state.randomDuel) state.randomDuel.isVotingLocked = true;
       },
 
       syncState() {
         state.randomDuel = {
           active: this.active,
+          mode: 'showdown',
           phase: this.phase,
           duelistIds: [...this.duelistIds],
           trainerA: this.trainerA ? { ...this.trainerA } : null,
           trainerB: this.trainerB ? { ...this.trainerB } : null,
-          draftOptions: this.serializeDraftOptions(),
-          combatants: this.serializeCombatants(),
+          trainers: this.serializeTrainers(),
+          activePlayerId: this.activePlayerId,
           turn: this.turn,
           timer: this.timerVal,
-          draftEndsAt: this.draftEndsAt,
           isVotingLocked: this.votingLocked,
+          attackedThisTurn: this.attackedThisTurn,
           duelLog: state.randomDuel?.duelLog || null,
           crowdMessage: state.randomDuel?.crowdMessage || null,
           winner: state.randomDuel?.winner || null,
@@ -6153,39 +7905,32 @@
 
       spectatorMessage() {
         if (!this.trainerA || !this.trainerB) return null;
-        return `${this.trainerA.playerName} and ${this.trainerB.playerName} are dueling! Watch the main screen!`;
+        const active = this.getTrainer(this.activePlayerId);
+        const name = active?.playerName || 'A trainer';
+        return `${this.trainerA.playerName} vs ${this.trainerB.playerName} — ${name}'s turn! Watch the TV!`;
       },
 
-      serializeDraftOptions() {
+      serializeTrainers() {
         const out = {};
-        for (const [vid, opts] of Object.entries(this.draftOptions)) {
-          out[vid] = opts.map(p => ({ id: p.id, name: p.name, types: p.types, artwork: p.artwork }));
-        }
-        return out;
-      },
-
-      serializeCombatants() {
-        const out = {};
-        for (const [vid, c] of Object.entries(this.combatants)) {
-          if (!c?.pokemon && this.phase === 'draft') continue;
+        for (const [vid, t] of Object.entries(this.trainers)) {
           out[vid] = {
             voterId: vid,
-            playerName: c.playerName,
-            pokemon: c.pokemon ? { id: c.pokemon.id, name: c.pokemon.name, types: c.pokemon.types, artwork: c.pokemon.artwork } : null,
-            moves: [...(c.moves || [])],
-            hp: c.hp,
-            maxHp: c.maxHp,
-            eliminated: !!c.eliminated,
-            locked: !!c.locked,
+            playerName: t.playerName,
+            trainerHp: t.trainerHp,
+            maxTrainerHp: t.maxTrainerHp,
+            energy: t.energy,
+            maxEnergy: t.maxEnergy,
+            turnCount: t.turnCount,
+            hand: t.hand.map(c => ShowdownHelpers.serializeHandCard(c)),
+            handCount: t.hand.length,
+            deckCount: (this.deckPools[vid] || []).length,
+            bench: t.bench.map(m => ShowdownHelpers.serializeBenchMon(m)),
+            activeCombos: ShowdownCombos.evaluate(t).active.map(c => ({
+              id: c.id, name: c.name, emoji: c.emoji, desc: c.desc,
+            })),
           };
         }
         return out;
-      },
-
-      getCombatant(vid) { return this.combatants[vid] || null; },
-
-      opponentId(vid) {
-        return this.duelistIds.find(id => id !== vid) || null;
       },
 
       async start() {
@@ -6198,22 +7943,23 @@
         this.duelistIds = duelists.map(d => d.voterId);
         this.trainerA = { voterId: duelists[0].voterId, playerName: duelists[0].playerName, label: 'TRAINER A' };
         this.trainerB = { voterId: duelists[1].voterId, playerName: duelists[1].playerName, label: 'TRAINER B' };
-        this.combatants = {};
-        this.draftOptions = {};
-        this.voteRecords = [];
+        this.trainers = {};
+        this.deckPools = {};
         this.turn = 0;
         this.resolving = false;
         this.votingLocked = false;
+        this.attackedThisTurn = false;
 
-        HostGame.setRoundControls(false, 'DUEL…');
+        HostGame.setRoundControls(false, 'SHOWDOWN…');
         $('bossBtn')?.classList.add('hidden');
 
         const trigger = $('randomDuelTriggerOverlay');
         trigger?.classList.remove('hidden-overlay');
         trigger?.setAttribute('aria-hidden', 'false');
         this.syncState();
+        HostGame.setSyncPhase('random_duel');
         HostGame.broadcast();
-        AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 300);
+        AudioEngine.playChallengerSting();
 
         await sleep(CONFIG.DUEL_TRIGGER_FLASH_MS);
         trigger?.classList.add('hidden-overlay');
@@ -6223,313 +7969,526 @@
         overlay?.classList.remove('hidden-overlay');
         overlay?.setAttribute('aria-hidden', 'false');
         $('randomDuelVictoryBanner')?.classList.add('hidden');
-        $('randomDuelPhaseLabel').textContent = `${this.trainerA.playerName} vs ${this.trainerB.playerName} — phones draft NOW!`;
-        $('randomDuelHeadline').textContent = '⚔️ TRAINER A  vs  TRAINER B ⚔️';
+        $('randomDuelDamageLayer') && ($('randomDuelDamageLayer').innerHTML = '');
+        ShowdownArenaUI.reset();
 
         BattleVFX.useCanvas($('randomDuelVfxCanvas'), $('randomDuelArenaWrap'));
+        ShowdownBattleScene.mount();
+        $('randomDuelArenaWrap')?.classList.add('showdown-3d-active');
 
-        this.phase = 'draft';
-        await this.buildDraftPools(duelists);
-        this.draftEndsAt = Date.now() + CONFIG.DUEL_DRAFT_SEC * 1000;
-        this.renderSplitArena('draft');
-        this.startDraftTimer();
+        await this.initTrainers(duelists);
+
+        $('randomDuelHeadline').textContent = `⚔️ ${this.trainerA.playerName}  vs  ${this.trainerB.playerName} ⚔️`;
+        this.phase = 'combat';
+        this.activePlayerId = this.duelistIds[0];
+        this.renderShowdownArena();
         this.syncState();
         HostGame.broadcast();
+        this.startTurn();
       },
 
-      async buildDraftPools(duelists) {
-        await Promise.all(duelists.map(async ({ voterId, playerName }) => {
-          const ids = Pokedex.randomIds(3);
-          const picks = [];
-          for (const id of ids) {
-            try {
-              const p = await fetchPokemonDetails(id);
-              if (p) picks.push(p);
-            } catch { /* skip */ }
-          }
-          while (picks.length < 3) {
-            try {
-              const p = await fetchPokemonDetails(Pokedex.randomId());
-              if (p && !picks.some(x => x.id === p.id)) picks.push(p);
-            } catch { break; }
-          }
-          this.draftOptions[voterId] = picks.slice(0, 3);
-          this.combatants[voterId] = {
-            voterId, playerName, pokemon: null, moves: [],
-            hp: CONFIG.DUEL_HP, maxHp: CONFIG.DUEL_HP,
-            eliminated: false, locked: false,
+      async initTrainers(duelists) {
+        for (const { voterId, playerName } of duelists) {
+          const pool = await ShowdownHelpers.buildShuffledPool();
+          this.deckPools[voterId] = pool;
+          this.trainers[voterId] = {
+            voterId,
+            playerName,
+            trainerHp: CONFIG.DUEL_TRAINER_HP,
+            maxTrainerHp: CONFIG.DUEL_TRAINER_HP,
+            energy: 0,
+            maxEnergy: 1,
+            turnCount: 0,
+            hand: [],
+            bench: [],
           };
-        }));
+          ShowdownHelpers.drawCards(this.trainers[voterId], this.deckPools[voterId], CONFIG.DUEL_STARTING_HAND);
+        }
       },
 
-      startDraftTimer() {
-        clearInterval(this.timer);
-        this.timerVal = CONFIG.DUEL_DRAFT_SEC;
+      async startTurn() {
+        if (!this.active || this.phase !== 'combat') return;
+        const winner = this.checkWin();
+        if (winner !== undefined) { void this.crownWinner(winner); return; }
+
+        this.turn++;
+        this.votingLocked = true;
+        this.resolving = false;
+        this.attackedThisTurn = false;
+
+        const t = this.getTrainer(this.activePlayerId);
+        if (!t) return;
+        t.turnCount++;
+        t.maxEnergy = Math.min(CONFIG.DUEL_MAX_ENERGY, t.turnCount);
+        t.energy = t.maxEnergy;
+
+        this.phase = 'deploying';
+        if (state.randomDuel) {
+          state.randomDuel.phase = 'deploying';
+          state.randomDuel.isVotingLocked = true;
+          state.randomDuel.crowdMessage = null;
+          state.randomDuel.duelLog = null;
+        }
+        $('randomDuelPhaseLabel').textContent = `${t.playerName} — deploying hand…`;
+        ShowdownArenaUI.showTurnBanner(t);
+        this.renderShowdownArena();
+        this.syncState();
+        HostGame.setSyncPhase('showdown_turn');
+        HostGame.broadcast();
+
+        await this.autoDeployHand(this.activePlayerId);
+
+        this.phase = 'combat';
+        this.votingLocked = false;
+        if (state.randomDuel) {
+          state.randomDuel.phase = 'combat';
+          state.randomDuel.isVotingLocked = false;
+        }
+
+        this.timerVal = CONFIG.DUEL_TURN_SEC;
         $('randomDuelTimer').textContent = this.timerVal;
+        $('randomDuelPhaseLabel').textContent = `${t.playerName}'s turn — pick a command!`;
+        ShowdownArenaUI.showToast(`Turn ${this.turn} — ${t.playerName}'s command`, { variant: 'turn', ttl: 2800 });
+        ShowdownBattleScene.setIdle(true);
+
+        this.renderShowdownArena();
+        this.syncState();
+        HostGame.broadcast();
+
+        clearInterval(this.timer);
         this.timer = setInterval(() => {
-          this.timerVal = Math.max(0, Math.ceil((this.draftEndsAt - Date.now()) / 1000));
+          this.timerVal = Math.max(0, this.timerVal - 1);
           $('randomDuelTimer').textContent = this.timerVal;
           if (state.randomDuel) state.randomDuel.timer = this.timerVal;
           if (this.timerVal <= 0) {
             clearInterval(this.timer);
-            this.finishDraft();
-          } else if (this.bothLocked()) {
-            clearInterval(this.timer);
-            this.finishDraft();
-          }
-        }, 200);
-      },
-
-      bothLocked() {
-        return this.duelistIds.every(vid => this.combatants[vid]?.locked && this.combatants[vid]?.pokemon);
-      },
-
-      onDraftPick({ voterId: vid, playerName: name, pokemonId }) {
-        if (!this.active || this.phase !== 'draft' || !vid) return;
-        if (!this.duelistIds.includes(vid)) return;
-        const opts = this.draftOptions[vid];
-        if (!opts?.length) return;
-        const pick = opts.find(p => p.id === pokemonId) || opts[0];
-        this.lockCombatant(vid, name, pick);
-        this.renderSplitArena('draft');
-        this.syncState();
-        HostGame.broadcast();
-        if (this.bothLocked()) {
-          clearInterval(this.timer);
-          setTimeout(() => this.finishDraft(), 400);
-        }
-      },
-
-      lockCombatant(voterId, playerName, pokemon) {
-        if (!pokemon) return;
-        const c = this.combatants[voterId] || { voterId, playerName };
-        c.playerName = (playerName || c.playerName || 'Trainer').trim();
-        c.pokemon = pokemon;
-        c.moves = ArenaRoyale.generateMoves(pokemon.types, pokemon);
-        c.hp = CONFIG.DUEL_HP;
-        c.maxHp = CONFIG.DUEL_HP;
-        c.eliminated = false;
-        c.locked = true;
-        this.combatants[voterId] = c;
-      },
-
-      autoAssignDraftPicks() {
-        for (const vid of this.duelistIds) {
-          const c = this.combatants[vid];
-          if (c?.locked && c.pokemon) continue;
-          const opts = this.draftOptions[vid] || [];
-          if (!opts.length) continue;
-          this.lockCombatant(vid, c?.playerName, opts[Math.floor(Math.random() * opts.length)]);
-        }
-      },
-
-      finishDraft() {
-        if (this.phase !== 'draft') return;
-        this.autoAssignDraftPicks();
-        const ready = this.duelistIds.map(vid => this.combatants[vid]).filter(c => c?.locked && c.pokemon);
-        if (ready.length < 2) {
-          this.end(true);
-          return;
-        }
-        this.phase = 'combat';
-        this.turn = 0;
-        $('randomDuelPhaseLabel').textContent = 'FIGHT! — phones pick moves!';
-        this.renderSplitArena('combat');
-        this.syncState();
-        HostGame.broadcast();
-        this.startTurn();
-      },
-
-      renderSplitArena(mode) {
-        const grid = $('randomDuelCombatGrid');
-        if (!grid) return;
-        const a = this.combatants[this.duelistIds[0]];
-        const b = this.combatants[this.duelistIds[1]];
-        const renderSide = (trainer, c, sideCls) => {
-          const tag = trainer?.label || (sideCls === 'a' ? 'TRAINER A' : 'TRAINER B');
-          const name = trainer?.playerName || c?.playerName || 'Trainer';
-          if (mode === 'draft' && (!c?.pokemon || !c.locked)) {
-            return `<div class="random-duel-side ${sideCls}">
-              <p class="duel-trainer-tag">${escapeHtml(tag)}</p>
-              <p class="duel-trainer-name">${escapeHtml(name)}</p>
-              <p class="text-blue-300/80 text-sm font-bold animate-pulse">📱 Drafting…</p>
-            </div>`;
-          }
-          if (!c?.pokemon) return `<div class="random-duel-side ${sideCls}"></div>`;
-          const pct = Math.max(0, (c.hp / c.maxHp) * 100);
-          const hpCls = ArenaUX.hpFillClass(pct);
-          return `<div class="random-duel-side ${sideCls}">
-            <p class="duel-trainer-tag">${escapeHtml(tag)}</p>
-            <p class="duel-trainer-name">${escapeHtml(name)}</p>
-            <article class="arena-fighter-card${c.eliminated ? ' eliminated' : ''}" data-vid="${escapeHtml(c.voterId)}" id="duel-card-${escapeHtml(c.voterId)}">
-              <p class="arena-poke-name">${escapeHtml(c.pokemon.name)}</p>
-              <div class="arena-sprite-wrap">
-                <img class="img-pending" data-pid="${c.pokemon.id}" src="${escapeHtml(c.pokemon.artwork)}" alt="${escapeHtml(c.pokemon.name)}" draggable="false" />
-              </div>
-              <div class="arena-type-pills">${ArenaUX.typePills(c.pokemon.types, true)}</div>
-              <div class="arena-hp-wrap">
-                <div class="arena-hp-bar"><div class="arena-hp-fill ${hpCls}" style="width:${pct}%"></div></div>
-                <p class="text-xs text-blue-200 font-bold mt-0.5">${c.hp} / ${c.maxHp} HP</p>
-              </div>
-              <div class="arena-moves">${ArenaUX.moveIconsHtml(c.moves, c.pokemon.types)}</div>
-            </article>
-          </div>`;
-        };
-        grid.innerHTML = `${renderSide(this.trainerA, a, 'duel-side-a')}
-          <p class="random-duel-vs">VS</p>
-          ${renderSide(this.trainerB, b, 'duel-side-b')}`;
-        ArenaUX.bindSprites(grid);
-      },
-
-      startTurn() {
-        if (!this.active || this.phase !== 'combat') return;
-        const alive = this.duelistIds.map(vid => this.combatants[vid]).filter(c => c && !c.eliminated && c.hp > 0);
-        if (alive.length <= 1) {
-          this.crownWinner(alive[0] || null);
-          return;
-        }
-        this.turn++;
-        this.voteRecords = [];
-        this.votingLocked = false;
-        this.resolving = false;
-        this.timerVal = CONFIG.DUEL_TURN_SEC;
-        $('randomDuelTimer').textContent = this.timerVal;
-        $('randomDuelPhaseLabel').textContent = `Turn ${this.turn} — duelists attack!`;
-        $('randomDuelMoveTally').innerHTML = '';
-        if (state.randomDuel) {
-          state.randomDuel.crowdMessage = null;
-          state.randomDuel.duelLog = null;
-        }
-        this.syncState();
-        HostGame.broadcast();
-        clearInterval(this.timer);
-        this.timer = setInterval(() => {
-          this.timerVal--;
-          $('randomDuelTimer').textContent = Math.max(0, this.timerVal);
-          if (state.randomDuel) state.randomDuel.timer = this.timerVal;
-          if (this.timerVal <= 0) {
-            clearInterval(this.timer);
-            this.lockVoting('Resolving attacks!');
-            this.resolveTurn();
+            this.endTurn('Time\'s up!');
           }
         }, 1000);
       },
 
-      lockVoting(msg) {
-        this.votingLocked = true;
-        if (state.randomDuel) {
-          state.randomDuel.isVotingLocked = true;
-          state.randomDuel.crowdMessage = msg;
+      endTurn(reason) {
+        if (this.resolving || !this.active) return;
+        clearInterval(this.timer);
+        const vid = this.activePlayerId;
+        const t = this.getTrainer(vid);
+        if (t) {
+          ShowdownHelpers.drawCards(t, this.deckPools[vid] || [], 1);
+          $('randomDuelTicker').textContent = reason || `${t.playerName} ended their turn.`;
+          if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
         }
+        this.activePlayerId = this.opponentId(vid);
+        this.syncState();
+        HostGame.setSyncPhase('showdown_turn');
         HostGame.broadcast();
+        setTimeout(() => this.startTurn(), 600);
       },
 
-      onBattleVote({ voterId: vid, playerName: name, choiceIndex, turn }) {
-        if (!this.active || this.phase !== 'combat' || this.resolving || this.votingLocked) return;
-        if (turn !== this.turn) return;
-        if (!this.duelistIds.includes(vid)) return;
-        const c = this.getCombatant(vid);
-        if (!c || c.eliminated || c.hp <= 0) return;
-        if (choiceIndex < 0 || choiceIndex > 3) return;
-        if (this.voteRecords.some(v => v.voterId === vid)) return;
-        this.voteRecords.push({ voterId: vid, playerName: name, choiceIndex });
-        this.renderMoveTally();
-        if (this.voteRecords.length >= 2) {
-          clearInterval(this.timer);
-          this.lockVoting('Both locked — resolving!');
-          this.resolveTurn();
+      checkWin() {
+        for (const vid of this.duelistIds) {
+          const t = this.getTrainer(vid);
+          if (t && t.trainerHp <= 0) {
+            return this.getTrainer(this.opponentId(vid)) || { voterId: this.opponentId(vid), playerName: 'Champion' };
+          }
+        }
+        return undefined;
+      },
+
+      onShowdownAction(payload) {
+        if (!this.active || this.phase !== 'combat' || this.resolving) return;
+        const { voterId: vid, playerName, turn, action } = payload || {};
+        if (!vid || vid !== this.activePlayerId || turn !== this.turn) return;
+        if (this.votingLocked) return;
+
+        if (action === 'attack_pokemon') return void this.handleAttackPokemon(vid, payload);
+        if (action === 'attack_trainer') return void this.handleAttackTrainer(vid, payload);
+        if (action === 'defend') return void this.handleDefend(vid, playerName, payload);
+        if (action === 'buff') return void this.handleBuff(vid, playerName, payload);
+        if (action === 'heal') return void this.handleHeal(vid, playerName, payload);
+        if (action === 'end_turn') return this.endTurn(`${playerName || 'Trainer'} passes.`);
+      },
+
+      /** Highest-cost affordable hand index — Hearthstone-style auto board fill */
+      pickAutoSummonIndex(trainer) {
+        if (ShowdownHelpers.activeBench(trainer.bench).length >= CONFIG.DUEL_BENCH_MAX) return -1;
+        let best = -1;
+        let bestCost = -1;
+        for (let i = 0; i < trainer.hand.length; i++) {
+          const c = trainer.hand[i];
+          if (c.energyCost <= trainer.energy && c.energyCost > bestCost) {
+            best = i;
+            bestCost = c.energyCost;
+          }
+        }
+        return best;
+      },
+
+      async autoDeployHand(vid) {
+        const t = this.getTrainer(vid);
+        if (!t || !t.hand?.length) return;
+        const names = [];
+        let guard = 0;
+        while (guard++ < CONFIG.DUEL_BENCH_MAX) {
+          const idx = this.pickAutoSummonIndex(t);
+          if (idx < 0) break;
+          const card = t.hand[idx];
+          if (!this.deployCardFromHand(vid, t.playerName, idx, {
+            spotlight: names.length === 0,
+            quiet: names.length > 0,
+          })) break;
+          names.push(card?.name || 'Pokémon');
+          if (names.length > 1) await sleep(520);
+        }
+        if (names.length) {
+          const list = names.length <= 2 ? names.join(' & ') : `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+          $('randomDuelTicker').textContent = `${t.playerName} auto-deployed ${list} · ${t.energy}⚡ left for command`;
+          if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
+          ShowdownArenaUI.showToast(`Auto-deploy: ${list}`, { variant: 'turn', ttl: 2600 });
+          this.renderShowdownArena();
+          this.syncState();
+          HostGame.broadcast();
+          await sleep(names.length > 1 ? 400 : 700);
         }
       },
 
-      renderMoveTally() {
-        const el = $('randomDuelMoveTally');
-        if (!el) return;
-        el.innerHTML = this.voteRecords.length
-          ? this.voteRecords.map(v => {
-              const atk = this.getCombatant(v.voterId);
-              const tgtVid = this.opponentId(v.voterId);
-              const tgt = tgtVid ? this.getCombatant(tgtVid) : null;
-              const move = atk?.moves?.[v.choiceIndex] || 'Attack';
-              return `<p class="text-blue-200 text-center col-span-2">${escapeHtml(atk?.playerName || '?')} → ${escapeHtml(move)} → ${escapeHtml(tgt?.playerName || '?')}</p>`;
-            }).join('')
-          : '<p class="text-blue-300/70 text-center col-span-2 py-1">📱 Waiting for moves…</p>';
+      deployCardFromHand(vid, playerName, handIndex, { spotlight = true, quiet = false } = {}) {
+        const t = this.getTrainer(vid);
+        if (!t || handIndex == null || handIndex < 0 || handIndex >= t.hand.length) return false;
+        if (ShowdownHelpers.activeBench(t.bench).length >= CONFIG.DUEL_BENCH_MAX) return false;
+
+        const card = t.hand[handIndex];
+        if (!card || t.energy < card.energyCost) return false;
+
+        t.energy -= card.energyCost;
+        t.hand.splice(handIndex, 1);
+        const moves = ArenaRoyale.generateMoves(card.types, card);
+        const stealthCapable = (card.types || []).some(tp => tp === 'ghost' || tp === 'dark')
+          || moves.some(m => /shadow|night|sneak|phantom/i.test(m));
+        t.bench.push({
+          uid: ShowdownHelpers.uid(),
+          pokemon: card,
+          baseMaxHp: ShowdownHelpers.benchHp(card.energyCost),
+          hp: ShowdownHelpers.benchHp(card.energyCost),
+          maxHp: ShowdownHelpers.benchHp(card.energyCost),
+          energyCost: card.energyCost,
+          moves,
+          stealthCapable,
+        });
+        ShowdownCombos.announceIfNew(t, playerName || t.playerName);
+
+        if (!quiet) AudioEngine.playBattleFx('summon');
+        if (spotlight) {
+          const typeEmoji = ArenaUX.typeMeta(card.types?.[0] || 'normal').emoji;
+          BattleVFX.showEngageSpotlight({
+            pokemon: card,
+            move: 'Enters the Arena!',
+            trainerName: playerName || t.playerName,
+            atkType: card.types?.[0] || 'normal',
+            mode: 'summon',
+          });
+          ShowdownArenaUI.showAction({
+            trainer: playerName || t.playerName,
+            detail: `${typeEmoji} AUTO-DEPLOYS ${card.name}!`,
+            sub: `Costs ${card.energyCost} Energy · ${t.energy} remaining`,
+          });
+        }
+        return true;
       },
 
-      pickMoveIndex(vid) {
-        const vote = this.voteRecords.find(v => v.voterId === vid);
-        if (vote) return vote.choiceIndex;
-        const c = this.getCombatant(vid);
-        return c?.moves?.length ? Math.floor(Math.random() * c.moves.length) : 0;
+      async handleAttackPokemon(vid, payload) {
+        if (this.attackedThisTurn) return;
+        const { benchUid, targetBenchUid, moveIndex } = payload;
+        const t = this.getTrainer(vid);
+        const opp = this.getTrainer(this.opponentId(vid));
+        if (!t || !opp) return;
+
+        const attacker = t.bench.find(m => m.uid === benchUid && m.hp > 0);
+        const target = opp.bench.find(m => m.uid === targetBenchUid && m.hp > 0);
+        if (!attacker || !target) return;
+
+        this.attackedThisTurn = true;
+        clearInterval(this.timer);
+        this.votingLocked = true;
+        if (state.randomDuel) state.randomDuel.isVotingLocked = true;
+        await this.resolveAttack(vid, attacker, target, moveIndex, false);
       },
 
-      calcDamage(attacker, defender, moveIndex) {
+      async handleDefend(vid, playerName, payload) {
+        if (this.attackedThisTurn || this.resolving) return;
+        const t = this.getTrainer(vid);
+        const mon = t?.bench.find(m => m.uid === payload.benchUid && m.hp > 0);
+        if (!mon) return;
+        this.lockTurnAction();
+        this.resolving = true;
+        ShowdownBattleScene.focusSide(this.playerSide(vid));
+        const cardEl = $(`showdown-card-${mon.uid}`);
+        ShowdownCommandVFX.play('defend', { cardEl, fromEl: cardEl });
+        mon.defShield = 12;
+        ShowdownArenaUI.showAction({
+          trainer: playerName || t.playerName,
+          detail: `🛡️ ${mon.pokemon.name} — Shield Up!`,
+          sub: 'Absorbs the next 12 damage',
+        });
+        $('randomDuelTicker').textContent = `${t.playerName}'s ${mon.pokemon.name} braces for impact!`;
+        if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
+        this.renderShowdownArena();
+        await sleep(1100);
+        this.resolving = false;
+        this.syncState();
+        HostGame.broadcast();
+        this.endTurn(`${t.playerName} defended!`);
+      },
+
+      async handleBuff(vid, playerName, payload) {
+        if (this.attackedThisTurn || this.resolving) return;
+        const t = this.getTrainer(vid);
+        const mon = t?.bench.find(m => m.uid === payload.benchUid && m.hp > 0);
+        if (!mon || t.energy < 1) return;
+        this.lockTurnAction();
+        this.resolving = true;
+        t.energy -= 1;
+        ShowdownBattleScene.focusSide(this.playerSide(vid));
+        mon.atkBuff = (mon.atkBuff || 0) + 5;
+        const cardEl = $(`showdown-card-${mon.uid}`);
+        ShowdownCommandVFX.play('buff', { cardEl, fromEl: cardEl });
+        ShowdownArenaUI.showAction({
+          trainer: playerName || t.playerName,
+          detail: `⬆️ ${mon.pokemon.name} — Power Surge!`,
+          sub: `+5 attack · ${t.energy}⚡ left`,
+        });
+        $('randomDuelTicker').textContent = `${mon.pokemon.name} surges with power! (−1⚡)`;
+        if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
+        this.renderShowdownArena();
+        await sleep(1000);
+        this.resolving = false;
+        this.syncState();
+        HostGame.broadcast();
+        this.endTurn(`${t.playerName} powered up!`);
+      },
+
+      async handleHeal(vid, playerName, payload) {
+        if (this.attackedThisTurn || this.resolving) return;
+        const t = this.getTrainer(vid);
+        if (!t || t.energy < 2) return;
+        if (payload.benchUid !== 'trainer') {
+          const mon = t.bench.find(m => m.uid === payload.benchUid && m.hp > 0);
+          if (!mon) return;
+        }
+        this.lockTurnAction();
+        this.resolving = true;
+        t.energy -= 2;
+        ShowdownBattleScene.focusSide(this.playerSide(vid));
+        let detail = '';
+        let sub = '';
+        if (payload.benchUid === 'trainer') {
+          const before = t.trainerHp;
+          t.trainerHp = Math.min(t.maxTrainerHp, t.trainerHp + 6);
+          const benchEl = $(`showdown-bench-${vid}`);
+          ShowdownCommandVFX.play('heal', { benchEl });
+          detail = `💚 ${t.playerName} — Trainer Recover!`;
+          sub = `+${t.trainerHp - before} HP · ${t.energy}⚡ left`;
+        } else {
+          const mon = t.bench.find(m => m.uid === payload.benchUid && m.hp > 0);
+          if (!mon) { this.resolving = false; return; }
+          const before = mon.hp;
+          mon.hp = Math.min(mon.maxHp, mon.hp + 14);
+          const cardEl = $(`showdown-card-${mon.uid}`);
+          ShowdownCommandVFX.play('heal', { cardEl, fromEl: cardEl });
+          detail = `💚 ${mon.pokemon.name} — Restored!`;
+          sub = `+${mon.hp - before} HP · ${t.energy}⚡ left`;
+        }
+        ShowdownArenaUI.showAction({ trainer: playerName || t.playerName, detail, sub });
+        $('randomDuelTicker').textContent = `${t.playerName} heals! (−2⚡)`;
+        if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
+        this.renderShowdownArena();
+        await sleep(1100);
+        this.resolving = false;
+        this.syncState();
+        HostGame.broadcast();
+        this.endTurn(`${t.playerName} healed!`);
+      },
+
+      async handleAttackTrainer(vid, payload) {
+        if (this.attackedThisTurn) return;
+        const { benchUid, moveIndex } = payload;
+        const t = this.getTrainer(vid);
+        const opp = this.getTrainer(this.opponentId(vid));
+        if (!t || !opp) return;
+
+        const attacker = t.bench.find(m => m.uid === benchUid && m.hp > 0);
+        if (!attacker) return;
+
+        const oppActive = ShowdownHelpers.activeBench(opp.bench);
+        const move = attacker.moves[moveIndex] || attacker.moves[0];
+        const stealthMove = attacker.stealthCapable && /shadow|night|sneak|phantom|hidden/i.test(move || '');
+        if (oppActive.length > 0 && !stealthMove) return;
+
+        this.attackedThisTurn = true;
+        clearInterval(this.timer);
+        this.votingLocked = true;
+        if (state.randomDuel) state.randomDuel.isVotingLocked = true;
+        await this.resolveAttack(vid, attacker, null, moveIndex, true);
+      },
+
+      calcDamage(attacker, defenderMon, moveIndex, vsTrainer, atkTrainer, defTrainer) {
         const move = attacker.moves[moveIndex] || attacker.moves[0];
         const atkType = getMoveType(move, attacker.pokemon.types?.[0] || 'normal');
-        const mult = getTypeEffectiveness(atkType, defender.pokemon?.types || ['normal']);
-        let dmg = Math.round((16 + Math.floor(Math.random() * 14)) * mult);
-        const crit = Math.random() < 0.14;
-        if (crit) dmg = Math.round(dmg * 1.5);
-        return { dmg, crit, move, atkType, mult };
+        const defTypes = vsTrainer ? ['normal'] : (defenderMon?.pokemon?.types || ['normal']);
+        const mult = vsTrainer ? 1 : getTypeEffectiveness(atkType, defTypes);
+        let base = vsTrainer ? (4 + Math.floor(Math.random() * 5)) : (10 + Math.floor(Math.random() * 10));
+        const atkCombos = ShowdownCombos.evaluate(atkTrainer || {});
+        const defCombos = defTrainer && !vsTrainer ? ShowdownCombos.evaluate(defTrainer) : { totals: {} };
+        let dmg = Math.round(base * mult);
+        dmg += attacker.atkBuff || 0;
+        dmg += vsTrainer ? (atkCombos.totals.trainerStrikeBonus || 0) : (atkCombos.totals.atkBonus || 0);
+        if (!vsTrainer && defCombos.totals.defBonus) dmg = Math.max(1, dmg - defCombos.totals.defBonus);
+        if (!vsTrainer && defenderMon?.defShield > 0) {
+          const absorbed = Math.min(Math.max(0, dmg - 1), defenderMon.defShield);
+          dmg -= absorbed;
+          defenderMon.defShield -= absorbed;
+        }
+        const critChance = 0.12 + (atkCombos.totals.critBonus || 0);
+        const crit = Math.random() < critChance;
+        if (crit) dmg = Math.round(dmg * 1.45);
+        return {
+          dmg, crit, move, atkType, mult,
+          comboAtk: atkCombos.totals.atkBonus || 0,
+          comboTrainer: atkCombos.totals.trainerStrikeBonus || 0,
+          comboDef: defCombos.totals.defBonus || 0,
+          comboHeal: atkCombos.totals.healOnAttack || 0,
+          comboLabels: atkCombos.labels,
+        };
       },
 
-      async resolveTurn() {
-        if (this.resolving || !this.active) return;
+      async resolveAttack(vid, attacker, targetMon, moveIndex, vsTrainer) {
         this.resolving = true;
-        clearInterval(this.timer);
-        if (!this.votingLocked) this.lockVoting('Resolving attacks!');
+        this.phase = 'animating';
         if (state.randomDuel) state.randomDuel.phase = 'animating';
         HostGame.broadcast();
 
-        const actions = [];
-        for (const vid of this.duelistIds) {
-          const attacker = this.getCombatant(vid);
-          const targetVid = this.opponentId(vid);
-          const target = targetVid ? this.getCombatant(targetVid) : null;
-          if (attacker && target && !attacker.eliminated && !target.eliminated && target.hp > 0) {
-            actions.push({ attacker, target, moveIndex: this.pickMoveIndex(vid) });
+        const t = this.getTrainer(vid);
+        const opp = this.getTrainer(this.opponentId(vid));
+        const hit = this.calcDamage(attacker, targetMon, moveIndex, vsTrainer, t, vsTrainer ? null : opp);
+
+        const cardA = $(`showdown-card-${attacker.uid}`);
+        const cardB = targetMon ? $(`showdown-card-${targetMon.uid}`) : null;
+        const oppHalf = document.querySelector(`.showdown-half[data-vid="${opp.voterId}"]`);
+
+        const eff = typeEffectLabel(hit.mult);
+        const typeEmoji = ArenaUX.typeMeta(hit.atkType).emoji;
+        const comboNote = hit.comboLabels?.length
+          ? ` · ${hit.comboLabels.join(' ')}`
+          : '';
+        const log = vsTrainer
+          ? `${t.playerName}'s ${attacker.pokemon.name} ${hit.move} → ${opp.playerName}! −${hit.dmg} Trainer HP${comboNote}`
+          : `${t.playerName}'s ${attacker.pokemon.name} ${hit.move} → ${targetMon.pokemon.name}! −${hit.dmg}${eff ? ` ${eff}` : ''}${comboNote}`;
+        const subExtra = hit.comboAtk ? ` (+${hit.comboAtk} combo)` : hit.comboTrainer ? ` (+${hit.comboTrainer} combo)` : '';
+        ShowdownArenaUI.showAction({
+          trainer: t.playerName,
+          detail: `${typeEmoji} ${attacker.pokemon.name} — ${hit.move}!`,
+          sub: vsTrainer
+            ? `Direct Trainer strike! −${hit.dmg} HP${subExtra}${hit.crit ? ' CRITICAL!' : ''}`
+            : `Hits ${targetMon.pokemon.name}! −${hit.dmg}${subExtra}${eff ? ` (${eff})` : ''}${hit.crit ? ' CRIT!' : ''}`,
+        });
+        $('randomDuelTicker').textContent = log;
+        if (state.randomDuel) state.randomDuel.duelLog = log;
+        HostGame.broadcast();
+
+        ShowdownBattleScene.focusSide(this.playerSide(vid));
+        ShowdownCommandVFX.play('attack', {
+          fromEl: cardA, toEl: cardB || oppHalf, atkType: hit.atkType, damage: hit.dmg,
+          label: vsTrainer ? 'Trainer HP' : 'HP',
+          pokemon: attacker.pokemon, move: hit.move, trainerName: t.playerName, crit: hit.crit,
+        });
+        ShowdownCommandVFX.viewportShake(hit.crit || hit.dmg >= 14);
+        if (hit.crit) BattleVFX.showCritical();
+
+        await sleep(2400);
+
+        if (vsTrainer) {
+          opp.trainerHp = Math.max(0, opp.trainerHp - hit.dmg);
+        } else if (targetMon) {
+          targetMon.hp = Math.max(0, targetMon.hp - hit.dmg);
+          if (targetMon.hp <= 0) {
+            opp.bench = opp.bench.filter(m => m.uid !== targetMon.uid);
+            ShowdownCombos.refreshBenchStats(opp);
           }
         }
-
-        const logs = [];
-        for (const { attacker, target, moveIndex } of shuffleArray(actions)) {
-          if (attacker.eliminated || target.eliminated || target.hp <= 0) continue;
-          const hit = this.calcDamage(attacker, target, moveIndex);
-          const cardA = $(`duel-card-${attacker.voterId}`);
-          const cardB = $(`duel-card-${target.voterId}`);
-          cardA?.classList.add('duel-active');
-          cardB?.classList.add('duel-active');
-
-          const eff = typeEffectLabel(hit.mult);
-          $('randomDuelTicker').textContent = `${attacker.playerName}'s ${hit.move} → ${target.playerName}!${eff ? ` ${eff}` : ''}`;
-          if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
-          HostGame.broadcast();
-
-          BattleVFX.playDuelBetween(hit.atkType, hit.move, cardA, cardB);
-          AudioEngine.playClick();
-          if (hit.crit) BattleVFX.showCritical();
-
-          target.hp = Math.max(0, target.hp - hit.dmg);
-          if (target.hp <= 0) target.eliminated = true;
-          logs.push(`${attacker.playerName} hit ${target.playerName} for ${hit.dmg}${hit.crit ? ' CRIT' : ''}`);
-          this.renderSplitArena('combat');
-          await sleep(780);
-          cardA?.classList.remove('duel-active');
-          cardB?.classList.remove('duel-active');
-
-          const alive = this.duelistIds.map(vid => this.combatants[vid]).filter(c => c && !c.eliminated && c.hp > 0);
-          if (alive.length <= 1) {
-            await this.crownWinner(alive[0] || null);
-            return;
-          }
+        if (hit.comboHeal > 0) {
+          attacker.hp = Math.min(attacker.maxHp, attacker.hp + hit.comboHeal);
         }
 
-        $('randomDuelTicker').textContent = logs.slice(-2).join(' · ') || 'Turn complete!';
-        if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
+        this.renderShowdownArena();
         this.resolving = false;
-        if (state.randomDuel) state.randomDuel.phase = 'combat';
+        this.phase = 'combat';
+        if (state.randomDuel) {
+          state.randomDuel.phase = 'combat';
+          state.randomDuel.isVotingLocked = false;
+        }
+
+        const winner = this.checkWin();
+        if (winner) {
+          await this.crownWinner(winner);
+          return;
+        }
+
         this.syncState();
         HostGame.broadcast();
-        this.startTurn();
+        this.endTurn(`${t.playerName} attacked!`);
+      },
+
+      renderShowdownArena() {
+        const grid = $('randomDuelCombatGrid');
+        if (!grid) return;
+        const topId = this.duelistIds[1];
+        const botId = this.duelistIds[0];
+        const top = this.getTrainer(topId);
+        const bot = this.getTrainer(botId);
+        if (!top || !bot) return;
+
+        grid.innerHTML = `<div class="showdown-field">
+          ${this.renderHalf(top, 'top', topId === this.activePlayerId)}
+          <div class="showdown-mid-divider"><span>VS</span></div>
+          ${this.renderHalf(bot, 'bottom', botId === this.activePlayerId)}
+        </div>`;
+        ArenaUX.bindSprites(grid);
+      },
+
+      renderHalf(trainer, pos, isActive) {
+        const hpPct = Math.max(0, (trainer.trainerHp / trainer.maxTrainerHp) * 100);
+        const bench = ShowdownHelpers.activeBench(trainer.bench);
+        const combo = ShowdownCombos.evaluate(trainer);
+        const comboHtml = combo.active.length
+          ? `<div class="showdown-combo-strip">${combo.active.map(c =>
+              `<span class="showdown-combo-chip" title="${escapeHtml(c.desc)}">${c.emoji} ${escapeHtml(c.name)}</span>`
+            ).join('')}</div>`
+          : '';
+        const benchHtml = bench.map(m => this.renderBenchCard(m, trainer)).join('');
+        const emptySlots = Math.max(0, CONFIG.DUEL_BENCH_MAX - bench.length);
+        return `<section class="showdown-half showdown-half--${pos}${isActive ? ' showdown-active' : ''}" data-vid="${escapeHtml(trainer.voterId)}">
+          <div class="showdown-trainer-bar">
+            <span class="showdown-trainer-name">${escapeHtml(trainer.playerName)}</span>
+            <div class="showdown-trainer-hp-wrap"><div class="showdown-trainer-hp-fill" style="width:${hpPct}%"></div></div>
+            <span class="showdown-trainer-hp-num">${trainer.trainerHp}/${trainer.maxTrainerHp}</span>
+            <span class="showdown-energy-pip">⚡${trainer.energy}/${trainer.maxEnergy}</span>
+          </div>
+          ${comboHtml}
+          <div class="showdown-bench" id="showdown-bench-${escapeHtml(trainer.voterId)}">
+            ${benchHtml}${Array(emptySlots).fill('<div class="showdown-bench-slot empty"></div>').join('')}
+          </div>
+        </section>`;
+      },
+
+      renderBenchCard(mon, trainer) {
+        const shiny = !!(mon.pokemon.rosterShiny || mon.pokemon.isShiny);
+        const combo = ShowdownCombos.evaluate(trainer || {});
+        return `<div class="showdown-bench-card" id="showdown-card-${escapeHtml(mon.uid)}" data-uid="${escapeHtml(mon.uid)}" style="will-change:transform">
+          ${TCGCard.showdownArenaCardHtml(mon.pokemon, {
+            hp: mon.hp, maxHp: mon.maxHp, shiny,
+            energyCost: mon.energyCost, moves: mon.moves || [],
+            atkBonus: combo.totals.atkBonus, comboBuff: combo.totals.atkBonus > 0 || combo.totals.hpBonus > 0,
+          })}
+        </div>`;
       },
 
       async crownWinner(winner) {
@@ -6539,15 +8498,18 @@
 
         if (winner?.voterId) {
           Leaderboard.addRandomDuelWin(winner.voterId, winner.playerName);
+          const oppId = this.opponentId(winner.voterId);
+          if (oppId) this.recordDuelParticipants(winner.voterId, oppId);
         }
         Leaderboard.render();
 
         const name = winner?.playerName || 'Champion';
-        const banner = `🏆 CONGRATULATIONS TO THE WINNER: ${name}! (+${CONFIG.DUEL_WIN_POINTS} PTS) 🏆`;
+        const banner = `🏆 VICTORY! CONGRATULATIONS TRAINER ${name.toUpperCase()}! (+${CONFIG.DUEL_WIN_POINTS} POINTS) 🏆`;
         if (state.randomDuel) {
           state.randomDuel.phase = 'victory';
           state.randomDuel.winner = { voterId: winner?.voterId, playerName: name };
         }
+        HostGame.setSyncPhase('random_duel');
         HostGame.broadcast();
 
         launchConfetti(120);
@@ -6570,24 +8532,43 @@
         this.phase = 'idle';
         this.resolving = false;
         this.votingLocked = false;
+        this.trainers = {};
+        this.deckPools = {};
         state.randomDuel = null;
 
         $('randomDuelTriggerOverlay')?.classList.add('hidden-overlay');
         $('randomDuelOverlay')?.classList.add('hidden-overlay');
         $('randomDuelOverlay')?.setAttribute('aria-hidden', 'true');
         $('randomDuelVictoryBanner')?.classList.add('hidden');
+        $('randomDuelDamageLayer') && ($('randomDuelDamageLayer').innerHTML = '');
+        ShowdownArenaUI.reset();
         BattleVFX.resetArenaCanvas();
+        ShowdownBattleScene.unmount();
+        $('randomDuelArenaWrap')?.classList.remove('showdown-3d-active');
 
-        if (state.isRevealed) {
-          HostGame.setRoundControls(true, 'NEXT POKÉMON →');
-          $('actionBtn')?.classList.add('next-btn');
-          HostGame.updateArenaButton();
-          if (!aborted) AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 400);
+        if (aborted) {
+          if (state.isRevealed) {
+            HostGame.setRoundControls(true, 'NEXT POKÉMON →');
+            $('actionBtn')?.classList.add('next-btn');
+            HostGame.updateArenaButton();
+            HostGame.setSyncPhase('revealed');
+            AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 400);
+          } else {
+            HostGame.setSyncPhase('round');
+          }
+          HostGame.broadcast();
+          return;
         }
-        HostGame.broadcast();
+
+        void HostGame.resumeQuizAfterShowdown();
+      },
+
+      /** Legacy stubs — draft/battle_vote no longer used in showdown */
+      onDraftPick() {},
+      onBattleVote(payload) {
+        if (payload?.action) this.onShowdownAction(payload);
       },
     };
-
     // ═══════════════════════════════════════════════════════════════
     // ARENA SCHEDULER — 6–12 battles per session (+20% rate), evenly spaced
     // ═══════════════════════════════════════════════════════════════
@@ -6727,8 +8708,8 @@
         const out = {};
         for (const [vid, opts] of Object.entries(this.draftOptions)) {
           out[vid] = opts.map(p => ({
-            id: p.id, name: p.name, types: p.types,
-            artwork: p.artwork,
+            id: p.id, name: p.name, types: p.types, artwork: p.artwork,
+            rosterShiny: !!(p.rosterShiny || p.isShiny),
           }));
         }
         return out;
@@ -6741,7 +8722,10 @@
           out[vid] = {
             voterId: vid,
             playerName: c.playerName,
-            pokemon: { id: c.pokemon.id, name: c.pokemon.name, types: c.pokemon.types, artwork: c.pokemon.artwork },
+            pokemon: {
+              id: c.pokemon.id, name: c.pokemon.name, types: c.pokemon.types,
+              artwork: c.pokemon.artwork, rosterShiny: !!(c.pokemon.rosterShiny || c.pokemon.isShiny),
+            },
             moves: [...(c.moves || [])],
             hp: c.hp,
             maxHp: c.maxHp,
@@ -7039,29 +9023,15 @@
       },
 
       async buildDraftPools(participants) {
-        const fetches = participants.map(async ({ voterId, playerName }) => {
-          const ids = Pokedex.randomIds(3);
-          const picks = [];
-          for (const id of ids) {
-            try {
-              const p = await fetchPokemonDetails(id);
-              if (p) picks.push(p);
-            } catch { /* skip */ }
-          }
-          while (picks.length < 3) {
-            try {
-              const p = await fetchPokemonDetails(Pokedex.randomId());
-              if (p && !picks.some(x => x.id === p.id)) picks.push(p);
-            } catch { break; }
-          }
-          this.draftOptions[voterId] = picks.slice(0, 3);
+        const roster = await MasterRoster.loadForSession();
+        await Promise.all(participants.map(async ({ voterId, playerName }) => {
+          this.draftOptions[voterId] = roster.map(p => ({ ...p }));
           this.combatants[voterId] = {
             voterId, playerName, pokemon: null, moves: [],
             hp: CONFIG.ARENA_PLAYER_HP, maxHp: CONFIG.ARENA_PLAYER_HP,
             eliminated: false, locked: false,
           };
-        });
-        await Promise.all(fetches);
+        }));
       },
 
       startDraftTimer() {
@@ -7504,6 +9474,84 @@
       _evoFrontName: '',
       _evoBackName: '',
 
+      primaryType(pokemon) {
+        return (pokemon?.types?.[0] || 'normal').toLowerCase();
+      },
+
+      /** Hearthstone-style minion card — Pokémon art, mana cost, atk/hp gems, move text */
+      hsMinionCardHtml(pokemon, {
+        hp = 55, maxHp = 55, energyCost = 1, attack = null,
+        moves = [], abilityText = '', shiny = false, compact = false,
+        atkBonus = 0, comboBuff = false,
+      } = {}) {
+        if (!pokemon) return '';
+        const type = this.primaryType(pokemon);
+        const theme = TCG_TYPE_THEME[type] || TCG_TYPE_THEME.normal;
+        const tribe = HS_TYPE_TRIBE[type] || 'Beast';
+        const baseAtk = attack ?? Math.max(1, Math.round(hp / 12) + (energyCost || 1) - 1);
+        const atk = baseAtk + (atkBonus || 0);
+        const shinyCls = shiny ? ' tcg-shiny' : '';
+        const compactCls = compact ? ' hs-compact' : '';
+        const comboCls = comboBuff ? ' hs-combo-buff' : '';
+        const atkBoostCls = atkBonus > 0 ? ' hs-stat-boost' : '';
+        const moveNames = (moves || []).map(m => (typeof m === 'string' ? m : m?.name)).filter(Boolean);
+        const comboHint = atkBonus > 0 ? ` <strong>Combo:</strong> +${atkBonus} ATK.` : '';
+        const ability = abilityText || (moveNames.length
+          ? `<strong>Battlecry:</strong> ${escapeHtml(moveNames.slice(0, 2).join(' · '))}.${comboHint}`
+          : `Ready for battle!${comboHint}`);
+        const extraMove = moveNames.length > 2
+          ? `<span class="hs-move-tag">${escapeHtml(moveNames[2])}</span>` : '';
+        return `<article class="hs-minion-card hs-type-${type}${shinyCls}${compactCls}${comboCls}" style="--hs-frame:${theme.border};--hs-inner:${theme.inner || theme.art}">
+          <div class="hs-mana" aria-label="Cost ${energyCost}"><span>${energyCost}</span></div>
+          <div class="hs-portrait-ring">
+            <div class="hs-portrait">
+              <img class="img-pending" data-pid="${pokemon.id}" src="${escapeHtml(pokemon.artwork)}" alt="${escapeHtml(pokemon.name)}" draggable="false" />
+            </div>
+          </div>
+          <div class="hs-name-banner"><span>${escapeHtml(pokemon.name)}</span></div>
+          ${compact ? '' : `<div class="hs-text-box"><p class="hs-ability">${ability}${extraMove}</p></div>`}
+          <div class="hs-atk${atkBoostCls}" aria-label="Attack ${atk}"><span class="hs-gem-icon">⚔</span><span>${atk}</span></div>
+          <div class="hs-hp" aria-label="Health ${hp}"><span class="hs-gem-icon">♥</span><span>${hp}</span></div>
+          <div class="hs-tribe">${escapeHtml(tribe)}</div>
+        </article>`;
+      },
+
+      /** Large legible bench card for Trainer Showdown host arena */
+      showdownArenaCardHtml(pokemon, opts = {}) {
+        if (!pokemon) return '';
+        const {
+          hp = 55, maxHp = 55, energyCost = 1, attack = null,
+          shiny = false, atkBonus = 0, comboBuff = false,
+        } = opts;
+        const type = this.primaryType(pokemon);
+        const theme = TCG_TYPE_THEME[type] || TCG_TYPE_THEME.normal;
+        const safeMax = Math.max(1, maxHp);
+        const pct = Math.max(0, Math.min(100, (hp / safeMax) * 100));
+        const hpCls = ArenaUX.hpFillClass(pct);
+        const baseAtk = attack ?? Math.max(1, Math.round(hp / 12) + (energyCost || 1) - 1);
+        const atk = baseAtk + (atkBonus || 0);
+        const shinyCls = shiny ? ' sd-shiny' : '';
+        const comboCls = comboBuff ? ' sd-combo-buff' : '';
+        return `<article class="sd-arena-card sd-type-${type}${shinyCls}${comboCls}" style="--sd-frame:${theme.border};--sd-glow:${theme.art || theme.border}">
+          <header class="sd-card-header">
+            <span class="sd-mana" aria-label="Cost ${energyCost}">${energyCost}</span>
+            <div class="sd-header-hp" aria-label="Health ${hp} of ${safeMax}">
+              <span class="sd-hp-label">HP</span>
+              <span class="sd-hp-value">${hp}<span class="sd-hp-max">/${safeMax}</span></span>
+            </div>
+          </header>
+          <div class="sd-portrait">
+            <img class="img-pending" data-pid="${pokemon.id}" src="${escapeHtml(pokemon.artwork)}" alt="${escapeHtml(pokemon.name)}" draggable="false" />
+          </div>
+          <div class="sd-type-row"><div class="arena-type-pills">${ArenaUX.typePills(pokemon.types, true)}</div></div>
+          <div class="sd-hp-meter" role="progressbar" aria-valuenow="${hp}" aria-valuemin="0" aria-valuemax="${safeMax}">
+            <div class="sd-hp-fill hp-bar-fill ${hpCls}" style="width:${pct}%"></div>
+          </div>
+          <footer class="sd-name">${escapeHtml(pokemon.name)}</footer>
+          <span class="sd-atk" aria-label="Attack ${atk}">⚔${atk}</span>
+        </article>`;
+      },
+
       initFlipHandler() {
         if (this._flipBound) return;
         this._flipBound = true;
@@ -7659,10 +9707,6 @@
         $('tcgFlipShell')?.setAttribute('aria-label', `Pokémon card — tap to flip and see ${evo.preEvolution.name}`);
         $('tcgCardBack')?.classList.remove('hidden');
         $('tcgCardBack')?.removeAttribute('aria-hidden');
-      },
-
-      primaryType(pokemon) {
-        return (pokemon?.types && pokemon.types[0]) || 'normal';
       },
 
       /** Mystery phase — type art only; no shiny leak, no header stats */
@@ -8427,6 +10471,21 @@
       revealing: false,
       shinyRevealGen: 0,
       hostPickedIndex: -1,
+      /** Authoritative sync phase — never inferred from DOM (prevents mobile flicker) */
+      syncPhase: 'lobby',
+      sessionActive: false,
+      lastRoomStatePayload: null,
+
+      setSyncPhase(phase) {
+        this.syncPhase = phase;
+      },
+
+      /** Build + send room snapshot; caches payload for heartbeat replay only */
+      broadcast(opts = {}) {
+        const payload = this.buildRoomPayload(opts.phaseOverride, opts);
+        this.lastRoomStatePayload = payload;
+        sync?.pushState(payload);
+      },
 
       /** Stop in-flight shiny takeover / cry when advancing to next round */
       cancelShinyCelebration() {
@@ -8473,7 +10532,9 @@
         sync = RealtimeSync.init(ROOM_ID);
         this.renderTypeGrid();
         showHostScreen('start');
-        sync?.pushState(this.getSyncPayload('lobby'));
+        this.setSyncPhase('lobby');
+        this.sessionActive = false;
+        this.broadcast({ phaseOverride: 'lobby' });
 
         $('actionBtn').onclick = () => {
           if (RandomDuel.active) return;
@@ -8524,7 +10585,9 @@
           ArenaScheduler.reset();
           showHostScreen('start');
           AudioEngine.returnToLobby();
-          sync?.pushState(this.getSyncPayload('lobby', { resetScores: true }));
+          this.setSyncPhase('lobby');
+          this.sessionActive = false;
+          this.broadcast({ phaseOverride: 'lobby', resetScores: true });
           QR.renderAll();
         };
         this.bindHostVoteChoices();
@@ -8576,47 +10639,65 @@
         this.broadcast();
       },
 
-      getSyncPayload(phaseOverride, opts = {}) {
+      buildRoomPayload(phaseOverride, opts = {}) {
         if (RandomDuel.active) {
           RandomDuel.syncState();
-          return {
-            phase: 'random_duel',
+          const phase = HostGame.syncPhase === 'showdown_turn' ? 'showdown_turn' : 'random_duel';
+          const payload = {
+            phase,
+            activePhase: phase,
             round: state.currentRound,
             randomDuel: { ...state.randomDuel },
             leaderboard: Leaderboard.toPayload(),
             roomId: ROOM_ID,
             revealedName: state.isRevealed ? state.currentPokemon?.name : null,
+            currentPokemon: state.currentPokemon
+              ? { id: state.currentPokemon.id, name: state.currentPokemon.name }
+              : null,
             ts: Date.now(),
           };
+          return payload;
         }
         if (state.arena?.active || ArenaRoyale.battleModeActive || ArenaRoyale.lobbyOpen) {
           ArenaRoyale.syncState();
-          return {
+          const payload = {
             phase: 'arena_royale',
+            activePhase: 'arena_royale',
             battleModeActive: ArenaRoyale.battleModeActive || ArenaRoyale.lobbyOpen,
             round: state.currentRound,
             arena: { ...state.arena },
             leaderboard: Leaderboard.toPayload(),
             roomId: ROOM_ID,
+            currentPokemon: state.currentPokemon
+              ? { id: state.currentPokemon.id, name: state.currentPokemon.name }
+              : null,
             arenaSchedule: {
               ...ArenaScheduler.payload(),
               slotOpen: ArenaScheduler.isTriggerRound(state.currentRound),
             },
             ts: Date.now(),
           };
+          return payload;
         }
-        const phase = phaseOverride || (hostScreens.end.classList.contains('hidden-screen') === false ? 'ended'
-          : hostScreens.game.classList.contains('hidden-screen') ? 'lobby'
-          : state.isRevealed ? 'revealed' : (this.revealing ? 'revealing' : 'round'));
+        const phase = phaseOverride || this.syncPhase || 'lobby';
+        const votingOpen = phase === 'round'
+          && !state.isRevealed
+          && !this.revealing
+          && !this.revealBusy
+          && (state.choices?.length ?? 0) > 0;
         return {
           phase,
+          activePhase: phase,
           round: state.currentRound,
           roomId: ROOM_ID,
           choices: state.choices,
-          votingOpen: phase === 'round' && !state.isRevealed && !this.revealing,
+          votingOpen,
           connectedPlayerCount: sync?.countPresentPlayers?.() ?? 0,
           voteRecords: state.voteRecords.map(v => ({ ...v })),
           revealedName: state.isRevealed ? state.currentPokemon?.name : null,
+          currentPokemon: state.currentPokemon
+            ? { id: state.currentPokemon.id, name: state.currentPokemon.name }
+            : null,
           correctChoiceIndex: state.isRevealed && state.choices?.length
             ? state.choices.findIndex(c => c === state.currentPokemon?.name)
             : -1,
@@ -8644,8 +10725,9 @@
         btn.textContent = `⚔️ ARENA (${left} left)`;
       },
 
-      broadcast() {
-        sync?.pushState(this.getSyncPayload());
+      /** @deprecated — use broadcast() */
+      getSyncPayload(phaseOverride, opts = {}) {
+        return this.buildRoomPayload(phaseOverride, opts);
       },
 
       /** Merge player-broadcast totals (localStorage-backed) into host session cache */
@@ -8689,6 +10771,8 @@
           state.isRevealed = false;
           state.arena = null;
           state.voteRecords = [];
+          this.sessionActive = true;
+          this.setSyncPhase('round');
           await RoundDeck.init('all');
           showHostScreen('game');
           await this.loadNextRound();
@@ -8697,6 +10781,36 @@
           console.error('[HostGame] continueAfterArena', err);
           $('loadingStatus').textContent = err.message || 'Could not resume game';
           setTimeout(() => showHostScreen('start'), 2500);
+        } finally {
+          this.revealBusy = false;
+        }
+      },
+
+      /** Resume Who's That Pokémon after Trainer Showdown — auto-advance to next voting round */
+      async resumeQuizAfterShowdown() {
+        if (this.revealBusy) return;
+        this.revealBusy = true;
+        showHostScreen('game');
+        Leaderboard.setVisible(true);
+        this.setRoundControls(false, 'LOADING…');
+        try {
+          if (state.selectedType == null || state.currentRound < 0) {
+            this.setSyncPhase('lobby');
+            this.broadcast();
+            return;
+          }
+          await this.loadNextRound();
+          AudioEngine.fadeBgm(CONFIG.VOL.ROUND, CONFIG.FADE_MS);
+        } catch (err) {
+          console.error('[HostGame] resumeQuizAfterShowdown', err);
+          if (state.isRevealed) {
+            this.setRoundControls(true, 'NEXT POKÉMON →');
+            $('actionBtn')?.classList.add('next-btn');
+            this.setSyncPhase('revealed');
+          } else {
+            this.setSyncPhase('round');
+          }
+          this.broadcast();
         } finally {
           this.revealBusy = false;
         }
@@ -8716,6 +10830,8 @@
         AudioEngine.playClick();
         ArenaScheduler.reset();
         state = { selectedType: typeId, currentPokemon: null, currentRound: -1, isRevealed: false, choices: [], voteRecords: [], arena: null, randomDuel: null };
+        this.sessionActive = true;
+        this.setSyncPhase('round');
         showHostScreen('loading');
         $('loadingStatus').textContent = `Loading ${TYPE_OPTIONS.find(t=>t.id===typeId)?.label ?? typeId} Pokémon…`;
         try {
@@ -8778,6 +10894,7 @@
         }
 
         this.renderHostVoteChoices();
+        this.setSyncPhase('round');
         this.broadcast();
       },
 
@@ -8812,6 +10929,7 @@
         if (state.isRevealed || this.revealBusy || this.revealing) return;
         this.revealBusy = true;
         this.revealing = true;
+        this.setSyncPhase('revealing');
         this.renderHostVoteChoices();
         const pokemon = state.currentPokemon;
         if (!pokemon) { this.revealBusy = false; this.revealing = false; return; }
@@ -8862,6 +10980,7 @@
           $('actionBtn').classList.add('next-btn');
           this.updateArenaButton();
           this.setRoundControls(true);
+          this.setSyncPhase('revealed');
           this.broadcast();
 
           if (pokemon.isShiny) {
@@ -8893,8 +11012,9 @@
         if (!state.isRevealed || this.revealBusy || RandomDuel.active) return;
         this.cancelShinyCelebration();
         AudioEngine.playClick();
-        /* 30% mid-game duel matrix — evaluated every NEXT click when ≥2 leaderboard players */
-        if (RandomDuel.shouldTriggerOnNext()) {
+        /* 40% Trainer Showdown — gate: ≥2 session players · anti-rematch pair engine */
+        const forceShowdown = urlParams.get('forceShowdown') === '1';
+        if (forceShowdown || RandomDuel.shouldTriggerOnNext()) {
           await RandomDuel.start();
           return;
         }
@@ -8910,12 +11030,15 @@
       quit() {
         AudioEngine.returnToLobby();
         if (RandomDuel.active) RandomDuel.end(true);
+        RandomDuel.resetMatchmaker();
         Leaderboard.reset();
         ArenaScheduler.reset();
         RoundDeck.reset();
         state = { selectedType: null, currentPokemon: null, currentRound: -1, isRevealed: false, choices: [], voteRecords: [], arena: null, randomDuel: null };
+        this.setSyncPhase('lobby');
+        this.sessionActive = false;
         showHostScreen('start');
-        sync?.pushState(this.getSyncPayload('lobby', { resetScores: true }));
+        this.broadcast({ phaseOverride: 'lobby', resetScores: true });
         QR.renderAll();
       },
     };
@@ -9099,7 +11222,84 @@
         if (!targets || !moves) return;
         this._battleBound = true;
 
+        const pickShowdownCmd = (e) => {
+          const reset = e.target.closest('[data-sd-cmd-reset]');
+          if (reset) {
+            const payload = this.remote;
+            const duel = payload?.randomDuel;
+            if (!duel) return true;
+            const turn = duel.turn;
+            sessionStorage.removeItem(`sd-cmd-${ROOM_ID}-${turn}`);
+            sessionStorage.removeItem(`sd-atk-${ROOM_ID}-${turn}`);
+            sessionStorage.removeItem(`sd-tgt-${ROOM_ID}-${turn}`);
+            AudioEngine.playClick();
+            this.renderShowdownBattle(payload);
+            return true;
+          }
+          const btn = e.target.closest('[data-sd-cmd]');
+          if (!btn) return false;
+          const payload = this.remote;
+          const duel = payload?.randomDuel;
+          if (!duel || duel.activePlayerId !== voterId || duel.isVotingLocked) return true;
+          const turn = duel.turn;
+          const cmdKey = `sd-cmd-${ROOM_ID}-${turn}`;
+          if (sessionStorage.getItem(cmdKey)) return true;
+          sessionStorage.setItem(cmdKey, btn.dataset.sdCmd);
+          sessionStorage.removeItem(`sd-atk-${ROOM_ID}-${turn}`);
+          sessionStorage.removeItem(`sd-tgt-${ROOM_ID}-${turn}`);
+          AudioEngine.playClick();
+          this.renderShowdownBattle(payload);
+          return true;
+        };
+
+        const pickShowdownAtk = (e) => {
+          const btn = e.target.closest('[data-sd-atk]');
+          if (!btn) return false;
+          const payload = this.remote;
+          const duel = payload?.randomDuel;
+          if (!duel || duel.activePlayerId !== voterId || duel.isVotingLocked) return true;
+          const turn = duel.turn;
+          const cmd = sessionStorage.getItem(`sd-cmd-${ROOM_ID}-${turn}`) || 'attack';
+          const atkKey = `sd-atk-${ROOM_ID}-${turn}`;
+          if (sessionStorage.getItem(atkKey)) return true;
+          sessionStorage.setItem(atkKey, btn.dataset.sdAtk);
+          if (cmd === 'defend') {
+            sync?.sendShowdownAction({ action: 'defend', benchUid: btn.dataset.sdAtk, turn });
+            $('playerBattleStatus').textContent = '✓ Shield locked!';
+            return true;
+          }
+          if (cmd === 'buff') {
+            sync?.sendShowdownAction({ action: 'buff', benchUid: btn.dataset.sdAtk, turn });
+            $('playerBattleStatus').textContent = '✓ Buff locked!';
+            return true;
+          }
+          if (cmd === 'heal') {
+            sync?.sendShowdownAction({ action: 'heal', benchUid: btn.dataset.sdAtk, turn });
+            $('playerBattleStatus').textContent = '✓ Heal locked!';
+            return true;
+          }
+          AudioEngine.playClick();
+          this.renderShowdownBattle(payload);
+          return true;
+        };
+
+        const pickShowdownTgt = (e) => {
+          const btn = e.target.closest('[data-sd-tgt]');
+          if (!btn) return false;
+          const payload = this.remote;
+          const duel = payload?.randomDuel;
+          if (!duel || duel.activePlayerId !== voterId || duel.isVotingLocked) return true;
+          const turn = duel.turn;
+          const tgtKey = `sd-tgt-${ROOM_ID}-${turn}`;
+          if (sessionStorage.getItem(tgtKey)) return true;
+          sessionStorage.setItem(tgtKey, btn.dataset.sdTgt);
+          AudioEngine.playClick();
+          this.renderShowdownBattle(payload);
+          return true;
+        };
+
         const pickTarget = (e) => {
+          if (pickShowdownCmd(e) || pickShowdownAtk(e) || pickShowdownTgt(e)) return;
           const btn = e.target.closest('.arena-target-card[data-target]');
           if (!btn) return;
           const payload = this.remote;
@@ -9116,7 +11316,7 @@
         };
         targets.addEventListener('click', pickTarget);
         targets.addEventListener('touchend', (e) => {
-          if (e.target.closest('.arena-target-card[data-target]')) e.preventDefault();
+          if (e.target.closest('.arena-target-card')) e.preventDefault();
           pickTarget(e);
         }, { passive: false });
 
@@ -9124,24 +11324,29 @@
           const btn = e.target.closest('.arena-move-chip[data-idx]');
           if (!btn || btn.disabled) return;
           const payload = this.remote;
-          const isRandomDuel = payload?.phase === 'random_duel';
-          const arena = payload?.arena;
           const duel = payload?.randomDuel;
-          if (isRandomDuel) {
-            if (!duel || duel.isVotingLocked || duel.phase !== 'combat') return;
+          const isShowdown = (payload?.phase === 'random_duel' || payload?.phase === 'showdown_turn') && duel?.mode === 'showdown';
+          const arena = payload?.arena;
+
+          if (isShowdown) {
+            if (!duel || duel.isVotingLocked || duel.activePlayerId !== voterId) return;
             const turn = duel.turn;
-            const moveKey = `duel-battle-${ROOM_ID}-${turn}`;
-            if (sessionStorage.getItem(moveKey) !== null) return;
-            if (!playerName) return;
-            const idx = +btn.dataset.idx;
-            sessionStorage.setItem(moveKey, String(idx));
-            sync?.sendBattleVote(idx, turn, null);
-            $('playerBattleStatus').textContent = '✓ Locked!';
+            const atkKey = `sd-atk-${ROOM_ID}-${turn}`;
+            const tgtKey = `sd-tgt-${ROOM_ID}-${turn}`;
+            const benchUid = sessionStorage.getItem(atkKey);
+            const target = sessionStorage.getItem(tgtKey);
+            if (!benchUid || !target) return;
+            const moveIndex = +btn.dataset.idx;
+            const action = target === 'trainer'
+              ? { action: 'attack_trainer', benchUid, moveIndex, turn }
+              : { action: 'attack_pokemon', benchUid, targetBenchUid: target, moveIndex, turn };
+            sync?.sendShowdownAction(action);
             moves.querySelectorAll('.arena-move-chip').forEach(b => { b.disabled = true; });
-            btn.classList.add('selected');
+            $('playerBattleStatus').textContent = '✓ Strike locked!';
             AudioEngine.playClick();
             return;
           }
+
           if (!arena || arena.isVotingLocked || arena.phase !== 'combat') return;
           const turn = arena.turn;
           const targetKey = `battle-target-${ROOM_ID}-${turn}`;
@@ -9157,7 +11362,19 @@
           btn.classList.add('selected');
           AudioEngine.playClick();
         };
-        moves.addEventListener('click', pickMove);
+
+        moves.addEventListener('click', (e) => {
+          if (pickShowdownCmd(e)) return;
+          if (e.target.id === 'playerShowdownPassBtn' || e.target.closest('#playerShowdownPassBtn')) {
+            const payload = this.remote;
+            const duel = payload?.randomDuel;
+            if (!duel || duel.activePlayerId !== voterId) return;
+            sync?.sendShowdownAction({ action: 'end_turn', turn: duel.turn });
+            $('playerBattleStatus').textContent = '✓ Ending turn…';
+            return;
+          }
+          pickMove(e);
+        });
         moves.addEventListener('touchend', (e) => {
           if (e.target.closest('.arena-move-chip[data-idx]')) e.preventDefault();
           pickMove(e);
@@ -9181,110 +11398,103 @@
       },
 
       onConnected() {
-        if (this.remote) {
+        if (this.remote && this.shouldApplyRoomState(this.remote)) {
           this.onState(this.remote);
+          return;
+        }
+        if (this.remote && this.isActiveQuizPhase(this.remote.phase)) {
+          this.applyRoomState(this.remote);
           return;
         }
         showPlayerScreen('wait');
         $('playerWaitMsg').textContent = `You're in! Room ${ROOM_ID} — syncing with the host…`;
       },
 
-      /** True when this phone has no vote stored for the current quiz round */
-      missedCurrentRoundVote(round) {
-        if (round == null || round < 0) return true;
-        return sessionStorage.getItem(`vote-${ROOM_ID}-${round}`) === null;
+      /** Phases where reverting to lobby/wait causes visible flicker */
+      isActiveQuizPhase(phase) {
+        return ['round', 'revealing', 'revealed', 'arena_royale', 'random_duel', 'showdown_turn'].includes(phase);
       },
 
-      lateJoinVoteHint(payload) {
-        const name = playerName || 'Trainer';
-        if (payload.phase === 'revealed' && payload.revealedName) {
-          return `You're in, ${name}! It was ${payload.revealedName} — you'll vote on the next Pokémon!`;
+      shouldApplyRoomState(incoming) {
+        if (!incoming) return false;
+        const cur = this.remote;
+        if (!cur) return true;
+        if (incoming.resetScores) return true;
+        if (incoming.roomId && incoming.roomId.toLowerCase() !== ROOM_ID) return true;
+
+        const inRound = incoming.round ?? -1;
+        const curRound = cur.round ?? -1;
+
+        if (incoming.phase === 'lobby' && this.isActiveQuizPhase(cur.phase)) {
+          if (inRound <= curRound) return false;
         }
-        if (payload.phase === 'revealing') {
-          return `You're in, ${name}! Reveal in progress — you'll vote on the next one!`;
+        if (incoming.phase === 'lobby' && cur.phase === 'round' && (cur.choices?.length ?? 0) > 0) {
+          return false;
         }
-        if (payload.phase === 'round' && !payload.votingOpen) {
-          return `You're in, ${name}! This round is locked — you'll vote on the next Pokémon!`;
+        if (incoming.heartbeat && incoming.phase === 'lobby' && cur.phase !== 'lobby') {
+          return false;
         }
-        return `You're in, ${name}! Watch the big screen — you'll vote on the next Pokémon!`;
+        if (incoming.phase === cur.phase && inRound === curRound && (incoming.ts ?? 0) < (cur.ts ?? 0)) {
+          return false;
+        }
+        return true;
       },
 
-      syncVoteRoundState(payload) {
-        const round = payload.round;
-        if (round == null || round < 0) return;
-        const saved = sessionStorage.getItem(`vote-${ROOM_ID}-${round}`);
-        if (saved !== null) {
-          this.votedRound = round;
-          this.pickedIndex = +saved;
-        } else if (this.votedRound === round) {
-          this.votedRound = -1;
-          this.pickedIndex = -1;
-        }
-      },
-
-      /**
-       * On REVEAL broadcast — compare saved vote to correctChoiceIndex,
-       * increment localStorage session score, and push score_update to host.
-       */
-      processRevealScore(payload) {
-        const round = payload.round;
-        if (round == null || round < 0) return;
-        const scoredKey = `scored-${ROOM_ID}-${round}`;
-        if (sessionStorage.getItem(scoredKey) != null) return;
-
-        const voteKey = `vote-${ROOM_ID}-${round}`;
-        const saved = sessionStorage.getItem(voteKey);
-        if (saved === null) {
-          sessionStorage.setItem(scoredKey, '0');
-          return;
-        }
-
-        const pickedIndex = +saved;
-        const correctIdx = payload.correctChoiceIndex;
-        sessionStorage.setItem(scoredKey, pickedIndex === correctIdx ? '1' : '0');
-
-        if (correctIdx >= 0 && pickedIndex === correctIdx) {
-          const newScore = getPlayerSessionScore() + 1;
-          setPlayerSessionScore(newScore);
-          sync?.sendScoreUpdate(newScore, round);
-        }
+      applyRoomState(payload) {
+        this.remote = payload;
+        sync?.updatePlayerSyncBar();
+        this.renderFromRemote(payload);
       },
 
       onState(payload) {
+        if (!this.shouldApplyRoomState(payload)) return;
         this.remote = payload;
         sync?.updatePlayerSyncBar();
         if (!payload) return;
+        this.renderFromRemote(payload);
+      },
+
+      renderFromRemote(payload) {
         if (payload.roomId && payload.roomId.toLowerCase() !== ROOM_ID) {
           $('playerErrorMsg').textContent = `Wrong room (${ROOM_ID}). Scan the QR on the host TV again (room ${payload.roomId}).`;
           showPlayerScreen('error');
           return;
         }
 
-        if (payload.phase === 'random_duel' && payload.randomDuel?.active) {
+        if ((payload.phase === 'random_duel' || payload.phase === 'showdown_turn') && payload.randomDuel?.active) {
           const duel = payload.randomDuel;
           const isDuelist = duel.duelistIds?.includes(voterId);
+          const isMyTurn = duel.activePlayerId === voterId && duel.phase === 'combat';
           const specMsg = duel.spectatorMsg
-            || `${duel.trainerA?.playerName || 'Trainer A'} and ${duel.trainerB?.playerName || 'Trainer B'} are dueling! Watch the main screen!`;
+            || `${duel.trainerA?.playerName || 'Trainer A'} and ${duel.trainerB?.playerName || 'Trainer B'} — Trainer Showdown!`;
 
-          if ((duel.phase === 'draft' || duel.phase === 'trigger') && isDuelist) {
-            showPlayerScreen('draft');
-            this.renderRandomDuelDraft(payload);
+          if (duel.phase === 'trigger') {
+            showPlayerScreen(isDuelist ? 'battle' : 'spectator');
+            if (isDuelist) {
+              $('playerBattleLabel').textContent = 'Showdown starting…';
+              $('playerBattleStatus').textContent = 'Dealing your hand!';
+            } else $('playerSpectatorMsg').textContent = specMsg;
             return;
           }
-          if ((duel.phase === 'draft' || duel.phase === 'trigger') && !isDuelist) {
-            showPlayerScreen('spectator');
-            $('playerSpectatorMsg').innerHTML = `<span class="spectator-duelists">${escapeHtml(duel.trainerA?.playerName || 'Trainer A')} and ${escapeHtml(duel.trainerB?.playerName || 'Trainer B')}</span> are dueling! Watch the main screen!`;
+          if (duel.phase === 'deploying') {
+            showPlayerScreen(isDuelist ? 'battle' : 'spectator');
+            if (isDuelist) this.renderShowdownBattle(payload, { locked: true });
+            else {
+              const active = duel.trainers?.[duel.activePlayerId];
+              $('playerSpectatorMsg').textContent = duel.duelLog
+                || `${active?.playerName || 'Trainer'} is deploying their hand…`;
+            }
             return;
           }
           if (duel.isVotingLocked || duel.phase === 'animating') {
-            showPlayerScreen(isDuelist ? 'locked' : 'spectator');
-            if (isDuelist) $('playerLockedMsg').textContent = duel.crowdMessage || duel.duelLog || '⚔️ Resolving…';
-            else $('playerSpectatorMsg').textContent = specMsg;
+            showPlayerScreen(isDuelist ? 'battle' : 'spectator');
+            if (isDuelist) this.renderShowdownBattle(payload, { locked: true });
+            else $('playerSpectatorMsg').textContent = duel.duelLog || specMsg;
             return;
           }
-          if (duel.phase === 'combat' && isDuelist) {
+          if ((duel.phase === 'combat' || payload.phase === 'showdown_turn') && isDuelist) {
             showPlayerScreen('battle');
-            this.renderRandomDuelBattle(payload);
+            this.renderShowdownBattle(payload, { locked: !isMyTurn });
             return;
           }
           if (duel.phase === 'combat' && !isDuelist) {
@@ -9295,8 +11505,8 @@
           if (duel.phase === 'victory') {
             showPlayerScreen('spectator');
             $('playerSpectatorMsg').textContent = duel.winner
-              ? `🏆 ${duel.winner.playerName} wins the duel! (+${CONFIG.DUEL_WIN_POINTS} pts)`
-              : 'Duel complete — back to the quiz!';
+              ? `🏆 ${duel.winner.playerName} wins the Showdown! (+${CONFIG.DUEL_WIN_POINTS} pts)`
+              : 'Showdown complete — back to the quiz!';
             return;
           }
           showPlayerScreen('spectator');
@@ -9388,6 +11598,7 @@
         }
 
         if (payload.phase === 'round') {
+          this.clearShowdownTurnKeys();
           this.syncVoteRoundState(payload);
           $('playerWaitJoinArenaBtn')?.classList.add('hidden');
           $('playerLockedJoinArenaBtn')?.classList.add('hidden');
@@ -9406,6 +11617,79 @@
               ? this.lateJoinVoteHint(payload)
               : 'Look at the big screen!';
           }
+        }
+      },
+
+      /** Clear per-turn showdown command picks when returning to quiz */
+      clearShowdownTurnKeys() {
+        const prefix = `sd-`;
+        const roomTag = `-${ROOM_ID}-`;
+        const keys = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const k = sessionStorage.key(i);
+          if (k && k.startsWith(prefix) && k.includes(roomTag)) keys.push(k);
+        }
+        keys.forEach(k => sessionStorage.removeItem(k));
+      },
+
+      /** True when this phone has no vote stored for the current quiz round */
+      missedCurrentRoundVote(round) {
+        if (round == null || round < 0) return true;
+        return sessionStorage.getItem(`vote-${ROOM_ID}-${round}`) === null;
+      },
+
+      lateJoinVoteHint(payload) {
+        const name = playerName || 'Trainer';
+        if (payload.phase === 'revealed' && payload.revealedName) {
+          return `You're in, ${name}! It was ${payload.revealedName} — you'll vote on the next Pokémon!`;
+        }
+        if (payload.phase === 'revealing') {
+          return `You're in, ${name}! Reveal in progress — you'll vote on the next one!`;
+        }
+        if (payload.phase === 'round' && !payload.votingOpen) {
+          return `You're in, ${name}! This round is locked — you'll vote on the next Pokémon!`;
+        }
+        return `You're in, ${name}! Watch the big screen — you'll vote on the next Pokémon!`;
+      },
+
+      syncVoteRoundState(payload) {
+        const round = payload.round;
+        if (round == null || round < 0) return;
+        const saved = sessionStorage.getItem(`vote-${ROOM_ID}-${round}`);
+        if (saved !== null) {
+          this.votedRound = round;
+          this.pickedIndex = +saved;
+        } else if (this.votedRound === round) {
+          this.votedRound = -1;
+          this.pickedIndex = -1;
+        }
+      },
+
+      /**
+       * On REVEAL broadcast — compare saved vote to correctChoiceIndex,
+       * increment localStorage session score, and push score_update to host.
+       */
+      processRevealScore(payload) {
+        const round = payload.round;
+        if (round == null || round < 0) return;
+        const scoredKey = `scored-${ROOM_ID}-${round}`;
+        if (sessionStorage.getItem(scoredKey) != null) return;
+
+        const voteKey = `vote-${ROOM_ID}-${round}`;
+        const saved = sessionStorage.getItem(voteKey);
+        if (saved === null) {
+          sessionStorage.setItem(scoredKey, '0');
+          return;
+        }
+
+        const pickedIndex = +saved;
+        const correctIdx = payload.correctChoiceIndex;
+        sessionStorage.setItem(scoredKey, pickedIndex === correctIdx ? '1' : '0');
+
+        if (correctIdx >= 0 && pickedIndex === correctIdx) {
+          const newScore = getPlayerSessionScore() + 1;
+          setPlayerSessionScore(newScore);
+          sync?.sendScoreUpdate(newScore, round);
         }
       },
 
@@ -9428,126 +11712,265 @@
       },
 
       renderDraftCards(payload) {
-        const arena = payload.arena;
-        const options = arena?.draftOptions?.[voterId] || [];
-        const container = $('draftPokemonCards');
-        const lockBtn = $('playerDraftLockBtn');
-        const draftKey = `draft-pick-${ROOM_ID}-${payload.round ?? 0}`;
-        const lockKey = `draft-lock-${ROOM_ID}-${payload.round ?? 0}`;
-        const entrant = arena?.entrants?.[voterId];
-        const isLocked = entrant?.locked || sessionStorage.getItem(lockKey) !== null;
-        const pickedId = entrant?.pickedId ?? (sessionStorage.getItem(draftKey) ? +sessionStorage.getItem(draftKey) : null);
-
-        if (arena?.phase === 'lobby_countdown') {
-          const secs = arena.lobbyCountdownEndsAt
-            ? Math.max(0, Math.ceil((arena.lobbyCountdownEndsAt - Date.now()) / 1000))
-            : arena.timer ?? CONFIG.ARENA_LOBBY_COUNTDOWN_SEC;
-          $('playerDraftTimer').textContent = `⏰ ${secs}s`;
-        } else {
-          $('playerDraftTimer').textContent = pickedId ? 'Confirm your pick' : 'Tap a fighter';
-        }
-
-        if (!options.length) {
-          container.innerHTML = '<p class="text-blue-200 text-center col-span-full text-3xl py-8">⏳</p>';
-          lockBtn?.classList.add('hidden');
-          $('playerDraftStatus').textContent = '';
-          return;
-        }
-
-        container.innerHTML = options.map(p =>
-          ArenaUX.draftCardHtml(p, { picked: pickedId === p.id, disabled: isLocked })
-        ).join('');
-        ArenaUX.bindSprites(container);
-
-        const stepLock = $('playerDraftStepLock');
-        stepLock?.classList.remove('hidden');
-        if (isLocked) {
-          lockBtn?.classList.add('hidden');
-          stepLock?.classList.add('done');
-          $('playerDraftStatus').textContent = '✓ Ready!';
-          return;
-        }
-
-        if (pickedId) {
-          lockBtn?.classList.remove('hidden');
-          lockBtn.disabled = false;
-          stepLock?.classList.add('active');
-          $('playerDraftStatus').textContent = $('playerDraftStatus').textContent || '✓ Tap LOCK IN';
-        } else {
-          lockBtn?.classList.add('hidden');
-          stepLock?.classList.remove('active', 'done');
-          $('playerDraftStatus').textContent = '';
-        }
+        this.renderMasterRosterDraft(payload, {
+          mode: 'arena',
+          options: payload.arena?.draftOptions?.[voterId] || [],
+          arena: payload.arena,
+          round: payload.round,
+        });
       },
 
-      /** Random 1v1 — 10s rapid draft; tap card = instant lock */
+      /** Random 1v1 — master roster draft; tap card = instant lock */
       renderRandomDuelDraft(payload) {
-        const duel = payload.randomDuel;
-        const options = duel?.draftOptions?.[voterId] || [];
+        this.renderMasterRosterDraft(payload, {
+          mode: 'duel',
+          options: payload.randomDuel?.draftOptions?.[voterId] || [],
+          duel: payload.randomDuel,
+          round: payload.round,
+        });
+      },
+
+      renderMasterRosterDraft(payload, { mode, options, duel, arena, round }) {
         const container = $('draftPokemonCards');
         const lockBtn = $('playerDraftLockBtn');
-        const draftKey = `duel-draft-${ROOM_ID}-${payload.round ?? 0}`;
-        const isLocked = duel?.combatants?.[voterId]?.locked || sessionStorage.getItem(draftKey) !== null;
-        const pickedId = duel?.combatants?.[voterId]?.pokemon?.id
+        const isDuel = mode === 'duel';
+        const draftKey = isDuel
+          ? `duel-draft-${ROOM_ID}-${round ?? 0}`
+          : `draft-pick-${ROOM_ID}-${round ?? 0}`;
+        const lockKey = `draft-lock-${ROOM_ID}-${round ?? 0}`;
+        const combatant = isDuel ? duel?.combatants?.[voterId] : arena?.entrants?.[voterId];
+        const isLocked = isDuel
+          ? (combatant?.locked || sessionStorage.getItem(draftKey) !== null)
+          : (combatant?.locked || sessionStorage.getItem(lockKey) !== null);
+        const pickedId = combatant?.pokemon?.id ?? combatant?.pickedId
           ?? (sessionStorage.getItem(draftKey) ? +sessionStorage.getItem(draftKey) : null);
 
-        const secs = duel?.draftEndsAt
-          ? Math.max(0, Math.ceil((duel.draftEndsAt - Date.now()) / 1000))
-          : duel?.timer ?? CONFIG.DUEL_DRAFT_SEC;
-        $('playerDraftTimer').textContent = `⚡ ${secs}s — pick NOW!`;
-        lockBtn?.classList.add('hidden');
-        $('playerDraftStepLock')?.classList.add('hidden');
+        const secs = isDuel
+          ? (duel?.timer ?? CONFIG.DUEL_TURN_SEC)
+          : (arena?.lobbyCountdownEndsAt ? Math.max(0, Math.ceil((arena.lobbyCountdownEndsAt - Date.now()) / 1000)) : arena?.timer ?? CONFIG.ARENA_DRAFT_SEC);
+
+        $('playerDraftTimer').textContent = isDuel
+          ? `⚡ ${secs}s — pick your fighter!`
+          : (arena?.phase === 'lobby_countdown' ? `⏰ ${secs}s` : (pickedId ? 'Confirm your pick' : 'Swipe & tap a fighter'));
+
+        if (isDuel) {
+          lockBtn?.classList.add('hidden');
+          $('playerDraftStepLock')?.classList.add('hidden');
+        } else {
+          lockBtn?.classList.toggle('hidden', isLocked || !pickedId);
+          $('playerDraftStepLock')?.classList.toggle('active', !!pickedId && !isLocked);
+        }
 
         if (!options.length) {
-          container.innerHTML = '<p class="text-blue-200 text-center col-span-full text-3xl py-8">⏳</p>';
-          $('playerDraftStatus').textContent = 'Loading fighters…';
+          container.innerHTML = '<p class="text-blue-200 text-center col-span-full py-8">Loading master roster…</p>';
+          $('playerDraftStatus').textContent = 'Building fighter deck…';
           return;
         }
 
         container.innerHTML = options.map(p =>
-          ArenaUX.draftCardHtml(p, { picked: pickedId === p.id, disabled: isLocked })
+          ArenaUX.rosterCardHtml(p, { picked: pickedId === p.id, disabled: isLocked })
         ).join('');
         ArenaUX.bindSprites(container);
-        $('playerDraftStatus').textContent = isLocked ? '✓ Fighter locked!' : 'Tap a Pokémon — you have 10 seconds!';
+        $('playerDraftStatus').textContent = isLocked
+          ? '✓ Fighter locked!'
+          : (isDuel ? `Tap your favorite — ${secs}s left!` : 'Tap a fighter, then LOCK IN');
       },
 
-      /** Random 1v1 — move-only UI (opponent is fixed) */
-      renderRandomDuelBattle(payload) {
+      /** Trainer Showdown — hand, energy HUD, field mirror, attack flow */
+      renderShowdownBattle(payload, { locked = false } = {}) {
         const duel = payload.randomDuel;
-        const me = duel?.combatants?.[voterId];
-        const moves = me?.moves || [];
+        const me = duel?.trainers?.[voterId];
+        const oppId = duel.duelistIds?.find(id => id !== voterId);
+        const opp = oppId ? duel.trainers?.[oppId] : null;
+        const turn = duel.turn;
+        const isMyTurn = duel.activePlayerId === voterId && !locked && !duel.isVotingLocked;
+
+        const hud = $('playerShowdownHud');
+        const handEl = $('playerHandGrid');
+        const mirror = $('playerFieldMirror');
         const moveContainer = $('battleMoveButtons');
         const targetContainer = $('battleTargetButtons');
         const steps = $('playerBattleSteps');
 
-        if (duel?.isVotingLocked) {
-          showPlayerScreen('locked');
-          $('playerLockedMsg').textContent = duel.crowdMessage || '⚔️ Resolving…';
+        hud?.classList.remove('hidden');
+        hud?.setAttribute('aria-hidden', 'false');
+        handEl?.classList.remove('hidden');
+        handEl?.setAttribute('aria-hidden', 'false');
+        mirror?.classList.remove('hidden');
+        mirror?.setAttribute('aria-hidden', 'false');
+
+        if (me) {
+          $('playerShowdownEnergy').textContent = `⚡ ${me.energy}/${me.maxEnergy}`;
+          $('playerShowdownTrainerHp').textContent = `❤️ ${me.trainerHp}/${me.maxTrainerHp}`;
+          const comboEl = $('playerShowdownCombos');
+          const combos = me.activeCombos?.length
+            ? me.activeCombos.map(c => `${c.emoji} ${c.name}`).join(' · ')
+            : '';
+          if (comboEl) {
+            if (combos) {
+              comboEl.textContent = `🔗 ${combos}`;
+              comboEl.classList.remove('hidden');
+              comboEl.removeAttribute('aria-hidden');
+            } else {
+              comboEl.textContent = '';
+              comboEl.classList.add('hidden');
+              comboEl.setAttribute('aria-hidden', 'true');
+            }
+          }
+        }
+
+        if (mirror && me && opp) {
+          const benchChips = (bench) => (bench || []).filter(m => m.hp > 0).map(m =>
+            `<span class="showdown-mirror-chip"><img class="img-pending" data-pid="${m.pokemon.id}" src="${escapeHtml(m.pokemon.artwork)}" alt="" /></span>`
+          ).join('') || '<span class="text-blue-300/50">—</span>';
+          mirror.innerHTML = `<div class="showdown-mirror-side">
+            <div>${escapeHtml(me.playerName)}</div>
+            <div class="showdown-mirror-bench">${benchChips(me.bench)}</div>
+            <div class="text-red-300">${me.trainerHp} HP</div>
+          </div>
+          <span class="text-red-400 font-arcade text-lg">VS</span>
+          <div class="showdown-mirror-side">
+            <div>${escapeHtml(opp.playerName)}</div>
+            <div class="showdown-mirror-bench">${benchChips(opp.bench)}</div>
+            <div class="text-red-300">${opp.trainerHp} HP</div>
+          </div>`;
+          ArenaUX.bindSprites(mirror);
+        }
+
+        if (handEl && me?.hand) {
+          const handNote = isMyTurn && duel.phase === 'deploying'
+            ? '<p class="text-blue-300/70 text-xs text-center col-span-full">Deploying from hand…</p>'
+            : '<p class="text-blue-300/50 text-xs text-center col-span-full">Auto-plays each turn · command phase only</p>';
+          handEl.innerHTML = handNote + (me.hand.map((c) =>
+            `<div class="showdown-hand-card showdown-hand-card--view" aria-label="${escapeHtml(c.name)} cost ${c.energyCost}">
+              ${TCGCard.hsMinionCardHtml(c, { hp: ShowdownHelpers.benchHp(c.energyCost), energyCost: c.energyCost, shiny: !!c.rosterShiny, compact: true })}
+            </div>`,
+          ).join('') || '<p class="text-blue-300/60 text-xs">Hand empty</p>');
+          ArenaUX.bindSprites(handEl);
+        }
+
+        $('playerBattleLabel').textContent = isMyTurn
+          ? `Turn ${turn} — YOUR MOVE · ${duel.timer ?? ''}s`
+          : `Turn ${turn} — ${opp?.playerName || 'Opponent'}'s turn…`;
+        steps?.classList.toggle('hidden', !isMyTurn);
+
+        const cmdKey = `sd-cmd-${ROOM_ID}-${turn}`;
+        const atkKey = `sd-atk-${ROOM_ID}-${turn}`;
+        const tgtKey = `sd-tgt-${ROOM_ID}-${turn}`;
+        const savedCmd = sessionStorage.getItem(cmdKey);
+        const savedAtk = sessionStorage.getItem(atkKey);
+        const savedTgt = sessionStorage.getItem(tgtKey);
+
+        if (!isMyTurn || duel.attackedThisTurn || duel.phase === 'deploying') {
+          targetContainer.innerHTML = '';
+          const waitMsg = duel.phase === 'deploying' && isMyTurn
+            ? 'Auto-deploying your hand…'
+            : (locked ? (duel.duelLog || '⚔️ Resolving…') : 'Waiting for opponent…');
+          moveContainer.innerHTML = `<p class="text-center text-blue-200 text-sm py-4">${waitMsg}</p>`;
+          $('playerBattleStatus').textContent = duel.phase === 'deploying' && isMyTurn ? '⏳ Deploy phase…' : (locked ? '⚔️ Command resolving…' : '');
           return;
         }
 
-        const turn = duel.turn;
-        const moveKey = `duel-battle-${ROOM_ID}-${turn}`;
-        const savedMove = sessionStorage.getItem(moveKey);
-        const alreadyVoted = savedMove !== null;
-        const oppId = duel.duelistIds?.find(id => id !== voterId);
-        const opp = oppId ? duel.combatants?.[oppId] : null;
+        const myBench = (me?.bench || []).filter(m => m.hp > 0);
+        const oppBench = (opp?.bench || []).filter(m => m.hp > 0);
+        const canDirect = oppBench.length === 0;
 
-        showPlayerScreen('battle');
-        $('playerBattleLabel').textContent = `Turn ${turn} — pick your move!`;
-        steps?.classList.add('hidden');
-        targetContainer.innerHTML = opp
-          ? `<div class="arena-target-locked">
-              <img class="img-pending" data-pid="${opp.pokemon?.id}" src="${escapeHtml(opp.pokemon?.artwork || '')}" alt="" draggable="false" />
-              <span class="target-label">vs ${escapeHtml(opp.playerName)}</span>
-            </div>`
-          : '';
-        ArenaUX.bindSprites(targetContainer);
+        if (!savedCmd) {
+          targetContainer.innerHTML = `<p class="text-xs text-blue-200 font-bold mb-2">Choose your command</p>
+            <div class="showdown-cmd-grid">${[
+              ['attack', '⚔️ Attack'],
+              ['defend', '🛡️ Defend'],
+              ['buff', '⬆️ Buff'],
+              ['heal', '💚 Heal'],
+            ].map(([id, label]) =>
+              `<button type="button" class="showdown-cmd-btn pointer-events-auto" data-sd-cmd="${id}">${label}</button>`,
+            ).join('')}</div>`;
+          moveContainer.innerHTML = `<button type="button" id="playerShowdownPassBtn" class="type-btn pointer-events-auto text-sm mt-2 mx-auto px-4 py-2 rounded-xl border-2 border-blue-400/50">End Turn</button>`;
+          $('playerBattleStatus').textContent = 'Pick Attack, Defend, Buff, or Heal';
+          return;
+        }
 
+        if (savedCmd === 'defend' || savedCmd === 'buff') {
+          if (!savedAtk) {
+            const costNote = savedCmd === 'buff' ? ' (costs 1⚡)' : '';
+            targetContainer.innerHTML = `<p class="text-xs text-blue-200 font-bold mb-1">Pick Pokémon to ${savedCmd}${costNote}</p>
+              <div class="arena-target-grid">${myBench.map(m =>
+                `<button type="button" class="arena-target-card pointer-events-auto" data-sd-atk="${escapeHtml(m.uid)}">
+                  <img class="img-pending" data-pid="${m.pokemon.id}" src="${escapeHtml(m.pokemon.artwork)}" alt="" />
+                  <span class="target-name">${escapeHtml(m.pokemon.name)}</span>
+                </button>`,
+              ).join('') || '<p class="text-blue-300/60 text-sm">Summon from hand first!</p>'}</div>`;
+            moveContainer.innerHTML = `<button type="button" class="showdown-cmd-btn pointer-events-auto text-xs" data-sd-cmd-reset="1">← Back</button>`;
+            ArenaUX.bindSprites(targetContainer);
+            $('playerBattleStatus').textContent = `Select who ${savedCmd === 'defend' ? 'shields' : 'powers up'}`;
+            return;
+          }
+          moveContainer.innerHTML = `<p class="text-center text-green-300 text-sm py-3">Sending ${savedCmd}…</p>`;
+          return;
+        }
+
+        if (savedCmd === 'heal') {
+          if (!savedAtk) {
+            targetContainer.innerHTML = `<p class="text-xs text-blue-200 font-bold mb-1">Pick heal target (costs 2⚡)</p>
+              <div class="arena-target-grid">
+                <button type="button" class="arena-target-card pointer-events-auto arena-target-trainer" data-sd-atk="trainer">
+                  <span class="target-name">❤️ ${escapeHtml(me.playerName)}</span><span class="target-trainer">Trainer +6 HP</span>
+                </button>
+                ${myBench.map(m =>
+                  `<button type="button" class="arena-target-card pointer-events-auto" data-sd-atk="${escapeHtml(m.uid)}">
+                    <img class="img-pending" data-pid="${m.pokemon.id}" src="${escapeHtml(m.pokemon.artwork)}" alt="" />
+                    <span class="target-name">${escapeHtml(m.pokemon.name)}</span>
+                  </button>`,
+                ).join('')}
+              </div>`;
+            moveContainer.innerHTML = `<button type="button" class="showdown-cmd-btn pointer-events-auto text-xs" data-sd-cmd-reset="1">← Back</button>`;
+            ArenaUX.bindSprites(targetContainer);
+            $('playerBattleStatus').textContent = me.energy >= 2 ? 'Who gets restored?' : 'Need 2⚡ to heal';
+            return;
+          }
+          moveContainer.innerHTML = `<p class="text-center text-green-300 text-sm py-3">Sending heal…</p>`;
+          return;
+        }
+
+        if (!savedAtk) {
+          targetContainer.innerHTML = `<p class="text-xs text-blue-200 font-bold mb-1">1 · Pick your attacker</p>
+            <div class="arena-target-grid">${myBench.map(m =>
+              `<button type="button" class="arena-target-card pointer-events-auto" data-sd-atk="${escapeHtml(m.uid)}">
+                <img class="img-pending" data-pid="${m.pokemon.id}" src="${escapeHtml(m.pokemon.artwork)}" alt="" />
+                <span class="target-name">${escapeHtml(m.pokemon.name)}</span>
+              </button>`
+            ).join('') || '<p class="text-blue-300/60 text-sm">Summon from hand first!</p>'}</div>`;
+          moveContainer.innerHTML = `<button type="button" class="showdown-cmd-btn pointer-events-auto text-xs" data-sd-cmd-reset="1">← Back</button>
+            <button type="button" id="playerShowdownPassBtn" class="type-btn pointer-events-auto text-sm mt-2 mx-auto px-4 py-2 rounded-xl border-2 border-blue-400/50">End Turn</button>`;
+          ArenaUX.bindSprites(targetContainer);
+          $('playerBattleStatus').textContent = myBench.length ? 'Tap your Pokémon to attack' : 'No bench — pass or wait for affordable deploy';
+          return;
+        }
+
+        if (!savedTgt) {
+          const trainerBtn = canDirect ? `<button type="button" class="arena-target-card pointer-events-auto arena-target-trainer" data-sd-tgt="trainer">
+            <span class="target-name">🎯 ${escapeHtml(opp.playerName)}</span><span class="target-trainer">Direct Strike</span>
+          </button>` : '';
+          targetContainer.innerHTML = `<p class="text-xs text-blue-200 font-bold mb-1">2 · Pick target</p>
+            <div class="arena-target-grid">${oppBench.map(m =>
+              `<button type="button" class="arena-target-card pointer-events-auto" data-sd-tgt="${escapeHtml(m.uid)}">
+                <img class="img-pending" data-pid="${m.pokemon.id}" src="${escapeHtml(m.pokemon.artwork)}" alt="" />
+                <span class="target-name">${escapeHtml(m.pokemon.name)}</span>
+              </button>`
+            ).join('')}${trainerBtn}</div>`;
+          moveContainer.innerHTML = '';
+          ArenaUX.bindSprites(targetContainer);
+          $('playerBattleStatus').textContent = 'Strike bench or Trainer!';
+          return;
+        }
+
+        const attacker = myBench.find(m => m.uid === savedAtk);
+        const moves = attacker?.moves || [];
+        targetContainer.innerHTML = `<p class="text-xs text-green-300 font-bold">Attacking ${savedTgt === 'trainer' ? opp.playerName : 'bench'}…</p>`;
         moveContainer.innerHTML = `<div class="arena-move-grid">${moves.map((name, i) =>
-          ArenaUX.moveChipHtml(name, i, me?.pokemon?.types, { selected: +savedMove === i, disabled: alreadyVoted })
+          ArenaUX.moveChipHtml(name, i, attacker?.pokemon?.types, { disabled: false })
         ).join('')}</div>`;
-        $('playerBattleStatus').textContent = alreadyVoted ? '✓ Locked!' : 'Tap a move to attack!';
+        $('playerBattleStatus').textContent = '3 · Pick a move!';
       },
 
       updateArenaJoinPrompt(payload) {

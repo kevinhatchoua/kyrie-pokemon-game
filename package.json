@@ -5,7 +5,11 @@
   "description": "Name That Pokémon! — single-file party game for Vercel",
   "scripts": {
     "build": "node scripts/inject-env.mjs",
-    "dev": "node scripts/inject-env.mjs && python3 -m http.server 8765 --directory dist"
+    "dev": "node scripts/inject-env.mjs && python3 -m http.server 8765 --directory dist",
+    "bots": "node scripts/showdown-bots.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8"
   },
   "engines": {
     "node": ">=18"
