@@ -52,6 +52,8 @@
       --pf-btn-min-height: 2.25rem;    /* 36px */
       --pf-btn-lg-min-height: 2.5rem;  /* 40px */
       --pf-btn-cta-min-height: 3rem;   /* 48px — CTA */
+      --game-stage-max: min(94vw, 34rem);
+      --game-card-mystery-max: min(94vw, 20rem);
     }
     html {
       font-size: 16px;
@@ -178,9 +180,13 @@
     #uiForegroundLayer #hostMain,
     #uiForegroundLayer #gameControlDock,
     #uiForegroundLayer #crowdFavoritePanel,
+    #uiForegroundLayer #tcgFlipShell.tcg-flippable,
     #uiForegroundLayer #arcadeBattleOverlay:not(.hidden-overlay),
     #uiForegroundLayer #arenaLobbyOverlay:not(.hidden-overlay),
     #uiForegroundLayer #battleVictoryOverlay:not(.hidden-overlay),
+    #uiForegroundLayer #randomDuelTriggerOverlay:not(.hidden-overlay),
+    #uiForegroundLayer #randomDuelOverlay:not(.hidden-overlay),
+    #uiForegroundLayer #audioControlDock,
     #uiForegroundLayer #playerApp:not(.hidden) .screen:not(.hidden-screen) {
       pointer-events: auto !important;
       touch-action: manipulation;
@@ -279,17 +285,27 @@
     }
     #qrArenaLobby { flex-shrink: 0; }
     #arenaLobbyGrid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-      gap: 0.65rem; overflow-y: auto; min-height: 6rem; max-height: 14rem;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+      gap: 0.65rem; overflow-y: auto; min-height: 6rem; max-height: 16rem;
     }
     .arena-lobby-trainer {
-      display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
-      padding: 0.55rem; border-radius: 0.75rem;
+      display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+      padding: 0.5rem 0.35rem; border-radius: 0.85rem;
       background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.12);
-      font-size: 0.7rem; font-weight: 800; text-align: center;
+      font-size: 0.65rem; font-weight: 800; text-align: center; min-height: 6.5rem;
     }
     .arena-lobby-trainer.entered { border-color: rgb(34 211 238 / 0.55); }
+    .arena-lobby-trainer.picked { border-color: rgb(192 132 252 / 0.65); }
     .arena-lobby-trainer.locked { border-color: rgb(250 204 21); box-shadow: 0 0 14px rgba(250,204,21,0.35); }
+    .arena-lobby-trainer .lobby-sprite {
+      width: 3.25rem; height: 3.25rem; display: flex; align-items: center; justify-content: center;
+    }
+    .arena-lobby-trainer .lobby-sprite img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+    .arena-lobby-trainer .lobby-status-dot {
+      width: 0.55rem; height: 0.55rem; border-radius: 50%; background: rgb(34 211 238);
+    }
+    .arena-lobby-trainer.locked .lobby-status-dot { background: rgb(250 204 21); box-shadow: 0 0 6px rgba(250,204,21,0.8); }
+    .arena-lobby-trainer .lobby-name { font-size: 0.6rem; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .arena-lobby-countdown {
       font-family: var(--font-display); font-size: var(--pf-font-size-heading-2xl); color: rgb(250 204 21);
       text-shadow: 0 0 20px rgba(250,204,21,0.5);
@@ -516,34 +532,127 @@
     #battleVictoryOverlay { position: fixed; inset: 0; z-index: 280; display: flex; align-items: center; justify-content: center;
       background: rgba(0,0,0,0.88); pointer-events: auto; }
     #battleVictoryOverlay.hidden-overlay { opacity: 0; visibility: hidden; pointer-events: none; }
+    /* ── Mid-game Random 1v1 Duel — split arena takeover ── */
+    #randomDuelTriggerOverlay {
+      position: fixed; inset: 0; z-index: 285; display: flex; align-items: center; justify-content: center;
+      background: rgb(127 29 29 / 0.92); pointer-events: none !important;
+      transition: opacity 0.35s ease, visibility 0.35s ease;
+    }
+    #randomDuelTriggerOverlay:not(.hidden-overlay) { animation: duelTriggerPulse 0.55s ease-in-out infinite alternate; }
+    @keyframes duelTriggerPulse {
+      from { background: rgb(127 29 29 / 0.88); }
+      to { background: rgb(185 28 28 / 0.96); }
+    }
+    #randomDuelTriggerOverlay.hidden-overlay { opacity: 0; visibility: hidden; }
+    #randomDuelTriggerOverlay p {
+      font-family: var(--font-display); font-size: clamp(1.75rem, 6vw, 3.5rem); font-weight: 800;
+      color: rgb(254 240 138); text-align: center; text-shadow: 0 4px 0 rgb(153 27 27);
+      letter-spacing: 0.06em; padding: 1rem;
+    }
+    #randomDuelOverlay {
+      position: fixed; inset: 0; z-index: 275; display: flex; flex-direction: column;
+      background: rgba(4, 4, 12, 0.96); backdrop-filter: blur(10px); pointer-events: auto;
+      overflow: hidden; transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+    #randomDuelOverlay.hidden-overlay { opacity: 0; visibility: hidden; pointer-events: none; }
+    #randomDuelOverlay.battle-shake { animation: battleShake 0.48s ease-out; }
+    #randomDuelOverlay header {
+      padding: 0.75rem 1rem; text-align: center; border-bottom: 2px solid rgb(250 204 21 / 0.35);
+      background: rgb(9 9 11 / 0.98); flex-shrink: 0;
+    }
+    #randomDuelArenaWrap {
+      position: relative; flex: 1; min-height: 0; overflow: hidden;
+    }
+    #randomDuelVfxCanvas {
+      position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3;
+    }
+    #randomDuelCombatGrid {
+      position: absolute; inset: 0; z-index: 2; display: grid;
+      grid-template-columns: 1fr auto 1fr; gap: 0.5rem; padding: 1rem 0.75rem;
+      align-items: center; align-content: center;
+    }
+    .random-duel-side {
+      display: flex; flex-direction: column; align-items: center; gap: 0.35rem; min-width: 0;
+    }
+    .random-duel-side .duel-trainer-tag {
+      font-family: var(--font-display); font-size: clamp(1.25rem, 4vw, 2.25rem); font-weight: 800;
+      color: rgb(250 204 21); letter-spacing: 0.08em; text-shadow: 0 3px 0 rgb(153 27 27);
+    }
+    .random-duel-side .duel-trainer-name {
+      font-size: clamp(0.85rem, 2.5vw, 1.15rem); color: rgb(191 219 254); font-weight: 700;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .random-duel-vs {
+      font-family: var(--font-display); font-size: clamp(2rem, 6vw, 3.5rem); font-weight: 800;
+      color: rgb(248 113 113); text-shadow: 0 4px 0 rgb(127 29 29); z-index: 4;
+    }
+    .random-duel-side .arena-fighter-card { width: 100%; max-width: 18rem; margin-inline: auto; }
+    #randomDuelVictoryBanner {
+      position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center;
+      background: rgb(0 0 0 / 0.82); pointer-events: none;
+    }
+    #randomDuelVictoryBanner.hidden { opacity: 0; visibility: hidden; }
+    #randomDuelVictoryBanner p {
+      font-family: var(--font-display); font-size: clamp(1.1rem, 4vw, 2rem); font-weight: 800;
+      color: rgb(254 240 138); text-align: center; padding: 1.5rem; line-height: 1.35;
+      text-shadow: 0 3px 0 rgb(153 27 27);
+    }
+    #randomDuelTicker {
+      flex-shrink: 0; text-align: center; font-weight: 700; color: rgb(191 219 254);
+      padding: 0.35rem 1rem; font-size: 0.95rem; min-height: 1.5rem;
+    }
+    #playerSpectator .spectator-duelists { color: rgb(250 204 21); font-weight: 800; }
     /* ── Arena Royale — multi-combatant grid + draft ── */
     #arenaCombatGrid {
       position: absolute; inset: 0; z-index: 2; overflow-y: auto; overflow-x: hidden;
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
-      gap: 0.65rem; padding: 0.65rem; align-content: start;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+      gap: 0.55rem; padding: 0.55rem; align-content: start;
     }
     .arena-fighter-card {
-      background: rgba(8, 8, 20, 0.82); border: 2px solid rgba(255, 203, 5, 0.35);
-      border-radius: 1rem; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem;
+      background: linear-gradient(160deg, rgba(12, 10, 28, 0.92), rgba(20, 12, 36, 0.88));
+      border: 2px solid rgba(255, 203, 5, 0.35); border-radius: 1rem; padding: 0.45rem;
+      display: flex; flex-direction: column; gap: 0.3rem; align-items: center; text-align: center;
       transition: transform 0.35s ease, opacity 0.45s ease, border-color 0.3s ease;
     }
     .arena-fighter-card.eliminated { opacity: 0.35; filter: grayscale(0.9); transform: scale(0.92); }
-    .arena-fighter-card.duel-active { border-color: rgba(251, 146, 60, 0.9); box-shadow: 0 0 18px rgba(251, 146, 60, 0.45); }
+    .arena-fighter-card.duel-active { border-color: rgba(251, 146, 60, 0.9); box-shadow: 0 0 18px rgba(251, 146, 60, 0.45); transform: scale(1.03); }
     .arena-fighter-card .arena-sprite-wrap {
-      position: relative; height: 5.5rem; display: flex; align-items: center; justify-content: center;
+      position: relative; height: 5rem; width: 100%; display: flex; align-items: center; justify-content: center;
     }
     .arena-fighter-card .arena-sprite-wrap img {
-      max-height: 5rem; max-width: 100%; object-fit: contain;
+      max-height: 4.75rem; max-width: 92%; object-fit: contain;
       filter: drop-shadow(0 8px 16px rgba(0,0,0,0.65));
     }
-    .arena-fighter-card .arena-trainer { font-size: 0.65rem; color: rgb(147 197 253); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; }
-    .arena-fighter-card .arena-poke-name { font-family: var(--font-display); font-size: var(--pf-font-size-body-sm); font-weight: 700; color: rgb(253 224 71); line-height: var(--pf-line-height-body); }
-    .arena-moves { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2rem; }
-    .arena-moves span {
-      font-size: 0.55rem; padding: 0.15rem 0.25rem; border-radius: 0.35rem;
-      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
-      color: rgb(226 232 240); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    .arena-fighter-card .arena-trainer { font-size: 0.58rem; color: rgb(147 197 253); font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .arena-fighter-card .arena-poke-name { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; color: rgb(253 224 71); line-height: 1.2; }
+    .arena-fighter-card .arena-hp-wrap { width: 100%; }
+    .arena-fighter-card .arena-hp-bar {
+      height: 0.45rem; background: rgba(0,0,0,0.55); border-radius: 999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.12);
     }
+    .arena-fighter-card .arena-hp-fill {
+      height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4ade80, #22c55e);
+      transition: width 0.4s ease;
+    }
+    .arena-fighter-card .arena-hp-fill.low { background: linear-gradient(90deg, #fbbf24, #f97316); }
+    .arena-fighter-card .arena-hp-fill.critical { background: linear-gradient(90deg, #f87171, #ef4444); }
+    .arena-moves { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.2rem; width: 100%; }
+    .arena-moves .arena-move-icon {
+      aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; border-radius: 0.4rem; background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .arena-score-strip {
+      display: flex; flex-wrap: wrap; gap: 0.35rem; justify-content: center;
+      padding: 0.35rem 0.75rem 0; max-width: 100%; overflow-x: auto;
+    }
+    .arena-score-pill {
+      display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.5rem;
+      border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      font-size: 0.65rem; font-weight: 800; color: rgb(226 232 240); white-space: nowrap;
+    }
+    .arena-score-pill.in-fight { border-color: rgba(250, 204, 21, 0.55); background: rgba(250, 204, 21, 0.12); }
+    .arena-score-pill .score-medal { font-size: 0.75rem; }
+    .arena-score-pill .score-num { color: rgb(250 204 21); font-family: var(--font-display); }
     #arenaPhaseLabel { font-size: 0.85rem; color: rgb(165 243 252); }
     #arenaDraftBanner {
       text-align: center; padding: var(--pf-spacer-xs) var(--pf-spacer-md); font-family: var(--font-display);
@@ -569,17 +678,93 @@
       70% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
       100% { opacity: 0; transform: translate(-50%, -60%) scale(1.1); }
     }
-    .draft-pokemon-card {
-      display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem;
-      border-radius: 1rem; border: 3px solid rgba(255,255,255,0.25);
-      background: linear-gradient(135deg, rgba(88,28,135,0.5), rgba(30,58,138,0.5));
-      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    .draft-pick-grid {
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem;
+      width: 100%; max-width: 28rem; margin: 0 auto;
     }
-    .draft-pokemon-card:active:not(:disabled) { transform: scale(0.97); }
-    .draft-pokemon-card.locked { border-color: rgb(250 204 21); box-shadow: 0 0 20px rgba(250,204,21,0.45); }
-    .draft-pokemon-card img { width: 4.5rem; height: 4.5rem; object-fit: contain; }
-    .draft-pokemon-card .draft-name { font-family: var(--font-display); font-size: var(--pf-font-size-body-sm); font-weight: 700; color: white; }
-    .draft-pokemon-card .draft-types { font-size: 0.7rem; color: rgb(165 243 254); margin-top: 0.25rem; }
+    @media (max-width: 380px) { .draft-pick-grid { grid-template-columns: 1fr; max-width: 11rem; } }
+    .draft-pokemon-card {
+      position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+      padding: 0.65rem 0.4rem 0.55rem; border-radius: 1rem; border: 3px solid rgba(255,255,255,0.22);
+      background: linear-gradient(165deg, rgba(88,28,135,0.55), rgba(30,58,138,0.45));
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer; touch-action: manipulation;
+    }
+    .draft-pokemon-card:active:not(:disabled) { transform: scale(0.96); }
+    .draft-pokemon-card.locked {
+      border-color: rgb(250 204 21); box-shadow: 0 0 22px rgba(250,204,21,0.5);
+      background: linear-gradient(165deg, rgba(120,53,15,0.55), rgba(88,28,135,0.55));
+    }
+    .draft-pokemon-card.locked::after {
+      content: '✓'; position: absolute; top: 0.35rem; right: 0.4rem;
+      width: 1.35rem; height: 1.35rem; border-radius: 50%;
+      background: rgb(250 204 21); color: rgb(30 58 138); font-weight: 900; font-size: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .draft-pokemon-card img { width: 5.5rem; height: 5.5rem; object-fit: contain; filter: drop-shadow(0 6px 12px rgba(0,0,0,0.45)); }
+    .draft-pokemon-card .draft-name { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; color: white; text-align: center; line-height: 1.15; }
+    .arena-type-pills { display: flex; gap: 0.25rem; justify-content: center; flex-wrap: wrap; }
+    .arena-type-pill {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.65rem; height: 1.65rem; border-radius: 50%; font-size: 0.9rem;
+      background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.2);
+    }
+    .arena-type-pill--sm { width: 1.35rem; height: 1.35rem; font-size: 0.75rem; }
+    .arena-step-bar {
+      display: flex; gap: 0.4rem; justify-content: center; margin-top: 0.5rem;
+    }
+    .arena-step {
+      display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.55rem;
+      border-radius: 999px; font-size: 0.65rem; font-weight: 800; color: rgb(148 163 184);
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    }
+    .arena-step.active { color: rgb(253 224 71); border-color: rgba(250,204,21,0.5); background: rgba(250,204,21,0.12); }
+    .arena-step.done { color: rgb(74 222 128); border-color: rgba(74,222,128,0.4); }
+    .arena-target-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; width: 100%; max-width: 22rem; margin: 0 auto; }
+    .arena-target-card {
+      display: flex; flex-direction: column; align-items: center; gap: 0.25rem; padding: 0.5rem 0.35rem;
+      border-radius: 0.85rem; border: 3px solid rgba(251, 146, 60, 0.45);
+      background: linear-gradient(160deg, rgba(154,52,18,0.45), rgba(88,28,135,0.35));
+      cursor: pointer; touch-action: manipulation; transition: transform 0.12s ease, border-color 0.12s ease;
+    }
+    .arena-target-card:active { transform: scale(0.96); }
+    .arena-target-card.selected { border-color: rgb(250 204 21); box-shadow: 0 0 16px rgba(250,204,21,0.4); }
+    .arena-target-card img { width: 3.75rem; height: 3.75rem; object-fit: contain; }
+    .arena-target-card .target-trainer { font-size: 0.62rem; font-weight: 800; color: rgb(254 215 170); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .arena-target-card .target-hp { width: 90%; height: 0.35rem; background: rgba(0,0,0,0.5); border-radius: 999px; overflow: hidden; }
+    .arena-target-card .target-hp-fill { height: 100%; background: linear-gradient(90deg, #4ade80, #22c55e); border-radius: 999px; }
+    .arena-move-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; width: 100%; max-width: 22rem; margin: 0 auto; }
+    .arena-move-chip {
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem;
+      padding: 0.55rem 0.35rem; min-height: 4.25rem; border-radius: 0.85rem;
+      border: 3px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.07);
+      cursor: pointer; touch-action: manipulation; transition: transform 0.12s ease, border-color 0.12s ease;
+    }
+    .arena-move-chip:active:not(:disabled) { transform: scale(0.96); }
+    .arena-move-chip.selected { border-color: rgb(250 204 21); box-shadow: 0 0 14px rgba(250,204,21,0.35); }
+    .arena-move-chip:disabled { opacity: 0.45; cursor: not-allowed; }
+    .arena-move-chip .arena-move-emoji { font-size: 1.35rem; line-height: 1; }
+    .arena-move-chip .arena-move-name { font-size: 0.58rem; font-weight: 800; color: rgb(226 232 240); text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .arena-target-locked {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.45rem; border-radius: 0.75rem; background: rgba(251,146,60,0.15); border: 1px solid rgba(251,146,60,0.35);
+    }
+    .arena-target-locked img { width: 2.75rem; height: 2.75rem; object-fit: contain; }
+    .arena-target-locked .target-label { font-size: 0.7rem; font-weight: 800; color: rgb(253 186 116); }
+    .draft-lock-fab {
+      position: sticky; bottom: 0.5rem; z-index: 5; width: 100%; max-width: 16rem; margin: 0 auto;
+      font-family: var(--font-display); font-size: 1.15rem; padding: 0.85rem 1rem;
+      background: linear-gradient(180deg, rgb(250 204 21), rgb(234 179 8));
+      color: rgb(30 58 138); border: 4px solid white; border-radius: 1rem;
+      box-shadow: 0 6px 0 rgb(180 130 8), 0 8px 24px rgba(0,0,0,0.35);
+    }
+    .draft-lock-fab:active { transform: translateY(3px); box-shadow: 0 3px 0 rgb(180 130 8); }
+    #battleMoveTally .arena-vote-chip {
+      display: flex; align-items: center; justify-content: center; gap: 0.35rem;
+      padding: 0.35rem 0.5rem; border-radius: 0.65rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    }
+    #battleMoveTally .arena-vote-chip img { width: 1.75rem; height: 1.75rem; object-fit: contain; }
+    #battleVictorySprite { width: 7rem; height: 7rem; object-fit: contain; margin: 0 auto; filter: drop-shadow(0 8px 20px rgba(0,0,0,0.5)); }
     .manual-arena-assign {
       font-size: 0.65rem; padding: 0.2rem 0.45rem; border-radius: 0.4rem;
       background: rgba(192, 38, 211, 0.35); border: 1px solid rgba(232, 121, 249, 0.55);
@@ -927,7 +1112,12 @@
     #startScreen:not(.hidden-screen) {
       align-items: center;
       gap: var(--pf-spacer-md);
-      padding-top: calc(var(--pf-spacer-lg) + 1.5rem);
+      padding-top: var(--pf-spacer-lg);
+    }
+    @media (min-width: 640px) {
+      body[data-role="host"] #startScreen:not(.hidden-screen) {
+        padding-top: calc(var(--pf-spacer-lg) + 1.5rem);
+      }
     }
     #typeGrid {
       display: grid;
@@ -949,6 +1139,74 @@
       font-family: var(--font-display); font-weight: 700;
       font-size: var(--pf-font-size-body-sm); line-height: var(--pf-line-height-body);
     }
+    #typeGrid .type-btn.type-card-bg {
+      position: relative; overflow: hidden; isolation: isolate;
+    }
+    #typeGrid .type-btn.type-card-bg::before {
+      content: ''; position: absolute; inset: -18%; z-index: 0;
+      background-repeat: no-repeat; background-position: center; background-size: cover;
+      opacity: 0.72; pointer-events: none;
+      animation: typeCardArtDrift 16s ease-in-out infinite;
+    }
+    #typeGrid .type-btn.type-card-bg::after {
+      content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+      background: linear-gradient(168deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.38) 58%, rgba(0,0,0,0.52) 100%);
+    }
+    #typeGrid .type-btn.type-card-bg .type-btn-emoji,
+    #typeGrid .type-btn.type-card-bg .type-btn-label {
+      position: relative; z-index: 1;
+    }
+    #typeGrid .type-btn.type-card-bg .type-btn-emoji {
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.85));
+    }
+    #typeGrid .type-btn.type-card-bg .type-btn-label {
+      text-shadow: 0 1px 2px rgba(0,0,0,0.95), 0 0 10px rgba(0,0,0,0.55);
+    }
+    @keyframes typeCardArtDrift {
+      0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+      50% { transform: translate3d(2%, -1.5%, 0) scale(1.05); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #typeGrid .type-btn.type-card-bg::before { animation: none; }
+    }
+    .type-card-bg--all      { background: linear-gradient(145deg, #7c3aed, #db2777); }
+    .type-card-bg--all::before      { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Ccircle cx='18' cy='18' r='10' fill='%23f0abfc' opacity='.55'/%3E%3Ccircle cx='58' cy='28' r='14' fill='%23c4b5fd' opacity='.45'/%3E%3Ccircle cx='96' cy='16' r='8' fill='%23fda4af' opacity='.5'/%3E%3Crect x='22' y='48' width='18' height='18' rx='4' fill='%23fef08a' opacity='.65' transform='rotate(18 31 57)'/%3E%3Crect x='62' y='44' width='16' height='16' rx='3' fill='%23fef08a' opacity='.55' transform='rotate(-12 70 52)'/%3E%3Cpath d='M8 62 Q30 50 52 62 T96 58' stroke='%23fff' stroke-width='2' fill='none' opacity='.35'/%3E%3C/svg%3E"); animation-delay: 0s; }
+    .type-card-bg--normal   { background: linear-gradient(145deg, #64748b, #78716c); }
+    .type-card-bg--normal::before   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpolygon points='20,12 24,22 34,22 26,28 29,38 20,32 11,38 14,28 6,22 16,22' fill='%23f8fafc' opacity='.5'/%3E%3Cpolygon points='78,8 81,16 89,16 83,21 85,29 78,24 71,29 73,21 67,16 75,16' fill='%23e2e8f0' opacity='.45'/%3E%3Ccircle cx='52' cy='52' r='18' fill='none' stroke='%23f1f5f9' stroke-width='3' opacity='.35'/%3E%3Ccircle cx='96' cy='54' r='10' fill='%23cbd5e1' opacity='.3'/%3E%3C/svg%3E"); animation-delay: -1.2s; }
+    .type-card-bg--fire     { background: linear-gradient(145deg, #b91c1c, #ea580c); }
+    .type-card-bg--fire::before     { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M22 72 Q26 44 18 30 Q32 48 36 22 Q44 46 40 68' fill='%23fde047' opacity='.7'/%3E%3Cpath d='M52 76 Q56 48 48 34 Q62 50 66 26 Q74 48 70 72' fill='%23fb923c' opacity='.75'/%3E%3Cpath d='M82 74 Q86 52 80 40 Q92 54 94 32 Q100 52 98 70' fill='%23fbbf24' opacity='.65'/%3E%3Ccircle cx='98' cy='18' r='7' fill='%23fef9c3' opacity='.55'/%3E%3C/svg%3E"); animation-delay: -2.4s; }
+    .type-card-bg--water    { background: linear-gradient(145deg, #1d4ed8, #06b6d4); }
+    .type-card-bg--water::before    { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M0 52 Q20 44 40 52 T80 50 T120 54 L120 80 L0 80Z' fill='%2393c5fd' opacity='.45'/%3E%3Cpath d='M0 62 Q25 54 50 62 T100 58 T120 62 L120 80 L0 80Z' fill='%2360a5fa' opacity='.5'/%3E%3Cellipse cx='28' cy='28' rx='8' ry='11' fill='%23bae6fd' opacity='.65'/%3E%3Cellipse cx='72' cy='22' rx='10' ry='13' fill='%237dd3fc' opacity='.55'/%3E%3C/svg%3E"); animation-delay: -3.6s; }
+    .type-card-bg--electric { background: linear-gradient(145deg, #ca8a04, #facc15); }
+    .type-card-bg--electric::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M68 8 L52 38 H64 L44 72 L58 42 H46Z' fill='%23fef08a' opacity='.85'/%3E%3Cpath d='M34 18 L26 34 H32 L22 52 L30 36 H24Z' fill='%23fff' opacity='.45'/%3E%3Ccircle cx='92' cy='24' r='6' fill='%23fde047' opacity='.6'/%3E%3Ccircle cx='18' cy='58' r='4' fill='%23fef9c3' opacity='.5'/%3E%3C/svg%3E"); animation-delay: -4.8s; }
+    .type-card-bg--grass    { background: linear-gradient(145deg, #15803d, #65a30d); }
+    .type-card-bg--grass::before    { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M18 70 Q20 40 14 28 Q26 42 28 70Z' fill='%2386efac' opacity='.7'/%3E%3Cpath d='M38 72 Q40 38 34 24 Q48 40 50 72Z' fill='%234ade80' opacity='.75'/%3E%3Cpath d='M62 70 Q64 44 58 32 Q72 46 74 70Z' fill='%2322c55e' opacity='.7'/%3E%3Cpath d='M88 68 Q90 42 84 30 Q98 44 100 68Z' fill='%23bbf7d0' opacity='.65'/%3E%3Cpath d='M0 58 Q30 50 60 58 T120 54' stroke='%23dcfce7' stroke-width='2' fill='none' opacity='.35'/%3E%3C/svg%3E"); animation-delay: -6s; }
+    .type-card-bg--ice      { background: linear-gradient(145deg, #38bdf8, #67e8f9); }
+    .type-card-bg--ice::before      { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M30 10 L30 70 M18 22 L42 58 M42 22 L18 58' stroke='%23e0f2fe' stroke-width='3' opacity='.65'/%3E%3Cpath d='M78 16 L78 64 M68 26 L88 54 M88 26 L68 54' stroke='%23fff' stroke-width='2.5' opacity='.55'/%3E%3Cpolygon points='96,20 100,28 108,28 102,34 104,42 96,36 88,42 90,34 84,28 92,28' fill='%23cffafe' opacity='.6'/%3E%3C/svg%3E"); animation-delay: -7.2s; }
+    .type-card-bg--fighting { background: linear-gradient(145deg, #c2410c, #991b1b); }
+    .type-card-bg--fighting::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Ccircle cx='34' cy='38' r='16' fill='%23fdba74' opacity='.55'/%3E%3Cpath d='M52 24 L72 18 L78 34 L64 52 L48 46Z' fill='%23fed7aa' opacity='.65'/%3E%3Cpath d='M8 58 L28 48 M92 56 L108 44' stroke='%23fff' stroke-width='3' opacity='.35'/%3E%3Cpath d='M86 20 L98 12 L104 24 L94 34Z' fill='%23fca5a5' opacity='.5'/%3E%3C/svg%3E"); animation-delay: -8.4s; }
+    .type-card-bg--poison   { background: linear-gradient(145deg, #7e22ce, #c026d3); }
+    .type-card-bg--poison::before   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Ccircle cx='24' cy='28' r='12' fill='%23e9d5ff' opacity='.45'/%3E%3Ccircle cx='48' cy='48' r='16' fill='%23d8b4fe' opacity='.4'/%3E%3Ccircle cx='78' cy='24' r='10' fill='%23f0abfc' opacity='.5'/%3E%3Ccircle cx='96' cy='52' r='14' fill='%23c084fc' opacity='.35'/%3E%3Cpath d='M30 62 Q50 54 70 62' stroke='%23faf5ff' stroke-width='2' fill='none' opacity='.4'/%3E%3C/svg%3E"); animation-delay: -9.6s; }
+    .type-card-bg--ground   { background: linear-gradient(145deg, #b45309, #a16207); }
+    .type-card-bg--ground::before   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M0 58 L28 34 L52 50 L78 28 L120 48 L120 80 L0 80Z' fill='%23fcd34d' opacity='.45'/%3E%3Cpath d='M0 68 L34 52 L62 64 L92 46 L120 58 L120 80 L0 80Z' fill='%23d97706' opacity='.35'/%3E%3Ccircle cx='22' cy='22' r='6' fill='%23fde68a' opacity='.5'/%3E%3Ccircle cx='88' cy='18' r='8' fill='%23fbbf24' opacity='.45'/%3E%3C/svg%3E"); animation-delay: -10.8s; }
+    .type-card-bg--flying   { background: linear-gradient(145deg, #38bdf8, #6366f1); }
+    .type-card-bg--flying::before   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cellipse cx='34' cy='30' rx='22' ry='10' fill='%23fff' opacity='.45'/%3E%3Cellipse cx='72' cy='22' rx='18' ry='8' fill='%23e0e7ff' opacity='.5'/%3E%3Cpath d='M48 52 Q62 42 76 52 Q88 58 98 48' stroke='%23fff' stroke-width='3' fill='none' opacity='.4'/%3E%3Cpath d='M18 58 Q30 50 42 58' stroke='%23dbeafe' stroke-width='2' fill='none' opacity='.45'/%3E%3C/svg%3E"); animation-delay: -12s; }
+    .type-card-bg--psychic  { background: linear-gradient(145deg, #d946ef, #a855f7); }
+    .type-card-bg--psychic::before  { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Ccircle cx='60' cy='40' r='26' fill='none' stroke='%23fae8ff' stroke-width='3' opacity='.5'/%3E%3Ccircle cx='60' cy='40' r='14' fill='none' stroke='%23fff' stroke-width='2' opacity='.45'/%3E%3Ccircle cx='60' cy='40' r='5' fill='%23fdf4ff' opacity='.75'/%3E%3Cpath d='M18 18 Q30 30 18 42 M102 18 Q90 30 102 42' stroke='%23f5d0fe' stroke-width='2' fill='none' opacity='.5'/%3E%3C/svg%3E"); animation-delay: -13.2s; }
+    .type-card-bg--bug      { background: linear-gradient(145deg, #65a30d, #15803d); }
+    .type-card-bg--bug::before      { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cellipse cx='42' cy='38' rx='18' ry='12' fill='%23bef264' opacity='.55'/%3E%3Ccircle cx='28' cy='30' r='6' fill='%23d9f99d' opacity='.6'/%3E%3Ccircle cx='56' cy='30' r='6' fill='%23d9f99d' opacity='.6'/%3E%3Cpath d='M34 50 Q42 58 50 50' stroke='%23ecfccb' stroke-width='2' fill='none' opacity='.5'/%3E%3Cpath d='M72 24 L82 18 L88 28 L80 36Z' fill='%23a3e635' opacity='.5'/%3E%3Cpath d='M92 48 L104 42 L108 54 L96 58Z' fill='%2384cc16' opacity='.45'/%3E%3C/svg%3E"); animation-delay: -14.4s; }
+    .type-card-bg--rock     { background: linear-gradient(145deg, #78716c, #b45309); }
+    .type-card-bg--rock::before     { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpolygon points='18,52 32,28 48,54' fill='%23d6d3d1' opacity='.6'/%3E%3Cpolygon points='44,58 62,32 78,56' fill='%23a8a29e' opacity='.55'/%3E%3Cpolygon points='72,50 88,26 102,52' fill='%23e7e5e4' opacity='.5'/%3E%3Cpath d='M8 68 L32 62 L56 70 L84 62 L112 68' stroke='%23fafaf9' stroke-width='2' fill='none' opacity='.35'/%3E%3C/svg%3E"); animation-delay: -15.6s; }
+    .type-card-bg--ghost    { background: linear-gradient(145deg, #6d28d9, #5b21b6); }
+    .type-card-bg--ghost::before    { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M38 18 Q52 8 66 18 L66 58 Q60 52 54 58 Q48 64 42 58 Q36 52 30 58 L30 18Z' fill='%23ddd6fe' opacity='.5'/%3E%3Ccircle cx='46' cy='32' r='4' fill='%231e1b4b' opacity='.55'/%3E%3Ccircle cx='58' cy='32' r='4' fill='%231e1b4b' opacity='.55'/%3E%3Cpath d='M88 24 Q98 16 106 28 Q100 40 88 36 Q82 44 76 34' fill='%23c4b5fd' opacity='.4'/%3E%3C/svg%3E"); animation-delay: -16.8s; }
+    .type-card-bg--dragon   { background: linear-gradient(145deg, #4338ca, #7c3aed); }
+    .type-card-bg--dragon::before   { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M12 48 Q34 28 56 44 Q78 58 108 32' stroke='%23c7d2fe' stroke-width='4' fill='none' opacity='.55'/%3E%3Cpath d='M48 20 L58 12 L64 24 L54 30Z' fill='%23a5b4fc' opacity='.6'/%3E%3Cpath d='M78 52 L90 44 L96 58 L84 62Z' fill='%23818cf8' opacity='.5'/%3E%3Ccircle cx='28' cy='22' r='6' fill='%23e0e7ff' opacity='.45'/%3E%3C/svg%3E"); animation-delay: -18s; }
+    .type-card-bg--dark     { background: linear-gradient(145deg, #1f2937, #0f172a); }
+    .type-card-bg--dark::before     { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpath d='M78 16 A18 18 0 1 0 78 52 A14 14 0 1 1 78 16Z' fill='%2394a3b8' opacity='.55'/%3E%3Ccircle cx='28' cy='24' r='3' fill='%23cbd5e1' opacity='.4'/%3E%3Ccircle cx='42' cy='14' r='2' fill='%23e2e8f0' opacity='.35'/%3E%3Cpath d='M12 62 Q40 50 68 62' stroke='%23475569' stroke-width='3' fill='none' opacity='.5'/%3E%3C/svg%3E"); animation-delay: -19.2s; }
+    .type-card-bg--steel    { background: linear-gradient(145deg, #64748b, #94a3b8); }
+    .type-card-bg--steel::before    { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Ccircle cx='38' cy='38' r='16' fill='none' stroke='%23f1f5f9' stroke-width='4' opacity='.5'/%3E%3Ccircle cx='38' cy='38' r='5' fill='%23e2e8f0' opacity='.55'/%3E%3Crect x='68' y='24' width='22' height='22' rx='2' fill='none' stroke='%23cbd5e1' stroke-width='3' opacity='.45' transform='rotate(12 79 35)'/%3E%3Cpath d='M8 62 H112' stroke='%23fff' stroke-width='1' opacity='.2'/%3E%3C/svg%3E"); animation-delay: -20.4s; }
+    .type-card-bg--fairy    { background: linear-gradient(145deg, #ec4899, #f472b6); }
+    .type-card-bg--fairy::before    { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 80'%3E%3Cpolygon points='24,18 27,26 35,26 29,31 31,39 24,34 17,39 19,31 13,26 21,26' fill='%23fff' opacity='.65'/%3E%3Cpolygon points='72,14 75,22 83,22 77,27 79,35 72,30 65,35 67,27 61,22 69,22' fill='%23fce7f3' opacity='.6'/%3E%3Cpolygon points='98,44 100,50 106,50 102,54 103,60 98,56 93,60 94,54 90,50 96,50' fill='%23fdf2f8' opacity='.55'/%3E%3Ccircle cx='48' cy='54' r='10' fill='%23fbcfe8' opacity='.35'/%3E%3C/svg%3E"); animation-delay: -21.6s; }
     @media (min-width: 640px) { #typeGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
     @media (min-width: 1024px) { #typeGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     @media (min-width: 1280px) { #typeGrid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
@@ -976,22 +1234,19 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: flex-start;
       gap: var(--pf-spacer-xs);
       scrollbar-width: thin;
       scrollbar-color: rgb(251 191 36 / 0.45) transparent;
-    }
-    @media (min-width: 640px) {
-      #gameScrollPane {
-        padding-right: calc(min(14rem, 28vw) + var(--pf-spacer-md));
-      }
+      scrollbar-gutter: stable;
     }
     #gameScrollPane::-webkit-scrollbar { width: 6px; }
     #gameScrollPane::-webkit-scrollbar-thumb { background: rgb(251 191 36 / 0.45); border-radius: 3px; }
     #liveVotesPanel {
-      position: absolute;
-      top: var(--pf-spacer-sm);
-      right: var(--pf-spacer-md);
-      z-index: 6;
+      position: absolute !important;
+      top: 1rem;
+      right: 1rem;
+      z-index: 55;
       width: min(14rem, 28vw);
       max-height: min(38vh, 14rem);
       display: flex;
@@ -1006,18 +1261,29 @@
       box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
     }
     #voteTally { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
-    #typeBadge { flex-shrink: 0; }
+    #typeBadge { flex-shrink: 0; text-align: center; }
+
+    /* Shared center axis — card + CTAs align to viewport center (Live Votes floats above) */
+    #gamePlayColumn {
+      width: 100%;
+      max-width: var(--game-stage-max);
+      margin-inline: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--pf-spacer-xs);
+    }
 
     /* ── TCG card ── */
     #tcgCardShell {
       width: 100%;
-      max-width: 20rem;
+      max-width: var(--game-card-mystery-max);
       margin-inline: auto;
       flex-shrink: 0;
       overflow: visible;
       transition: max-width 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    #tcgCardShell:has(.tcg-revealed) { max-width: min(94vw, 34rem); }
+    #tcgCardShell:has(#tcgCard.tcg-revealed) { max-width: var(--game-stage-max); }
     .tcg-card {
       width: 100%;
       border-radius: 1rem;
@@ -1044,6 +1310,7 @@
     }
     .tcg-card.tcg-mystery .tcg-art-box { aspect-ratio: 1; width: 100%; }
     .tcg-card.tcg-revealed .tcg-art-box { aspect-ratio: 4 / 3; width: 100%; }
+    .tcg-face-back .tcg-art-box { aspect-ratio: 4 / 3; width: 100%; }
     .tcg-art-box {
       position: relative;
       border-radius: 0.6rem;
@@ -1057,15 +1324,32 @@
     .tcg-mystery .tcg-reveal-only { display: none !important; }
 
     #gameControlDock {
+      width: 100%;
+      display: flex;
+      justify-content: center;
       padding: var(--pf-spacer-sm) var(--pf-spacer-md);
       background: rgb(9 9 11 / 0.97);
       border-top: 2px solid rgb(255 203 5 / 0.45);
       box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
       pointer-events: auto !important;
+      box-sizing: border-box;
     }
     .game-actions {
       display: flex; flex-direction: column; align-items: center;
-      gap: var(--pf-spacer-gap-stack); width: 100%;
+      gap: var(--pf-spacer-gap-stack);
+      width: 100%;
+      max-width: var(--game-stage-max);
+      margin-inline: auto;
+      text-align: center;
+    }
+    .game-actions .action-btn,
+    .game-actions #bossBtn {
+      align-self: center;
+    }
+    .game-actions-secondary,
+    .game-actions #quitBtn {
+      align-self: center;
+      text-align: center;
     }
     .game-actions #nameContainer:empty { display: none; }
 
@@ -1081,7 +1365,51 @@
       font-weight: 500 !important;
       max-width: min(14rem, 36vw);
     }
+    body:not([data-role="host"]) #manualScoreToggle,
+    body:not([data-role="host"]) #manualScoreOverlay { display: none !important; }
+    @media (max-width: 639px) {
+      body[data-role="host"] #manualScoreToggle { display: none !important; }
+    }
     #hostApp:has(#deployWarning:not(.hidden)) #manualScoreToggle { top: 2.25rem; }
+
+    /* Bottom-right sound controls — host + player */
+    #audioControlDock {
+      position: fixed;
+      right: 0.65rem;
+      z-index: 270;
+      bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      padding: 0.3rem 0.4rem;
+      border-radius: 999px;
+      background: rgb(9 9 11 / 0.94);
+      border: 2px solid rgb(250 204 21 / 0.45);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+      pointer-events: auto !important;
+    }
+    #uiForegroundLayer:has(#hostApp:not(.hidden)) #audioControlDock {
+      bottom: calc(4.85rem + env(safe-area-inset-bottom, 0px));
+    }
+    #uiForegroundLayer:has(#hostControlBar.hidden-bar) #audioControlDock {
+      bottom: calc(0.65rem + env(safe-area-inset-bottom, 0px));
+    }
+    .audio-ctl-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 2rem; min-height: 2rem; padding: 0.2rem 0.35rem;
+      border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08); color: rgb(253 224 71);
+      font-family: var(--font-display); font-size: 1rem; font-weight: 700;
+      line-height: 1; cursor: pointer; touch-action: manipulation;
+      transition: transform 0.12s ease, background 0.12s ease;
+    }
+    .audio-ctl-btn:active { transform: scale(0.92); }
+    .audio-ctl-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .audio-ctl-btn.audio-ctl-mute { min-width: 2.25rem; font-size: 1.1rem; }
+    #audioVolLabel {
+      min-width: 2.35rem; text-align: center; font-size: 0.65rem; font-weight: 800;
+      color: rgb(165 243 252); font-family: var(--font-display); user-select: none;
+    }
 
     .game-card {
       background: rgb(15 23 42 / 0.95);
@@ -1118,6 +1446,41 @@
       border: 1px solid rgba(0,0,0,0.25); border-radius: 0.2rem;
       padding: 0.12rem 0.35rem; transform: skewX(-8deg);
     }
+    .tcg-stage.tcg-stage-evolution {
+      color: #fff;
+      background: linear-gradient(145deg, #f97316, #ea580c);
+      border-color: rgba(124, 45, 18, 0.55);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset;
+    }
+    .tcg-evolution-note {
+      font-family: var(--font-body); font-size: var(--pf-font-size-body-sm); font-weight: 600;
+      text-align: center; color: #7c2d12; background: rgb(254 243 199 / 0.85);
+      border: 1px solid rgb(251 191 36 / 0.65); border-radius: 0.35rem;
+      padding: 0.25rem 0.45rem; margin-top: 0.15rem;
+    }
+    .tcg-evolution-note strong { color: #9a3412; }
+    .tcg-evolution-note .tcg-flip-hint {
+      font-weight: 500; color: #92400e; opacity: 0.85; font-size: 0.9em;
+    }
+    /* ── TCG evolution flip (front = evolution, back = pre-evolution) ── */
+    .tcg-flip-shell { width: 100%; perspective: 1100px; }
+    .tcg-flip-shell.tcg-flippable { cursor: pointer; touch-action: manipulation; }
+    .tcg-flip-inner {
+      display: grid;
+      width: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.62s cubic-bezier(0.4, 0.2, 0.2, 1);
+    }
+    .tcg-flip-inner > .tcg-card {
+      grid-area: 1 / 1;
+      width: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+    .tcg-flip-inner.tcg-flipped { transform: rotateY(180deg); }
+    .tcg-face-front { position: relative; z-index: 2; }
+    .tcg-face-back { transform: rotateY(180deg); }
+    #tcgCard.tcg-evolution.tcg-revealed { cursor: pointer; }
     .tcg-name {
       font-family: var(--font-display); font-size: var(--pf-font-size-heading-lg);
       font-weight: 700; color: #111; line-height: var(--pf-line-height-heading);
@@ -1253,8 +1616,8 @@
     </header>
 
     <div id="hostMain">
-    <button id="manualScoreToggle" type="button"
-      class="ui-panel ui-interactive pointer-events-auto font-arcade text-xs sm:text-sm text-amber-400 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-zinc-600 bg-zinc-950 shadow-[0_0_16px_rgba(251,191,36,0.25)] hover:scale-105 active:scale-95 transition-transform"
+    <button id="manualScoreToggle" type="button" hidden
+      class="host-only-feature ui-panel ui-interactive pointer-events-auto font-arcade text-xs sm:text-sm text-amber-400 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-zinc-600 bg-zinc-950 shadow-[0_0_16px_rgba(251,191,36,0.25)] hover:scale-105 active:scale-95 transition-transform"
       aria-label="Edit players and manual scores" title="Edit players / manual scores for kids without phones">
       📝 Edit Players / Manual Scores
     </button>
@@ -1308,17 +1671,20 @@
       </aside>
 
       <div id="gameScrollPane">
+        <div id="gamePlayColumn">
         <p id="typeBadge" class="text-[10px] sm:text-xs font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-blue-700/60 border border-blue-400/40"></p>
         <div id="tcgCardShell" class="poke-card-shell relative shrink-0 w-full">
           <div id="shinyCardStage" class="shiny-card-stage">
                 <canvas id="shinyAttackCanvas" class="shiny-attack-canvas" aria-hidden="true"></canvas>
                 <div id="shinyAttackFlash" class="shiny-attack-flash" aria-hidden="true"></div>
                 <div id="revealFlash" class="absolute inset-0 rounded-3xl bg-yellow-300 opacity-0 pointer-events-none z-20"></div>
-                <article id="tcgCard" class="tcg-card tcg-mystery" aria-live="polite">
+                <div id="tcgFlipShell" class="tcg-flip-shell">
+                  <div id="tcgFlipInner" class="tcg-flip-inner">
+                <article id="tcgCard" class="tcg-card tcg-face-front tcg-mystery" aria-live="polite">
                   <div class="tcg-card-inner">
                     <div class="tcg-shiny-prism tcg-reveal-only" aria-hidden="true"></div>
                     <header class="tcg-header tcg-reveal-only" aria-hidden="true">
-                      <span class="tcg-stage">BASIC</span>
+                      <span id="tcgStageLabel" class="tcg-stage">BASIC</span>
                       <h2 id="tcgCardName" class="tcg-name">???</h2>
                       <div class="tcg-hp">
                         <span>HP</span>
@@ -1333,6 +1699,7 @@
                       </div>
                       <img id="pokemonImage" src="" alt="Mystery Pokémon" class="silhouette img-pending object-contain relative z-10 select-none" draggable="false" />
                     </div>
+                    <p id="tcgEvolutionNote" class="tcg-evolution-note tcg-reveal-only hidden" aria-hidden="true"></p>
                     <p id="tcgMetaBar" class="tcg-meta tcg-reveal-only" aria-hidden="true"></p>
                     <div id="tcgMoves" class="tcg-moves tcg-reveal-only" aria-hidden="true"></div>
                     <div class="tcg-divider tcg-reveal-only" aria-hidden="true"></div>
@@ -1341,8 +1708,35 @@
                     <footer id="tcgStatsBar" class="tcg-stats-bar tcg-reveal-only" aria-hidden="true"></footer>
                   </div>
                 </article>
+                <article id="tcgCardBack" class="tcg-card tcg-face-back hidden" aria-hidden="true">
+                  <div class="tcg-card-inner">
+                    <header class="tcg-header">
+                      <span id="tcgStageLabelBack" class="tcg-stage">BASIC</span>
+                      <h2 id="tcgCardBackName" class="tcg-name">???</h2>
+                      <div class="tcg-hp">
+                        <span>HP</span>
+                        <span id="tcgCardBackHp">70</span>
+                        <span id="tcgTypeIconBack" class="tcg-hp-type" aria-hidden="true"></span>
+                      </div>
+                    </header>
+                    <div id="tcgBackArtBox" class="tcg-art-box">
+                      <div id="tcgBackArtBg" class="tcg-art-bg" aria-hidden="true"></div>
+                      <img id="tcgBackPokemonImage" src="" alt="" class="img-pending object-contain relative z-10 select-none opacity-0" draggable="false" />
+                    </div>
+                    <p id="tcgBackEvolutionNote" class="tcg-evolution-note">⬇ Pre-evolution form</p>
+                    <p id="tcgBackMetaBar" class="tcg-meta"></p>
+                    <div id="tcgBackMoves" class="tcg-moves"></div>
+                    <div class="tcg-divider"></div>
+                    <p id="tcgBackFlavor" class="tcg-flavor"></p>
+                    <p id="tcgBackDescription" class="tcg-description"></p>
+                    <footer id="tcgBackStatsBar" class="tcg-stats-bar"></footer>
+                  </div>
+                </article>
+                  </div><!-- /#tcgFlipInner -->
+                </div><!-- /#tcgFlipShell -->
           </div><!-- /#shinyCardStage -->
         </div><!-- /#tcgCardShell -->
+        </div><!-- /#gamePlayColumn -->
       </div><!-- /#gameScrollPane -->
 
       <div id="gameControlDock" class="ui-panel pointer-events-auto">
@@ -1429,11 +1823,12 @@
       <div id="crowdFavoriteMoves" class="flex flex-col gap-2"></div>
     </aside>
     <header class="px-4 py-3 text-center border-b border-yellow-400/30 bg-zinc-950 ui-panel pr-36 sm:pr-4">
-      <p class="font-arcade text-2xl sm:text-3xl text-yellow-400">⚔️ BATTLE ARENA ROYALE ⚔️</p>
-      <p id="battleTurnLabel" class="text-blue-200 font-bold mt-1">All trainers — pick your fighter!</p>
+      <p class="font-arcade text-2xl sm:text-3xl text-yellow-400">⚔️ BATTLE ARENA ⚔️</p>
+      <p id="battleTurnLabel" class="text-blue-200 font-bold mt-1">Pick your fighter!</p>
       <p id="arenaPhaseLabel" class="mt-0.5">Draft phase</p>
+      <div id="arenaScoreStrip" class="arena-score-strip" aria-live="polite"></div>
     </header>
-    <div id="arenaDraftBanner">🎯 DRAFT — TAP YOUR FIGHTER ON YOUR PHONE!</div>
+    <div id="arenaDraftBanner">🎯 DRAFT ON PHONES</div>
     <div id="battleArenaWrap">
       <div class="arena-gradient" aria-hidden="true"></div>
       <div class="arena-floor" aria-hidden="true"></div>
@@ -1454,10 +1849,42 @@
 
   <div id="battleVictoryOverlay" class="hidden-overlay" aria-hidden="true">
     <div class="text-center px-6">
-      <p class="text-8xl mb-4">🏆</p>
-      <h2 id="battleVictoryHeadline" class="font-arcade text-3xl sm:text-5xl text-yellow-400 drop-shadow-[0_4px_0_#cc0000] leading-tight">ARENA ROYALE!</h2>
+      <p class="text-8xl mb-2">🏆</p>
+      <img id="battleVictorySprite" class="hidden" alt="" draggable="false" />
+      <h2 id="battleVictoryHeadline" class="font-arcade text-3xl sm:text-5xl text-yellow-400 drop-shadow-[0_4px_0_#cc0000] leading-tight">ARENA CHAMP!</h2>
       <p id="battleVictoryMsg" class="text-xl text-blue-200 font-bold mt-4 max-w-lg mx-auto"></p>
-      <button id="battleVictoryBtn" class="type-btn font-arcade text-2xl bg-yellow-400 text-blue-900 px-10 py-4 rounded-2xl mt-8 border-4 border-white shadow-[0_6px_0_#b8960a]">CONTINUE PARTY!</button>
+      <div id="battleVictoryScores" class="arena-score-strip mt-4 justify-center"></div>
+      <p id="battleVictorySubtext" class="text-blue-300/90 text-base mt-4 max-w-md mx-auto">Next up: <strong>All Types</strong> — Who's that Pokémon?</p>
+      <button id="battleVictoryBtn" class="type-btn font-arcade text-2xl bg-yellow-400 text-blue-900 px-10 py-4 rounded-2xl mt-6 border-4 border-white shadow-[0_6px_0_#b8960a]">CONTINUE → WHO'S THAT POKÉMON!</button>
+    </div>
+  </div>
+
+  <!-- ═══ MID-GAME RANDOM 1v1 DUEL — 30% interrupt on NEXT ═══ -->
+  <div id="randomDuelTriggerOverlay" class="hidden-overlay" aria-hidden="true" aria-live="assertive">
+    <p>⚠️ RANDOM DUEL TRIGGERED! ⚠️</p>
+  </div>
+  <div id="randomDuelOverlay" class="hidden-overlay ui-panel" aria-hidden="true">
+    <header>
+      <p id="randomDuelHeadline" class="font-arcade text-2xl sm:text-3xl text-yellow-400">⚔️ RANDOM DUEL ⚔️</p>
+      <p id="randomDuelPhaseLabel" class="text-blue-200 font-bold mt-1">Drafting fighters…</p>
+    </header>
+    <div id="randomDuelArenaWrap">
+      <div class="arena-gradient" aria-hidden="true"></div>
+      <div class="arena-floor" aria-hidden="true"></div>
+      <div id="randomDuelMoveFlash" class="move-flash" aria-hidden="true"></div>
+      <div id="randomDuelLightning" class="lightning-veins" aria-hidden="true"></div>
+      <div id="randomDuelImpactBurst" class="impact-burst" aria-hidden="true"></div>
+      <div id="randomDuelCriticalSplash" aria-hidden="true">CRITICAL HIT!</div>
+      <canvas id="randomDuelVfxCanvas" aria-hidden="true"></canvas>
+      <div id="randomDuelCombatGrid" aria-live="polite"></div>
+      <div id="randomDuelVictoryBanner" class="hidden" aria-live="assertive">
+        <p id="randomDuelVictoryText"></p>
+      </div>
+    </div>
+    <p id="randomDuelTicker"></p>
+    <div class="flex flex-col items-center gap-2 px-4 pb-4 shrink-0">
+      <div id="randomDuelTimer" class="battle-timer-ring font-arcade text-3xl text-yellow-400 w-16 h-16 rounded-full border-4 border-yellow-400 flex items-center justify-center">10</div>
+      <div id="randomDuelMoveTally" class="grid grid-cols-2 gap-2 max-w-xl w-full text-sm"></div>
     </div>
   </div>
 
@@ -1521,28 +1948,52 @@
       <p id="playerArenaLobbyStatus" class="text-green-400 font-bold text-lg"></p>
     </section>
 
-    <section id="playerDraft" class="screen hidden-screen flex-1 flex flex-col px-4 py-5 gap-4 overflow-y-auto">
+    <section id="playerDraft" class="screen hidden-screen flex-1 flex flex-col px-3 py-4 gap-3 overflow-y-auto">
       <header class="text-center shrink-0">
-        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ ARENA DRAFT!</p>
-        <p id="playerDraftTimer" class="text-yellow-300 font-bold mt-2 text-lg">Pick your fighter — 15s!</p>
-        <p class="text-blue-200/80 text-sm mt-1">Tap one Pokémon to lock in</p>
+        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ DRAFT</p>
+        <p id="playerDraftTimer" class="text-yellow-300 font-bold mt-1 text-lg">Tap a fighter</p>
+        <div class="arena-step-bar" aria-hidden="true">
+          <span class="arena-step active">1 Pick</span>
+          <span class="arena-step" id="playerDraftStepLock">2 Lock</span>
+        </div>
       </header>
-      <div id="draftPokemonCards" class="flex-1 flex flex-col gap-3 justify-center max-w-md mx-auto w-full"></div>
+      <div id="draftPokemonCards" class="draft-pick-grid flex-1 content-center"></div>
       <button id="playerDraftLockBtn" type="button" disabled
-        class="hidden type-btn pointer-events-auto font-arcade text-xl bg-yellow-400 text-blue-900 px-8 py-3 rounded-2xl border-4 border-white shadow-lg disabled:opacity-40 mx-auto">
-        ACCEPT &amp; LOCK ✓
+        class="hidden draft-lock-fab pointer-events-auto disabled:opacity-40">
+        🔒 LOCK IN
       </button>
-      <p id="playerDraftStatus" class="text-center text-green-400 font-bold text-lg shrink-0"></p>
+      <p id="playerDraftStatus" class="text-center text-green-400 font-bold text-sm shrink-0" aria-live="polite"></p>
     </section>
 
-    <section id="playerBattle" class="screen hidden-screen flex-1 flex flex-col px-4 py-6 gap-4">
-      <header class="text-center">
-        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ ARENA COMBAT!</p>
-        <p id="playerBattleLabel" class="text-blue-200 font-bold mt-1">Cast a move!</p>
+    <section id="playerBattle" class="screen hidden-screen flex-1 flex flex-col px-3 py-4 gap-3 overflow-y-auto">
+      <header class="text-center shrink-0">
+        <p class="font-arcade text-2xl text-fuchsia-400">⚔️ FIGHT</p>
+        <p id="playerBattleLabel" class="text-yellow-300 font-bold mt-1">Turn 1</p>
+        <div class="arena-step-bar" id="playerBattleSteps">
+          <span class="arena-step active" data-step="target">1 Target</span>
+          <span class="arena-step" data-step="move">2 Move</span>
+        </div>
       </header>
-      <div id="battleTargetButtons" class="flex flex-col gap-2 max-w-md mx-auto w-full shrink-0"></div>
-      <div id="battleMoveButtons" class="flex-1 flex flex-col gap-3 justify-center max-w-md mx-auto w-full min-h-0"></div>
-      <p id="playerBattleStatus" class="text-center text-green-400 font-bold text-lg"></p>
+      <div id="battleTargetButtons" class="shrink-0"></div>
+      <div id="battleMoveButtons" class="flex-1 content-center min-h-0"></div>
+      <p id="playerBattleStatus" class="text-center text-green-400 font-bold text-sm shrink-0" aria-live="polite"></p>
+    </section>
+
+    <section id="playerArenaResults" class="screen hidden-screen flex-1 flex flex-col items-center justify-center px-6 gap-5 text-center overflow-y-auto py-6">
+      <div class="text-6xl">🏆</div>
+      <h2 id="playerArenaResultHeadline" class="font-arcade text-3xl text-yellow-400 leading-tight">Arena Results</h2>
+      <p id="playerArenaResultMsg" class="text-lg text-blue-200 font-bold max-w-sm"></p>
+      <div id="playerArenaResultScores" class="arena-score-strip flex-wrap justify-center max-w-md w-full"></div>
+      <p class="text-sm text-blue-300/70 pf-text-muted">Next: All Types — Who's that Pokémon?</p>
+    </section>
+
+    <section id="playerSpectator" class="screen hidden-screen flex-1 flex flex-col items-center justify-center px-6 gap-6 text-center">
+      <div class="text-6xl">👀</div>
+      <h2 class="font-arcade text-3xl sm:text-4xl text-orange-400 leading-tight">Spectator Mode</h2>
+      <p id="playerSpectatorMsg" class="text-xl text-blue-200 font-bold max-w-sm leading-snug">
+        <span class="spectator-duelists">Trainer A and Trainer B</span> are dueling!<br>Watch the main screen!
+      </p>
+      <p class="text-sm text-blue-300/60 pf-text-muted">Keep this screen open</p>
     </section>
 
     <section id="playerError" class="screen hidden-screen flex-1 flex flex-col items-center justify-center px-6 gap-4 text-center">
@@ -1550,6 +2001,13 @@
       <h2 class="font-arcade text-3xl text-red-400">Can't Join</h2>
       <p id="playerErrorMsg" class="text-blue-200 max-w-sm">Scan the QR code on the host screen to join.</p>
     </section>
+  </div>
+
+  <div id="audioControlDock" class="ui-interactive" role="group" aria-label="Sound controls">
+    <button id="audioVolDown" type="button" class="audio-ctl-btn" aria-label="Volume down">−</button>
+    <button id="audioMuteBtn" type="button" class="audio-ctl-btn audio-ctl-mute" aria-label="Mute sound" title="Mute / unmute">🔊</button>
+    <span id="audioVolLabel" aria-live="polite">100%</span>
+    <button id="audioVolUp" type="button" class="audio-ctl-btn" aria-label="Volume up">+</button>
   </div>
 
   </div><!-- /#uiForegroundLayer -->
@@ -1582,12 +2040,13 @@
 
       /** Vivid nature meadow — Pokémon in the wild (Sword/Shield-style) */
       LANDSCAPE_BG: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1920&q=80',
-      /** Classic Pokémon anime theme — Archive.org (CC community) */
+      /** Classic Pokémon anime theme — Archive.org direct CDN (avoids redirect load failures) */
       THEME_URLS: [
+        'https://ia800507.us.archive.org/15/items/tvtunes_11549/Pokemon.mp3',
         'https://archive.org/download/tvtunes_11549/Pokemon.mp3',
       ],
-      THEME_LABELS: ['Pokémon Theme'],
-      THEME_URL: 'https://archive.org/download/tvtunes_11549/Pokemon.mp3',
+      THEME_LABELS: ['Pokémon Theme', 'Pokémon Theme (mirror)'],
+      THEME_URL: 'https://ia800507.us.archive.org/15/items/tvtunes_11549/Pokemon.mp3',
       /** Iconic "Who's That Pokémon!" vocal — every new round */
       /** Direct classic anime vocal — soundboard.com raw MP3 stream */
       VOCAL_URL: 'https://www.soundboard.com/media/s2/2012/10/75565551-7132-416b-a8be-ccbb9fb197ff.mp3',
@@ -1624,10 +2083,21 @@
       ARENA_AUTO_START_MS: 6000,
       ARENA_AUTO_LOBBY_MS: 12000,
       ARENA_MAX_COMBAT_TURNS: 12,
-      /** 20% shiny spawn roll per round */
-      SHINY_CHANCE: 0.2,
+      /** Mid-game 1v1 — 30% roll on NEXT when ≥2 players in leaderboard */
+      DUEL_TRIGGER_CHANCE: 0.30,
+      DUEL_DRAFT_SEC: 10,
+      DUEL_WIN_POINTS: 5,
+      DUEL_HP: 100,
+      DUEL_TURN_SEC: 8,
+      DUEL_TRIGGER_FLASH_MS: 1800,
+      DUEL_VICTORY_HOLD_MS: 3000,
+      /** 10% shiny spawn roll per round */
+      SHINY_CHANCE: 0.1,
       SHINY_TAKEOVER_MS: 3000,
       SHINY_ATTACK_MS: 1400,
+      /** Legendary / mythical surprise encounters in the round deck */
+      LEGENDARY_PER_CYCLE: [1, 3],
+      LEGENDARY_SURPRISE_CHANCE: 0.07,
       BOSS_HP: 120,
       PLAYER_BATTLE_HP: 100,
     };
@@ -1726,6 +2196,78 @@
       'hero-whole-crew': 'The whole squad united — ultimate party power unleashed!',
     };
 
+    /** Iconic legendary & mythical Pokémon — injected into rounds + rare surprise rolls */
+    const LEGENDARY_ENTRIES = [
+      { id: 144, types: ['ice', 'flying'], tier: 'legendary' },
+      { id: 145, types: ['electric', 'flying'], tier: 'legendary' },
+      { id: 146, types: ['fire', 'flying'], tier: 'legendary' },
+      { id: 150, types: ['psychic'], tier: 'legendary' },
+      { id: 151, types: ['psychic'], tier: 'mythical' },
+      { id: 243, types: ['electric'], tier: 'legendary' },
+      { id: 244, types: ['fire'], tier: 'legendary' },
+      { id: 245, types: ['water'], tier: 'legendary' },
+      { id: 249, types: ['psychic', 'flying'], tier: 'legendary' },
+      { id: 250, types: ['fire', 'flying'], tier: 'legendary' },
+      { id: 251, types: ['psychic', 'grass'], tier: 'mythical' },
+      { id: 377, types: ['rock'], tier: 'legendary' },
+      { id: 378, types: ['ice'], tier: 'legendary' },
+      { id: 379, types: ['steel'], tier: 'legendary' },
+      { id: 380, types: ['dragon', 'psychic'], tier: 'legendary' },
+      { id: 381, types: ['dragon', 'psychic'], tier: 'legendary' },
+      { id: 382, types: ['water'], tier: 'legendary' },
+      { id: 383, types: ['ground'], tier: 'legendary' },
+      { id: 384, types: ['dragon', 'flying'], tier: 'legendary' },
+      { id: 385, types: ['steel', 'psychic'], tier: 'mythical' },
+      { id: 386, types: ['psychic'], tier: 'mythical' },
+      { id: 483, types: ['steel', 'dragon'], tier: 'legendary' },
+      { id: 484, types: ['water', 'dragon'], tier: 'legendary' },
+      { id: 487, types: ['ghost', 'dragon'], tier: 'legendary' },
+      { id: 489, types: ['water'], tier: 'mythical' },
+      { id: 490, types: ['water'], tier: 'mythical' },
+      { id: 491, types: ['dark'], tier: 'mythical' },
+      { id: 492, types: ['grass'], tier: 'mythical' },
+      { id: 493, types: ['normal'], tier: 'mythical' },
+      { id: 494, types: ['psychic', 'fire'], tier: 'mythical' },
+      { id: 643, types: ['dragon', 'fire'], tier: 'legendary' },
+      { id: 644, types: ['dragon', 'electric'], tier: 'legendary' },
+      { id: 646, types: ['dragon', 'ice'], tier: 'legendary' },
+      { id: 716, types: ['fairy'], tier: 'legendary' },
+      { id: 717, types: ['dark', 'flying'], tier: 'legendary' },
+      { id: 718, types: ['dragon', 'ground'], tier: 'legendary' },
+      { id: 719, types: ['rock', 'fairy'], tier: 'mythical' },
+      { id: 720, types: ['psychic', 'ghost'], tier: 'mythical' },
+      { id: 721, types: ['fire', 'water'], tier: 'mythical' },
+      { id: 791, types: ['psychic', 'steel'], tier: 'legendary' },
+      { id: 792, types: ['psychic', 'ghost'], tier: 'legendary' },
+      { id: 800, types: ['psychic'], tier: 'legendary' },
+      { id: 801, types: ['steel', 'fairy'], tier: 'mythical' },
+      { id: 807, types: ['fighting', 'ghost'], tier: 'mythical' },
+      { id: 888, types: ['fairy', 'steel'], tier: 'legendary' },
+      { id: 889, types: ['fighting', 'steel'], tier: 'legendary' },
+      { id: 890, types: ['poison', 'dragon'], tier: 'legendary' },
+      { id: 898, types: ['psychic', 'grass'], tier: 'legendary' },
+    ];
+    const LEGENDARY_BY_ID = Object.fromEntries(LEGENDARY_ENTRIES.map(e => [e.id, e]));
+    const LEGENDARY_FLAVOR = {
+      legendary: 'A rare legendary Pokémon has joined the party — trainers whisper its name in awe!',
+      mythical: 'An ultra-rare mythical Pokémon appeared — almost nobody has ever seen one in the wild!',
+    };
+
+    function legendaryPoolForType(typeId) {
+      if (typeId === 'all') return LEGENDARY_ENTRIES.map(e => e.id);
+      return LEGENDARY_ENTRIES.filter(e => e.types.includes(typeId)).map(e => e.id);
+    }
+
+    function markLegendaryPokemon(pokemon, { force = false } = {}) {
+      if (!pokemon || pokemon.isHero) return pokemon;
+      const meta = LEGENDARY_BY_ID[pokemon.id];
+      if (meta || force) {
+        pokemon.isLegendary = true;
+        pokemon.legendaryTier = meta?.tier || 'legendary';
+      }
+      return pokemon;
+    }
+
     const TYPE_IDS = {
       normal: 1, fighting: 2, flying: 3, poison: 4, ground: 5, rock: 6, bug: 7,
       ghost: 8, steel: 9, fire: 10, water: 11, grass: 12, electric: 13, psychic: 14,
@@ -1753,7 +2295,7 @@
       return `<span class="${cls}" style="background:${bg}" title="${escapeHtml(key)}">${label}</span>`;
     }
 
-    /** Roll 20% shiny spawn — called once per round initialization */
+    /** Roll 10% shiny spawn — called once per round initialization */
     function rollShinySpawn() {
       return Math.random() < CONFIG.SHINY_CHANCE;
     }
@@ -1880,17 +2422,36 @@
       };
     }
 
-    /** Inject 1–2 random hero eggs into a shuffled deck cycle */
-    function injectHeroEggsIntoDeck(deck) {
-      const heroes = shuffleArray(HERO_EASTER_EGGS.map(buildHeroEntry));
-      const count = Math.min(2, heroes.length, deck.length);
+    /** Inject hero eggs + legendary surprises into a shuffled deck cycle */
+    function injectDeckSurprises(deck, legendaryIds = []) {
       const usedSlots = new Set();
-      for (let i = 0; i < count; i++) {
-        let slot;
-        do { slot = Math.floor(Math.random() * deck.length); } while (usedSlots.has(slot));
+      const place = (entry) => {
+        if (!deck.length) return false;
+        let slot = 0;
+        let guard = 0;
+        do {
+          slot = Math.floor(Math.random() * deck.length);
+        } while (usedSlots.has(slot) && ++guard < deck.length * 3);
+        if (usedSlots.has(slot)) return false;
         usedSlots.add(slot);
-        deck[slot] = { kind: 'hero', pokemon: heroes[i] };
-      }
+        deck[slot] = entry;
+        return true;
+      };
+
+      const heroes = shuffleArray(HERO_EASTER_EGGS.map(buildHeroEntry));
+      const heroCount = Math.min(2, heroes.length, deck.length);
+      for (let i = 0; i < heroCount; i++) place({ kind: 'hero', pokemon: heroes[i] });
+
+      const legends = shuffleArray(legendaryIds.filter(id => LEGENDARY_BY_ID[id]));
+      const [legMin, legMax] = CONFIG.LEGENDARY_PER_CYCLE;
+      const legTarget = Math.min(
+        legMax,
+        Math.max(legMin, Math.ceil(deck.length / 35)),
+        legends.length,
+        Math.max(0, deck.length - usedSlots.size),
+      );
+      for (let i = 0; i < legTarget; i++) place({ kind: 'legendary', id: legends[i] });
+
       return deck;
     }
 
@@ -1898,6 +2459,7 @@
     const RoundDeck = {
       typeId: null,
       poolIds: [],
+      legendaryPool: [],
       deck: [],
       history: [],
       cyclesCompleted: 0,
@@ -1909,13 +2471,15 @@
         $('loadingStatus').textContent = 'Shuffling the Pokédex…';
         this.poolIds = await this.fetchPoolIds(typeId);
         if (!this.poolIds.length) throw new Error('No Pokémon found for this type!');
+        this.legendaryPool = legendaryPoolForType(typeId);
         this.deck = this.newShuffledCycle();
-        console.info(`[RoundDeck] ${this.poolIds.length} Pokémon · ${typeId}`);
+        console.info(`[RoundDeck] ${this.poolIds.length} Pokémon · ${this.legendaryPool.length} legendaries · ${typeId}`);
       },
 
       reset() {
         this.typeId = null;
         this.poolIds = [];
+        this.legendaryPool = [];
         this.deck = [];
         this.history = [];
         this.cyclesCompleted = 0;
@@ -1940,20 +2504,60 @@
       newShuffledCycle() {
         if (this.cyclesCompleted > 0) console.info(`[RoundDeck] Cycle ${this.cyclesCompleted + 1} — reshuffling ${this.poolIds.length} Pokémon`);
         this.cyclesCompleted++;
-        return injectHeroEggsIntoDeck(shuffleArray(this.poolIds.map(id => ({ kind: 'api', id }))));
+        return injectDeckSurprises(
+          shuffleArray(this.poolIds.map(id => ({ kind: 'api', id }))),
+          this.legendaryPool,
+        );
+      },
+
+      pickLegendarySurprise() {
+        const recent = new Set(this.history.slice(-12).map(p => p.id));
+        const pool = shuffleArray(this.legendaryPool.filter(id => !recent.has(id)));
+        return pool[0] ?? this.legendaryPool[Math.floor(Math.random() * this.legendaryPool.length)];
+      },
+
+      async tryLegendarySurprise() {
+        if (!this.legendaryPool.length || Math.random() >= CONFIG.LEGENDARY_SURPRISE_CHANCE) return null;
+        const id = this.pickLegendarySurprise();
+        if (!id) return null;
+        try {
+          const pokemon = markLegendaryPokemon(await fetchPokemonDetails(id), { force: true });
+          if (!pokemon) return null;
+          console.info(`[RoundDeck] ✨ Legendary surprise — ${pokemon.name} (#${pokemon.id})`);
+          return pokemon;
+        } catch {
+          return null;
+        }
+      },
+
+      pushHistory(pokemon) {
+        this.history.push(pokemon);
+        if (this.history.length > 48) this.history.shift();
       },
 
       async drawNext() {
+        const surprise = await this.tryLegendarySurprise();
+        if (surprise) {
+          this.pushHistory(surprise);
+          return surprise;
+        }
+
         if (!this.deck.length) this.deck = this.newShuffledCycle();
         const entry = this.deck.shift();
         let pokemon;
         if (entry.kind === 'hero') pokemon = entry.pokemon;
         else {
-          try { pokemon = await fetchPokemonDetails(entry.id); } catch { /* skip */ }
+          try {
+            pokemon = await fetchPokemonDetails(entry.id);
+            if (entry.kind === 'legendary') markLegendaryPokemon(pokemon, { force: true });
+            else markLegendaryPokemon(pokemon);
+          } catch { /* skip */ }
         }
         if (!pokemon) return this.drawNext();
-        this.history.push(pokemon);
-        if (this.history.length > 48) this.history.shift();
+        if (pokemon.isLegendary) {
+          console.info(`[RoundDeck] 👑 Legendary round — ${pokemon.name} (#${pokemon.id})`);
+        }
+        this.pushHistory(pokemon);
         return pokemon;
       },
 
@@ -1986,6 +2590,96 @@
 
     const VOTE_COLORS = ['from-red-500 to-orange-500', 'from-blue-500 to-cyan-500', 'from-green-500 to-emerald-500', 'from-purple-500 to-fuchsia-500'];
     const CONFETTI_COLORS = ['#ffcb05', '#cc0000', '#2a75bb', '#4ade80', '#f472b6', '#fb923c', '#a78bfa'];
+
+    const TYPE_BY_ID = Object.fromEntries(TYPE_OPTIONS.filter(t => t.id !== 'all').map(t => [t.id, t]));
+
+    const ArenaUX = {
+      typeMeta(typeId) { return TYPE_BY_ID[typeId] || TYPE_BY_ID.normal; },
+
+      typePills(types = [], compact = false) {
+        return (types || []).map(t => {
+          const m = this.typeMeta(t);
+          return `<span class="arena-type-pill${compact ? ' arena-type-pill--sm' : ''}" title="${escapeHtml(m.label)}">${m.emoji}</span>`;
+        }).join('');
+      },
+
+      pokemonFallbacks(id) {
+        return [
+          Pokedex.fallbackSpriteUrl(id),
+          `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${id}.png`,
+        ];
+      },
+
+      bindSprites(root) {
+        root?.querySelectorAll('img.img-pending[data-pid]').forEach(img => {
+          bindSafeImageLoad(img, this.pokemonFallbacks(+img.dataset.pid));
+        });
+      },
+
+      hpFillClass(pct) {
+        if (pct <= 25) return 'critical';
+        if (pct <= 50) return 'low';
+        return '';
+      },
+
+      draftCardHtml(p, { picked = false, disabled = false } = {}) {
+        return `<button type="button" class="draft-pokemon-card pointer-events-auto${picked ? ' locked' : ''}"
+          data-id="${p.id}" ${disabled ? 'disabled' : ''} aria-pressed="${picked}">
+          <img class="img-pending" data-pid="${p.id}" src="${escapeHtml(p.artwork)}" alt="${escapeHtml(p.name)}" draggable="false" />
+          <div class="arena-type-pills">${this.typePills(p.types)}</div>
+          <p class="draft-name">${escapeHtml(p.name)}</p>
+        </button>`;
+      },
+
+      targetCardHtml(t, { selected = false } = {}) {
+        const pct = Math.max(0, (t.hp / t.maxHp) * 100);
+        return `<button type="button" class="arena-target-card pointer-events-auto${selected ? ' selected' : ''}"
+          data-target="${escapeHtml(t.voterId)}" aria-label="Attack ${escapeHtml(t.playerName)}">
+          <img class="img-pending" data-pid="${t.pokemon.id}" src="${escapeHtml(t.pokemon.artwork)}" alt="" draggable="false" />
+          <span class="target-trainer">${escapeHtml(t.playerName)}</span>
+          <div class="target-hp"><div class="target-hp-fill" style="width:${pct}%"></div></div>
+        </button>`;
+      },
+
+      moveChipHtml(moveName, idx, pokemonTypes = [], { selected = false, disabled = false } = {}) {
+        const atkType = getMoveType(moveName, pokemonTypes[0] || 'normal');
+        const m = this.typeMeta(atkType);
+        return `<button type="button" class="arena-move-chip pointer-events-auto${selected ? ' selected' : ''}"
+          data-idx="${idx}" ${disabled ? 'disabled' : ''} title="${escapeHtml(moveName)}">
+          <span class="arena-move-emoji">${m.emoji}</span>
+          <span class="arena-move-name">${escapeHtml(moveName)}</span>
+        </button>`;
+      },
+
+      moveIconsHtml(moves = [], pokemonTypes = []) {
+        return (moves || []).map(m => {
+          const atkType = getMoveType(m, pokemonTypes[0] || 'normal');
+          const em = this.typeMeta(atkType).emoji;
+          return `<span class="arena-move-icon" title="${escapeHtml(m)}">${em}</span>`;
+        }).join('');
+      },
+
+      renderScoreStrip(elId = 'arenaScoreStrip', combatantIds = null) {
+        const el = $(elId);
+        if (!el) return;
+        const top = Leaderboard.sorted().slice(0, 6);
+        if (!top.length) { el.innerHTML = ''; return; }
+        const fightSet = combatantIds ? new Set(combatantIds) : null;
+        el.innerHTML = top.map((e, i) => {
+          const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '·';
+          const inFight = fightSet?.has(e.voterId) ? ' in-fight' : '';
+          return `<span class="arena-score-pill${inFight}"><span class="score-medal">${medal}</span>
+            <span>${escapeHtml(e.playerName)}</span><span class="score-num">${e.score}</span></span>`;
+        }).join('');
+      },
+
+      voteChipHtml(atk, tgt, moveName) {
+        const moveEm = this.typeMeta(getMoveType(moveName, atk?.pokemon?.types?.[0] || 'normal')).emoji;
+        const aImg = atk?.pokemon ? `<img class="img-pending" data-pid="${atk.pokemon.id}" src="${escapeHtml(atk.pokemon.artwork)}" alt="" />` : '⚔️';
+        const tImg = tgt?.pokemon ? `<img class="img-pending" data-pid="${tgt.pokemon.id}" src="${escapeHtml(tgt.pokemon.artwork)}" alt="" />` : '?';
+        return `<div class="arena-vote-chip">${aImg}<span>${moveEm}</span>→${tImg}</div>`;
+      },
+    };
 
     // ── Role routing (strip legacy LAN/dev query params) ─────────────
     const params = new URLSearchParams(window.location.search);
@@ -2113,7 +2807,7 @@
       });
     }
     const hostScreens = { start: $('startScreen'), loading: $('loadingScreen'), game: $('gameScreen'), end: $('endScreen') };
-    const playerScreens = { connect: $('playerConnect'), wait: $('playerWait'), vote: $('playerVote'), locked: $('playerLocked'), arenaLobby: $('playerArenaLobby'), draft: $('playerDraft'), battle: $('playerBattle'), error: $('playerError') };
+    const playerScreens = { connect: $('playerConnect'), wait: $('playerWait'), vote: $('playerVote'), locked: $('playerLocked'), arenaLobby: $('playerArenaLobby'), draft: $('playerDraft'), battle: $('playerBattle'), arenaResults: $('playerArenaResults'), spectator: $('playerSpectator'), error: $('playerError') };
 
     // ═══════════════════════════════════════════════════════════════
     // PERMANENT DUAL-CHANNEL AUDIO — instantiated once, never recreated
@@ -2124,15 +2818,18 @@
     bgmPlayer.loop = true;
     bgmPlayer.preload = 'auto';
     sfxPlayer.preload = 'auto';
+    bgmPlayer.crossOrigin = 'anonymous';
+    sfxPlayer.crossOrigin = 'anonymous';
     bgmPlayer.setAttribute('playsinline', '');
     sfxPlayer.setAttribute('playsinline', '');
-    bgmPlayer.src = 'https://archive.org/download/tvtunes_11549/Pokemon.mp3';
+    bgmPlayer.src = 'https://ia800507.us.archive.org/15/items/tvtunes_11549/Pokemon.mp3';
     sfxPlayer.src = 'https://www.soundboard.com/media/s2/2012/10/75565551-7132-416b-a8be-ccbb9fb197ff.mp3';
 
     let state = {
       selectedType: null, currentPokemon: null, currentRound: -1, isRevealed: false,
       choices: [], voteRecords: [],
       arena: null,
+      randomDuel: null,
     };
     let sync = null;
     let voterId = localStorage.getItem('pokeVoterId') || crypto.randomUUID();
@@ -2327,6 +3024,13 @@
         if (!voterId) return;
         this.lastScorers.add(voterId);
         this.adjustScore(voterId, CONFIG.ARENA_TIE_POINTS);
+      },
+
+      /** Random mid-game 1v1 duel winner — +5 */
+      addRandomDuelWin(voterId, playerName) {
+        if (!voterId) return;
+        this.lastScorers.add(voterId);
+        this.adjustScore(voterId, CONFIG.DUEL_WIN_POINTS);
       },
 
       sorted() {
@@ -2532,11 +3236,13 @@
           })
           .on('broadcast', { event: 'battle_vote' }, ({ payload }) => {
             if (!this.isHost) return;
-            ArenaRoyale.onVote(payload);
+            if (RandomDuel.active) RandomDuel.onBattleVote(payload);
+            else ArenaRoyale.onVote(payload);
           })
           .on('broadcast', { event: 'draft_pick' }, ({ payload }) => {
             if (!this.isHost) return;
-            ArenaRoyale.onDraftPick(payload);
+            if (RandomDuel.active) RandomDuel.onDraftPick(payload);
+            else ArenaRoyale.onDraftPick(payload);
           })
           .on('broadcast', { event: 'arena_enter' }, ({ payload }) => {
             if (!this.isHost) return;
@@ -2829,6 +3535,180 @@
       synthNodes: null,
       _inited: false,
       overlayBound: false,
+      controlsBound: false,
+      routingReady: false,
+      routingFailed: false,
+      masterGain: null,
+      bgmGain: null,
+      sfxGain: null,
+      bgmSource: null,
+      sfxSource: null,
+      baseBgmTarget: CONFIG.VOL.LOBBY,
+      userVolume: 1,
+      muted: false,
+      AUDIO_PREFS_KEY: 'pokeAudioPrefs',
+
+      effectiveMul() { return this.muted ? 0 : this.userVolume; },
+
+      loadPrefs() {
+        try {
+          const raw = localStorage.getItem(this.AUDIO_PREFS_KEY);
+          if (!raw) return;
+          const p = JSON.parse(raw);
+          if (typeof p.userVolume === 'number') this.userVolume = Math.max(0, Math.min(1, p.userVolume));
+          if (typeof p.muted === 'boolean') this.muted = p.muted;
+        } catch {}
+      },
+
+      savePrefs() {
+        try {
+          localStorage.setItem(this.AUDIO_PREFS_KEY, JSON.stringify({
+            userVolume: this.userVolume,
+            muted: this.muted,
+          }));
+        } catch {}
+      },
+
+      applyBgmOutput() {
+        this.initRouting();
+        const duck = this.baseBgmTarget;
+        if (this.synthBgmActive && this.synthGain) {
+          this.synthGain.gain.value = duck;
+        } else if (this.bgmGain) {
+          this.bgmGain.gain.value = duck;
+        } else {
+          bgmPlayer.volume = duck * this.effectiveMul();
+        }
+      },
+
+      applyMasterOutput() {
+        this.initRouting();
+        const m = this.effectiveMul();
+        if (this.masterGain) {
+          this.masterGain.gain.value = m;
+          return;
+        }
+        if (this.synthBgmActive && this.synthGain) {
+          this.synthGain.gain.value = this.baseBgmTarget * m;
+        } else {
+          bgmPlayer.volume = this.baseBgmTarget * m;
+        }
+      },
+
+      initRouting() {
+        if (this.routingReady || this.routingFailed) return;
+        const ctx = this.ensureAudioCtx();
+        if (!ctx) return;
+        try {
+          this.masterGain = ctx.createGain();
+          this.bgmGain = ctx.createGain();
+          this.sfxGain = ctx.createGain();
+          this.masterGain.gain.value = this.effectiveMul();
+          this.bgmGain.gain.value = this.baseBgmTarget;
+          this.sfxGain.gain.value = 1;
+          this.masterGain.connect(ctx.destination);
+          this.bgmGain.connect(this.masterGain);
+          this.sfxGain.connect(this.masterGain);
+          if (!this.bgmSource) {
+            this.bgmSource = ctx.createMediaElementSource(bgmPlayer);
+            this.bgmSource.connect(this.bgmGain);
+          }
+          if (!this.sfxSource) {
+            this.sfxSource = ctx.createMediaElementSource(sfxPlayer);
+            this.sfxSource.connect(this.sfxGain);
+          }
+          bgmPlayer.volume = 1;
+          sfxPlayer.volume = 1;
+          this.routingReady = true;
+        } catch (err) {
+          this.routingFailed = true;
+          console.warn('[Audio] Web Audio routing unavailable — using element volume', err);
+        }
+      },
+
+      audioOut() {
+        this.initRouting();
+        return this.masterGain || this.audioCtx?.destination || null;
+      },
+
+      getBgmTarget() { return this.baseBgmTarget; },
+
+      getBgmVolume() {
+        const duck = this.baseBgmTarget;
+        return Math.max(0, Math.min(1, duck * this.effectiveMul()));
+      },
+
+      setBgmVolume(vol) {
+        this.baseBgmTarget = vol;
+        this.applyBgmOutput();
+      },
+
+      sfxMul() { return this.muted ? 0 : this.userVolume; },
+
+      setUserVolume(vol) {
+        this.userVolume = Math.max(0, Math.min(1, vol));
+        if (this.userVolume > 0) this.muted = false;
+        else this.muted = true;
+        this.applyMasterOutput();
+        this.savePrefs();
+        this.updateAudioControlsUI();
+      },
+
+      adjustUserVolume(delta) {
+        this.unlock();
+        this.setUserVolume(this.userVolume + delta);
+        if (this.userVolume > 0 && !this.muted) this.playClick();
+      },
+
+      toggleMute() {
+        this.unlock();
+        this.muted = !this.muted;
+        if (!this.muted && this.userVolume <= 0) this.userVolume = 0.5;
+        this.applyMasterOutput();
+        this.savePrefs();
+        this.updateAudioControlsUI();
+        if (!this.muted) this.playClick();
+      },
+
+      updateAudioControlsUI() {
+        const label = $('audioVolLabel');
+        const muteBtn = $('audioMuteBtn');
+        const downBtn = $('audioVolDown');
+        const upBtn = $('audioVolUp');
+        const pct = Math.round(this.userVolume * 100);
+        if (label) label.textContent = this.muted ? 'Mute' : `${pct}%`;
+        if (muteBtn) {
+          muteBtn.textContent = this.muted || this.userVolume <= 0 ? '🔇' : '🔊';
+          muteBtn.setAttribute('aria-label', this.muted ? 'Unmute sound' : 'Mute sound');
+          muteBtn.setAttribute('aria-pressed', String(this.muted));
+        }
+        if (downBtn) downBtn.disabled = !this.muted && this.userVolume <= 0;
+        if (upBtn) upBtn.disabled = !this.muted && this.userVolume >= 1;
+      },
+
+      setupAudioControls() {
+        if (this.controlsBound) return;
+        this.controlsBound = true;
+        this.loadPrefs();
+        this.applyMasterOutput();
+        this.applyBgmOutput();
+        this.updateAudioControlsUI();
+        let volTapLock = false;
+        const volTap = (fn) => (e) => {
+          if (volTapLock) return;
+          volTapLock = true;
+          setTimeout(() => { volTapLock = false; }, 280);
+          if (e.type === 'touchend') e.preventDefault();
+          this.unlock();
+          fn();
+        };
+        $('audioVolDown')?.addEventListener('click', volTap(() => this.adjustUserVolume(-0.1)));
+        $('audioVolUp')?.addEventListener('click', volTap(() => this.adjustUserVolume(0.1)));
+        $('audioMuteBtn')?.addEventListener('click', volTap(() => this.toggleMute()));
+        $('audioVolDown')?.addEventListener('touchend', volTap(() => this.adjustUserVolume(-0.1)), { passive: false });
+        $('audioVolUp')?.addEventListener('touchend', volTap(() => this.adjustUserVolume(0.1)), { passive: false });
+        $('audioMuteBtn')?.addEventListener('touchend', volTap(() => this.toggleMute()), { passive: false });
+      },
 
       themeUrls() {
         return CONFIG.THEME_URLS?.length ? CONFIG.THEME_URLS : [CONFIG.THEME_URL];
@@ -2877,16 +3757,6 @@
         }
       },
 
-      getBgmVolume() {
-        if (this.synthBgmActive && this.synthGain) return this.synthGain.gain.value;
-        return bgmPlayer.volume;
-      },
-
-      setBgmVolume(vol) {
-        if (this.synthBgmActive && this.synthGain) this.synthGain.gain.value = vol;
-        else bgmPlayer.volume = vol;
-      },
-
       bindThemeEnded() {
         if (this.themeEndedHandler) bgmPlayer.removeEventListener('ended', this.themeEndedHandler);
         this.themeEndedHandler = () => this.onThemeEnded();
@@ -2900,6 +3770,7 @@
         this.themeErrorHandler = () => this.onThemeLoadError();
         bgmPlayer.addEventListener('error', this.themeErrorHandler);
         this.bindThemeEnded();
+        bgmPlayer.crossOrigin = 'anonymous';
         bgmPlayer.src = url;
         bgmPlayer.loop = true;
         bgmPlayer.load();
@@ -2909,7 +3780,7 @@
 
       onThemeEnded() {
         if (this.synthBgmActive || !this.bgmStarted || !this.useShufflePlaylist()) return;
-        const vol = this.getBgmVolume();
+        const vol = this.getBgmTarget();
         this.advanceShuffleTrack(false);
         this.assignThemeSrc();
         this.setBgmVolume(vol);
@@ -2920,13 +3791,10 @@
       shuffleTheme() {
         if (!this.useShufflePlaylist()) return;
         this.unlock();
-        const vol = this.getBgmVolume();
+        const vol = this.getBgmTarget();
         this.advanceShuffleTrack(true);
         if (this.synthBgmActive) {
-          this.synthNodes?.forEach(n => { try { n.o.stop(); } catch {} });
-          this.synthNodes = null;
-          this.synthBgmActive = false;
-          this.synthGain = null;
+          this.stopThemeSynth();
         }
         this.assignThemeSrc();
         this.setBgmVolume(vol);
@@ -2948,8 +3816,20 @@
           if (this.bgmStarted) bgmPlayer.play().catch(() => this.startThemeSynth());
           return;
         }
+        if (!this.unlocked && !this.bgmStarted) {
+          console.warn('[Audio] Theme preload failed — will retry when you tap to start');
+          return;
+        }
         console.warn('[Audio] All theme URLs failed — starting synth BGM');
         this.startThemeSynth();
+      },
+
+      stopThemeSynth() {
+        if (!this.synthBgmActive) return;
+        this.synthNodes?.forEach(n => { try { n.o.stop(); } catch {} });
+        this.synthNodes = null;
+        this.synthGain = null;
+        this.synthBgmActive = false;
       },
 
       /** Gentle orchestral pad when CDN tracks are unreachable */
@@ -2957,11 +3837,13 @@
         if (this.synthBgmActive) return;
         const ctx = this.ensureAudioCtx();
         if (!ctx) return;
+        this.initRouting();
         this.synthBgmActive = true;
         bgmPlayer.pause();
         this.synthGain = ctx.createGain();
-        this.synthGain.gain.value = CONFIG.VOL.LOBBY;
-        this.synthGain.connect(ctx.destination);
+        const bus = this.bgmGain || this.masterGain || ctx.destination;
+        this.synthGain.connect(bus);
+        this.setBgmVolume(CONFIG.VOL.LOBBY);
         const freqs = [220, 277.18, 329.63, 392, 493.88];
         this.synthNodes = freqs.map((f, i) => {
           const o = ctx.createOscillator();
@@ -2985,13 +3867,18 @@
           const finish = ok => {
             if (settled) return;
             settled = true;
+            probe.removeEventListener('canplay', onReady);
+            probe.removeEventListener('error', onErr);
             probe.src = '';
             resolve(ok);
           };
-          probe.addEventListener('canplaythrough', () => finish(true), { once: true });
-          probe.addEventListener('error', () => finish(false), { once: true });
-          setTimeout(() => finish(false), 5000);
+          const onReady = () => finish(true);
+          const onErr = () => finish(false);
+          probe.addEventListener('canplay', onReady, { once: true });
+          probe.addEventListener('error', onErr, { once: true });
+          setTimeout(() => finish(false), 10000);
           probe.preload = 'auto';
+          probe.crossOrigin = 'anonymous';
           probe.src = url;
           probe.load();
         });
@@ -3004,7 +3891,10 @@
         );
         this.workingIndices = results.filter(r => r.ok).map(r => r.i);
         results.filter(r => !r.ok).forEach(r => console.warn('[Audio] Theme unreachable:', r.url));
-        if (!this.workingIndices.length) return;
+        if (!this.workingIndices.length) {
+          this.workingIndices = urls.map((_, i) => i);
+          console.warn('[Audio] Theme probe timed out — will try playback on tap');
+        }
         this.reshuffleQueue();
         this.themeUrlIndex = this.shuffleQueue[0];
         console.info('[Audio] Shuffle playlist ready:', this.workingIndices.length, 'tracks');
@@ -3036,6 +3926,7 @@
 
       unlock() {
         this.ensureAudioCtx();
+        this.initRouting();
         this.unlocked = true;
       },
 
@@ -3055,7 +3946,7 @@
       fadeBgm(to, ms = CONFIG.FADE_MS) {
         this.ensureBgm();
         const gen = ++this.fadeGen;
-        const from = this.getBgmVolume();
+        const from = this.getBgmTarget();
         const steps = Math.max(8, Math.round(ms / 30));
         const stepMs = ms / steps;
         return new Promise(resolve => {
@@ -3076,8 +3967,10 @@
       playSfx(url, vol = 1, maxMs = 12000) {
         return new Promise(resolve => {
           if (!url) { resolve(false); return; }
+          this.initRouting();
           sfxPlayer.loop = false;
-          sfxPlayer.volume = vol;
+          if (this.sfxGain) this.sfxGain.gain.value = vol;
+          else sfxPlayer.volume = vol * this.effectiveMul();
           let settled = false;
           const done = (ok) => {
             if (settled) return;
@@ -3105,7 +3998,8 @@
       /** Whimsical pentatonic chime — "Who's That Pokémon!" substitute */
       playVocalSynth() {
         const ctx = this.ensureAudioCtx();
-        if (!ctx) return;
+        const out = this.audioOut();
+        if (!ctx || !out) return;
         [392, 494, 587, 740, 880].forEach((f, i) => {
           const t0 = ctx.currentTime + i * 0.11;
           const o = ctx.createOscillator();
@@ -3116,7 +4010,7 @@
           o.type = 'sine';
           o.frequency.value = f;
           o.connect(g);
-          g.connect(ctx.destination);
+          g.connect(out);
           o.start(t0);
           o.stop(t0 + 0.45);
         });
@@ -3125,7 +4019,8 @@
       /** Soft creature chirp when PokéAPI cry fails */
       playCrySynth() {
         const ctx = this.ensureAudioCtx();
-        if (!ctx) return;
+        const out = this.audioOut();
+        if (!ctx || !out) return;
         const t0 = ctx.currentTime;
         const o = ctx.createOscillator();
         const g = ctx.createGain();
@@ -3137,7 +4032,7 @@
         g.gain.linearRampToValueAtTime(0.2, t0 + 0.05);
         g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.55);
         o.connect(g);
-        g.connect(ctx.destination);
+        g.connect(out);
         o.start(t0);
         o.stop(t0 + 0.58);
       },
@@ -3145,7 +4040,8 @@
       /** Magical fairy-dust sparkle when reveal chime fails */
       playSparkleSynth() {
         const ctx = this.ensureAudioCtx();
-        if (!ctx) return;
+        const out = this.audioOut();
+        if (!ctx || !out) return;
         [1047, 1319, 1568, 2093, 2637].forEach((f, i) => {
           const t0 = ctx.currentTime + i * 0.06;
           const o = ctx.createOscillator();
@@ -3156,7 +4052,7 @@
           o.type = 'sine';
           o.frequency.value = f;
           o.connect(g);
-          g.connect(ctx.destination);
+          g.connect(out);
           o.start(t0);
           o.stop(t0 + 0.3);
         });
@@ -3185,12 +4081,10 @@
       },
 
       async startTheme() {
+        this.unlock();
         this.setBgmVolume(CONFIG.VOL.LOBBY);
-        if (this.synthBgmActive) {
-          this.bgmStarted = true;
-          this.startBgmGuard();
-          return;
-        }
+        if (this.synthBgmActive) this.stopThemeSynth();
+        if (!bgmPlayer.src || bgmPlayer.error) this.assignThemeSrc();
         bgmPlayer.loop = true;
         try {
           await bgmPlayer.play();
@@ -3210,13 +4104,14 @@
       },
 
       /** REVEAL — duck 5% → cry → ramp theme to 70% */
-      async onReveal(pokemon) {
+      async onReveal(pokemon, opts = {}) {
         this.ensureBgm();
         this.setBgmVolume(CONFIG.VOL.REVEAL);
 
+        const cryMaxMs = opts.cryMaxMs ?? 8000;
         const cryUrl = pokemon.cryUrl
           || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/cries/${pokemon.id}.ogg`;
-        await this.playSfxWithFallback(cryUrl, 0.95, 8000, () => this.playCrySynth());
+        await this.playSfxWithFallback(cryUrl, 0.95, cryMaxMs, () => this.playCrySynth());
 
         this.ensureBgm();
         await this.fadeBgm(CONFIG.VOL.CELEBRATE, 400);
@@ -3235,15 +4130,17 @@
       },
 
       playClick() {
+        if (this.effectiveMul() <= 0) return;
         this.unlock();
         const ctx = this.audioCtx;
-        if (!ctx) return;
+        const out = this.audioOut();
+        if (!ctx || !out) return;
         const o = ctx.createOscillator();
         const g = ctx.createGain();
         g.gain.value = 0.06;
         o.type = 'sine';
         o.connect(g);
-        g.connect(ctx.destination);
+        g.connect(out);
         o.frequency.value = 880;
         o.start();
         o.stop(ctx.currentTime + 0.05);
@@ -3252,7 +4149,8 @@
       /** Heavy arcade impact — layered via Web Audio while cry plays on sfxPlayer */
       playAttackBlastSynth() {
         const ctx = this.ensureAudioCtx();
-        if (!ctx) return;
+        const out = this.audioOut();
+        if (!ctx || !out) return;
         const t0 = ctx.currentTime;
         const noise = ctx.createBufferSource();
         const buf = ctx.createBuffer(1, ctx.sampleRate * 0.35, ctx.sampleRate);
@@ -3268,7 +4166,7 @@
         bp.frequency.value = 420;
         noise.connect(bp);
         bp.connect(ng);
-        ng.connect(ctx.destination);
+        ng.connect(out);
         noise.start(t0);
         noise.stop(t0 + 0.35);
         const o = ctx.createOscillator();
@@ -3280,7 +4178,7 @@
         g.gain.linearRampToValueAtTime(0.28, t0 + 0.015);
         g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3);
         o.connect(g);
-        g.connect(ctx.destination);
+        g.connect(out);
         o.start(t0);
         o.stop(t0 + 0.32);
       },
@@ -4490,11 +5388,24 @@
 
       resize() {
         if (!this.canvas) return;
-        const wrap = $('battleArenaWrap');
+        const wrap = this._wrapEl || $('battleArenaWrap');
         const w = wrap?.clientWidth || innerWidth;
         const h = wrap?.clientHeight || innerHeight * 0.38;
         this.canvas.width = w;
         this.canvas.height = h;
+      },
+
+      /** Point VFX canvas at random-duel or arena wrap */
+      useCanvas(canvasEl, wrapEl) {
+        if (!canvasEl) return;
+        this.canvas = canvasEl;
+        this.ctx = canvasEl.getContext('2d');
+        this._wrapEl = wrapEl;
+        this.resize();
+      },
+
+      resetArenaCanvas() {
+        this.useCanvas($('battleVfxCanvas'), $('battleArenaWrap'));
       },
 
       playMove(side, primaryType = 'normal', moveName = '') {
@@ -4639,7 +5550,8 @@
       },
 
       showCritical() {
-        const el = $('arenaCriticalSplash');
+        const isRandom = !$('randomDuelOverlay')?.classList.contains('hidden-overlay');
+        const el = $(isRandom ? 'randomDuelCriticalSplash' : 'arenaCriticalSplash');
         if (!el) return;
         el.classList.remove('active');
         void el.offsetWidth;
@@ -4648,7 +5560,9 @@
       },
 
       playDuelBetween(attackerType, moveName, fromCard, toCard) {
-        const wrap = $('battleArenaWrap');
+        const wrap = fromCard?.closest('[id$="ArenaWrap"]') || $('battleArenaWrap');
+        const isRandom = wrap?.id === 'randomDuelArenaWrap';
+        const overlay = $(isRandom ? 'randomDuelOverlay' : 'arcadeBattleOverlay');
         if (!wrap || !fromCard || !toCard) {
           this.playMove('player', attackerType, moveName);
           return;
@@ -4660,11 +5574,10 @@
         const cy = ((fr.top + fr.height / 2) + (tr.top + tr.height / 2)) / 2 - wr.top;
         const side = fr.left < tr.left ? 'player' : 'boss';
         const colors = TYPE_BURST_COLORS[attackerType] || TYPE_BURST_COLORS.normal;
-        const overlay = $('arcadeBattleOverlay');
         overlay?.classList.remove('battle-shake');
         void overlay?.offsetWidth;
         overlay?.classList.add('battle-shake');
-        const flash = $('battleMoveFlash');
+        const flash = $(isRandom ? 'randomDuelMoveFlash' : 'battleMoveFlash');
         if (flash) {
           flash.style.setProperty('--fx-x', `${(cx / wr.width) * 100}%`);
           flash.style.setProperty('--fx-y', `${(cy / wr.height) * 100}%`);
@@ -4672,7 +5585,7 @@
           void flash.offsetWidth;
           flash.classList.add('active');
         }
-        const burst = $('battleImpactBurst');
+        const burst = $(isRandom ? 'randomDuelImpactBurst' : 'battleImpactBurst');
         if (burst) {
           burst.style.left = `${(cx / wr.width) * 100}%`;
           burst.style.top = `${(cy / wr.height) * 100}%`;
@@ -4682,10 +5595,19 @@
           setTimeout(() => burst.classList.remove('active'), 520);
         }
         if (attackerType === 'electric') {
-          const lv = $('battleLightning');
+          const lv = $(isRandom ? 'randomDuelLightning' : 'battleLightning');
           lv?.classList.remove('flash');
           void lv?.offsetWidth;
           lv?.classList.add('flash');
+        }
+        if (attackerType === 'fire' || attackerType === 'grass') {
+          const critEl = $(isRandom ? 'randomDuelCriticalSplash' : 'arenaCriticalSplash');
+          if (Math.random() < 0.25) {
+            critEl?.classList.remove('active');
+            void critEl?.offsetWidth;
+            critEl?.classList.add('active');
+            setTimeout(() => critEl?.classList.remove('active'), 700);
+          }
         }
         for (let i = 0; i < 36; i++) {
           const ang = Math.random() * Math.PI * 2;
@@ -4701,6 +5623,501 @@
             glow: side === 'boss',
           });
         }
+      },
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // RANDOM DUEL — 30% mid-game 1v1 interrupt on NEXT (≥2 leaderboard players)
+    // Auto-picks duelists · 10s phone draft · turn combat · +5 pts · resume quiz
+    // ═══════════════════════════════════════════════════════════════
+    const RandomDuel = {
+      active: false,
+      phase: 'idle',
+      duelistIds: [],
+      trainerA: null,
+      trainerB: null,
+      combatants: {},
+      draftOptions: {},
+      voteRecords: [],
+      turn: 0,
+      timer: null,
+      draftEndsAt: 0,
+      timerVal: 0,
+      resolving: false,
+      votingLocked: false,
+      victoryTimer: null,
+
+      /** Master leaderboard count — mobile + manual entries */
+      activePlayerCount() {
+        return Leaderboard.entries.size;
+      },
+
+      /** Gate: ≥2 players + 30% roll + no other battle overlay active */
+      shouldTriggerOnNext() {
+        if (this.active || ArenaRoyale.active || ArenaRoyale.lobbyOpen) return false;
+        if (this.activePlayerCount() < 2) return false;
+        return Math.random() < CONFIG.DUEL_TRIGGER_CHANCE;
+      },
+
+      pickDuelists() {
+        const pool = shuffleArray([...Leaderboard.entries.values()]);
+        return pool.slice(0, 2).map(e => ({ voterId: e.voterId, playerName: e.playerName }));
+      },
+
+      syncState() {
+        state.randomDuel = {
+          active: this.active,
+          phase: this.phase,
+          duelistIds: [...this.duelistIds],
+          trainerA: this.trainerA ? { ...this.trainerA } : null,
+          trainerB: this.trainerB ? { ...this.trainerB } : null,
+          draftOptions: this.serializeDraftOptions(),
+          combatants: this.serializeCombatants(),
+          turn: this.turn,
+          timer: this.timerVal,
+          draftEndsAt: this.draftEndsAt,
+          isVotingLocked: this.votingLocked,
+          duelLog: state.randomDuel?.duelLog || null,
+          crowdMessage: state.randomDuel?.crowdMessage || null,
+          winner: state.randomDuel?.winner || null,
+          spectatorMsg: this.spectatorMessage(),
+        };
+      },
+
+      spectatorMessage() {
+        if (!this.trainerA || !this.trainerB) return null;
+        return `${this.trainerA.playerName} and ${this.trainerB.playerName} are dueling! Watch the main screen!`;
+      },
+
+      serializeDraftOptions() {
+        const out = {};
+        for (const [vid, opts] of Object.entries(this.draftOptions)) {
+          out[vid] = opts.map(p => ({ id: p.id, name: p.name, types: p.types, artwork: p.artwork }));
+        }
+        return out;
+      },
+
+      serializeCombatants() {
+        const out = {};
+        for (const [vid, c] of Object.entries(this.combatants)) {
+          if (!c?.pokemon && this.phase === 'draft') continue;
+          out[vid] = {
+            voterId: vid,
+            playerName: c.playerName,
+            pokemon: c.pokemon ? { id: c.pokemon.id, name: c.pokemon.name, types: c.pokemon.types, artwork: c.pokemon.artwork } : null,
+            moves: [...(c.moves || [])],
+            hp: c.hp,
+            maxHp: c.maxHp,
+            eliminated: !!c.eliminated,
+            locked: !!c.locked,
+          };
+        }
+        return out;
+      },
+
+      getCombatant(vid) { return this.combatants[vid] || null; },
+
+      opponentId(vid) {
+        return this.duelistIds.find(id => id !== vid) || null;
+      },
+
+      async start() {
+        if (this.active) return;
+        const duelists = this.pickDuelists();
+        if (duelists.length < 2) return;
+
+        this.active = true;
+        this.phase = 'trigger';
+        this.duelistIds = duelists.map(d => d.voterId);
+        this.trainerA = { voterId: duelists[0].voterId, playerName: duelists[0].playerName, label: 'TRAINER A' };
+        this.trainerB = { voterId: duelists[1].voterId, playerName: duelists[1].playerName, label: 'TRAINER B' };
+        this.combatants = {};
+        this.draftOptions = {};
+        this.voteRecords = [];
+        this.turn = 0;
+        this.resolving = false;
+        this.votingLocked = false;
+
+        HostGame.setRoundControls(false, 'DUEL…');
+        $('bossBtn')?.classList.add('hidden');
+
+        const trigger = $('randomDuelTriggerOverlay');
+        trigger?.classList.remove('hidden-overlay');
+        trigger?.setAttribute('aria-hidden', 'false');
+        this.syncState();
+        HostGame.broadcast();
+        AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 300);
+
+        await sleep(CONFIG.DUEL_TRIGGER_FLASH_MS);
+        trigger?.classList.add('hidden-overlay');
+        trigger?.setAttribute('aria-hidden', 'true');
+
+        const overlay = $('randomDuelOverlay');
+        overlay?.classList.remove('hidden-overlay');
+        overlay?.setAttribute('aria-hidden', 'false');
+        $('randomDuelVictoryBanner')?.classList.add('hidden');
+        $('randomDuelPhaseLabel').textContent = `${this.trainerA.playerName} vs ${this.trainerB.playerName} — phones draft NOW!`;
+        $('randomDuelHeadline').textContent = '⚔️ TRAINER A  vs  TRAINER B ⚔️';
+
+        BattleVFX.useCanvas($('randomDuelVfxCanvas'), $('randomDuelArenaWrap'));
+
+        this.phase = 'draft';
+        await this.buildDraftPools(duelists);
+        this.draftEndsAt = Date.now() + CONFIG.DUEL_DRAFT_SEC * 1000;
+        this.renderSplitArena('draft');
+        this.startDraftTimer();
+        this.syncState();
+        HostGame.broadcast();
+      },
+
+      async buildDraftPools(duelists) {
+        await Promise.all(duelists.map(async ({ voterId, playerName }) => {
+          const ids = Pokedex.randomIds(3);
+          const picks = [];
+          for (const id of ids) {
+            try {
+              const p = await fetchPokemonDetails(id);
+              if (p) picks.push(p);
+            } catch { /* skip */ }
+          }
+          while (picks.length < 3) {
+            try {
+              const p = await fetchPokemonDetails(Pokedex.randomId());
+              if (p && !picks.some(x => x.id === p.id)) picks.push(p);
+            } catch { break; }
+          }
+          this.draftOptions[voterId] = picks.slice(0, 3);
+          this.combatants[voterId] = {
+            voterId, playerName, pokemon: null, moves: [],
+            hp: CONFIG.DUEL_HP, maxHp: CONFIG.DUEL_HP,
+            eliminated: false, locked: false,
+          };
+        }));
+      },
+
+      startDraftTimer() {
+        clearInterval(this.timer);
+        this.timerVal = CONFIG.DUEL_DRAFT_SEC;
+        $('randomDuelTimer').textContent = this.timerVal;
+        this.timer = setInterval(() => {
+          this.timerVal = Math.max(0, Math.ceil((this.draftEndsAt - Date.now()) / 1000));
+          $('randomDuelTimer').textContent = this.timerVal;
+          if (state.randomDuel) state.randomDuel.timer = this.timerVal;
+          if (this.timerVal <= 0) {
+            clearInterval(this.timer);
+            this.finishDraft();
+          } else if (this.bothLocked()) {
+            clearInterval(this.timer);
+            this.finishDraft();
+          }
+        }, 200);
+      },
+
+      bothLocked() {
+        return this.duelistIds.every(vid => this.combatants[vid]?.locked && this.combatants[vid]?.pokemon);
+      },
+
+      onDraftPick({ voterId: vid, playerName: name, pokemonId }) {
+        if (!this.active || this.phase !== 'draft' || !vid) return;
+        if (!this.duelistIds.includes(vid)) return;
+        const opts = this.draftOptions[vid];
+        if (!opts?.length) return;
+        const pick = opts.find(p => p.id === pokemonId) || opts[0];
+        this.lockCombatant(vid, name, pick);
+        this.renderSplitArena('draft');
+        this.syncState();
+        HostGame.broadcast();
+        if (this.bothLocked()) {
+          clearInterval(this.timer);
+          setTimeout(() => this.finishDraft(), 400);
+        }
+      },
+
+      lockCombatant(voterId, playerName, pokemon) {
+        if (!pokemon) return;
+        const c = this.combatants[voterId] || { voterId, playerName };
+        c.playerName = (playerName || c.playerName || 'Trainer').trim();
+        c.pokemon = pokemon;
+        c.moves = ArenaRoyale.generateMoves(pokemon.types, pokemon);
+        c.hp = CONFIG.DUEL_HP;
+        c.maxHp = CONFIG.DUEL_HP;
+        c.eliminated = false;
+        c.locked = true;
+        this.combatants[voterId] = c;
+      },
+
+      autoAssignDraftPicks() {
+        for (const vid of this.duelistIds) {
+          const c = this.combatants[vid];
+          if (c?.locked && c.pokemon) continue;
+          const opts = this.draftOptions[vid] || [];
+          if (!opts.length) continue;
+          this.lockCombatant(vid, c?.playerName, opts[Math.floor(Math.random() * opts.length)]);
+        }
+      },
+
+      finishDraft() {
+        if (this.phase !== 'draft') return;
+        this.autoAssignDraftPicks();
+        const ready = this.duelistIds.map(vid => this.combatants[vid]).filter(c => c?.locked && c.pokemon);
+        if (ready.length < 2) {
+          this.end(true);
+          return;
+        }
+        this.phase = 'combat';
+        this.turn = 0;
+        $('randomDuelPhaseLabel').textContent = 'FIGHT! — phones pick moves!';
+        this.renderSplitArena('combat');
+        this.syncState();
+        HostGame.broadcast();
+        this.startTurn();
+      },
+
+      renderSplitArena(mode) {
+        const grid = $('randomDuelCombatGrid');
+        if (!grid) return;
+        const a = this.combatants[this.duelistIds[0]];
+        const b = this.combatants[this.duelistIds[1]];
+        const renderSide = (trainer, c, sideCls) => {
+          const tag = trainer?.label || (sideCls === 'a' ? 'TRAINER A' : 'TRAINER B');
+          const name = trainer?.playerName || c?.playerName || 'Trainer';
+          if (mode === 'draft' && (!c?.pokemon || !c.locked)) {
+            return `<div class="random-duel-side ${sideCls}">
+              <p class="duel-trainer-tag">${escapeHtml(tag)}</p>
+              <p class="duel-trainer-name">${escapeHtml(name)}</p>
+              <p class="text-blue-300/80 text-sm font-bold animate-pulse">📱 Drafting…</p>
+            </div>`;
+          }
+          if (!c?.pokemon) return `<div class="random-duel-side ${sideCls}"></div>`;
+          const pct = Math.max(0, (c.hp / c.maxHp) * 100);
+          const hpCls = ArenaUX.hpFillClass(pct);
+          return `<div class="random-duel-side ${sideCls}">
+            <p class="duel-trainer-tag">${escapeHtml(tag)}</p>
+            <p class="duel-trainer-name">${escapeHtml(name)}</p>
+            <article class="arena-fighter-card${c.eliminated ? ' eliminated' : ''}" data-vid="${escapeHtml(c.voterId)}" id="duel-card-${escapeHtml(c.voterId)}">
+              <p class="arena-poke-name">${escapeHtml(c.pokemon.name)}</p>
+              <div class="arena-sprite-wrap">
+                <img class="img-pending" data-pid="${c.pokemon.id}" src="${escapeHtml(c.pokemon.artwork)}" alt="${escapeHtml(c.pokemon.name)}" draggable="false" />
+              </div>
+              <div class="arena-type-pills">${ArenaUX.typePills(c.pokemon.types, true)}</div>
+              <div class="arena-hp-wrap">
+                <div class="arena-hp-bar"><div class="arena-hp-fill ${hpCls}" style="width:${pct}%"></div></div>
+                <p class="text-xs text-blue-200 font-bold mt-0.5">${c.hp} / ${c.maxHp} HP</p>
+              </div>
+              <div class="arena-moves">${ArenaUX.moveIconsHtml(c.moves, c.pokemon.types)}</div>
+            </article>
+          </div>`;
+        };
+        grid.innerHTML = `${renderSide(this.trainerA, a, 'duel-side-a')}
+          <p class="random-duel-vs">VS</p>
+          ${renderSide(this.trainerB, b, 'duel-side-b')}`;
+        ArenaUX.bindSprites(grid);
+      },
+
+      startTurn() {
+        if (!this.active || this.phase !== 'combat') return;
+        const alive = this.duelistIds.map(vid => this.combatants[vid]).filter(c => c && !c.eliminated && c.hp > 0);
+        if (alive.length <= 1) {
+          this.crownWinner(alive[0] || null);
+          return;
+        }
+        this.turn++;
+        this.voteRecords = [];
+        this.votingLocked = false;
+        this.resolving = false;
+        this.timerVal = CONFIG.DUEL_TURN_SEC;
+        $('randomDuelTimer').textContent = this.timerVal;
+        $('randomDuelPhaseLabel').textContent = `Turn ${this.turn} — duelists attack!`;
+        $('randomDuelMoveTally').innerHTML = '';
+        if (state.randomDuel) {
+          state.randomDuel.crowdMessage = null;
+          state.randomDuel.duelLog = null;
+        }
+        this.syncState();
+        HostGame.broadcast();
+        clearInterval(this.timer);
+        this.timer = setInterval(() => {
+          this.timerVal--;
+          $('randomDuelTimer').textContent = Math.max(0, this.timerVal);
+          if (state.randomDuel) state.randomDuel.timer = this.timerVal;
+          if (this.timerVal <= 0) {
+            clearInterval(this.timer);
+            this.lockVoting('Resolving attacks!');
+            this.resolveTurn();
+          }
+        }, 1000);
+      },
+
+      lockVoting(msg) {
+        this.votingLocked = true;
+        if (state.randomDuel) {
+          state.randomDuel.isVotingLocked = true;
+          state.randomDuel.crowdMessage = msg;
+        }
+        HostGame.broadcast();
+      },
+
+      onBattleVote({ voterId: vid, playerName: name, choiceIndex, turn }) {
+        if (!this.active || this.phase !== 'combat' || this.resolving || this.votingLocked) return;
+        if (turn !== this.turn) return;
+        if (!this.duelistIds.includes(vid)) return;
+        const c = this.getCombatant(vid);
+        if (!c || c.eliminated || c.hp <= 0) return;
+        if (choiceIndex < 0 || choiceIndex > 3) return;
+        if (this.voteRecords.some(v => v.voterId === vid)) return;
+        this.voteRecords.push({ voterId: vid, playerName: name, choiceIndex });
+        this.renderMoveTally();
+        if (this.voteRecords.length >= 2) {
+          clearInterval(this.timer);
+          this.lockVoting('Both locked — resolving!');
+          this.resolveTurn();
+        }
+      },
+
+      renderMoveTally() {
+        const el = $('randomDuelMoveTally');
+        if (!el) return;
+        el.innerHTML = this.voteRecords.length
+          ? this.voteRecords.map(v => {
+              const atk = this.getCombatant(v.voterId);
+              const tgtVid = this.opponentId(v.voterId);
+              const tgt = tgtVid ? this.getCombatant(tgtVid) : null;
+              const move = atk?.moves?.[v.choiceIndex] || 'Attack';
+              return `<p class="text-blue-200 text-center col-span-2">${escapeHtml(atk?.playerName || '?')} → ${escapeHtml(move)} → ${escapeHtml(tgt?.playerName || '?')}</p>`;
+            }).join('')
+          : '<p class="text-blue-300/70 text-center col-span-2 py-1">📱 Waiting for moves…</p>';
+      },
+
+      pickMoveIndex(vid) {
+        const vote = this.voteRecords.find(v => v.voterId === vid);
+        if (vote) return vote.choiceIndex;
+        const c = this.getCombatant(vid);
+        return c?.moves?.length ? Math.floor(Math.random() * c.moves.length) : 0;
+      },
+
+      calcDamage(attacker, defender, moveIndex) {
+        const move = attacker.moves[moveIndex] || attacker.moves[0];
+        const atkType = getMoveType(move, attacker.pokemon.types?.[0] || 'normal');
+        const mult = getTypeEffectiveness(atkType, defender.pokemon?.types || ['normal']);
+        let dmg = Math.round((16 + Math.floor(Math.random() * 14)) * mult);
+        const crit = Math.random() < 0.14;
+        if (crit) dmg = Math.round(dmg * 1.5);
+        return { dmg, crit, move, atkType, mult };
+      },
+
+      async resolveTurn() {
+        if (this.resolving || !this.active) return;
+        this.resolving = true;
+        clearInterval(this.timer);
+        if (!this.votingLocked) this.lockVoting('Resolving attacks!');
+        if (state.randomDuel) state.randomDuel.phase = 'animating';
+        HostGame.broadcast();
+
+        const actions = [];
+        for (const vid of this.duelistIds) {
+          const attacker = this.getCombatant(vid);
+          const targetVid = this.opponentId(vid);
+          const target = targetVid ? this.getCombatant(targetVid) : null;
+          if (attacker && target && !attacker.eliminated && !target.eliminated && target.hp > 0) {
+            actions.push({ attacker, target, moveIndex: this.pickMoveIndex(vid) });
+          }
+        }
+
+        const logs = [];
+        for (const { attacker, target, moveIndex } of shuffleArray(actions)) {
+          if (attacker.eliminated || target.eliminated || target.hp <= 0) continue;
+          const hit = this.calcDamage(attacker, target, moveIndex);
+          const cardA = $(`duel-card-${attacker.voterId}`);
+          const cardB = $(`duel-card-${target.voterId}`);
+          cardA?.classList.add('duel-active');
+          cardB?.classList.add('duel-active');
+
+          const eff = typeEffectLabel(hit.mult);
+          $('randomDuelTicker').textContent = `${attacker.playerName}'s ${hit.move} → ${target.playerName}!${eff ? ` ${eff}` : ''}`;
+          if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
+          HostGame.broadcast();
+
+          BattleVFX.playDuelBetween(hit.atkType, hit.move, cardA, cardB);
+          AudioEngine.playClick();
+          if (hit.crit) BattleVFX.showCritical();
+
+          target.hp = Math.max(0, target.hp - hit.dmg);
+          if (target.hp <= 0) target.eliminated = true;
+          logs.push(`${attacker.playerName} hit ${target.playerName} for ${hit.dmg}${hit.crit ? ' CRIT' : ''}`);
+          this.renderSplitArena('combat');
+          await sleep(780);
+          cardA?.classList.remove('duel-active');
+          cardB?.classList.remove('duel-active');
+
+          const alive = this.duelistIds.map(vid => this.combatants[vid]).filter(c => c && !c.eliminated && c.hp > 0);
+          if (alive.length <= 1) {
+            await this.crownWinner(alive[0] || null);
+            return;
+          }
+        }
+
+        $('randomDuelTicker').textContent = logs.slice(-2).join(' · ') || 'Turn complete!';
+        if (state.randomDuel) state.randomDuel.duelLog = $('randomDuelTicker').textContent;
+        this.resolving = false;
+        if (state.randomDuel) state.randomDuel.phase = 'combat';
+        this.syncState();
+        HostGame.broadcast();
+        this.startTurn();
+      },
+
+      async crownWinner(winner) {
+        clearInterval(this.timer);
+        this.resolving = true;
+        this.phase = 'victory';
+
+        if (winner?.voterId) {
+          Leaderboard.addRandomDuelWin(winner.voterId, winner.playerName);
+        }
+        Leaderboard.render();
+
+        const name = winner?.playerName || 'Champion';
+        const banner = `🏆 CONGRATULATIONS TO THE WINNER: ${name}! (+${CONFIG.DUEL_WIN_POINTS} PTS) 🏆`;
+        if (state.randomDuel) {
+          state.randomDuel.phase = 'victory';
+          state.randomDuel.winner = { voterId: winner?.voterId, playerName: name };
+        }
+        HostGame.broadcast();
+
+        launchConfetti(120);
+        const vBanner = $('randomDuelVictoryBanner');
+        const vText = $('randomDuelVictoryText');
+        if (vText) vText.textContent = banner;
+        vBanner?.classList.remove('hidden');
+        $('randomDuelPhaseLabel').textContent = banner;
+        AudioEngine.fadeBgm(CONFIG.VOL.CELEBRATE, CONFIG.FADE_MS);
+
+        clearTimeout(this.victoryTimer);
+        this.victoryTimer = setTimeout(() => this.end(false), CONFIG.DUEL_VICTORY_HOLD_MS);
+      },
+
+      end(aborted = false) {
+        clearInterval(this.timer);
+        clearTimeout(this.victoryTimer);
+        this.victoryTimer = null;
+        this.active = false;
+        this.phase = 'idle';
+        this.resolving = false;
+        this.votingLocked = false;
+        state.randomDuel = null;
+
+        $('randomDuelTriggerOverlay')?.classList.add('hidden-overlay');
+        $('randomDuelOverlay')?.classList.add('hidden-overlay');
+        $('randomDuelOverlay')?.setAttribute('aria-hidden', 'true');
+        $('randomDuelVictoryBanner')?.classList.add('hidden');
+        BattleVFX.resetArenaCanvas();
+
+        if (state.isRevealed) {
+          HostGame.setRoundControls(true, 'NEXT POKÉMON →');
+          $('actionBtn')?.classList.add('next-btn');
+          HostGame.updateArenaButton();
+          if (!aborted) AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 400);
+        }
+        HostGame.broadcast();
       },
     };
 
@@ -4783,7 +6200,25 @@
         for (const v of state.voteRecords) {
           if (!map.has(v.voterId)) map.set(v.voterId, v.playerName);
         }
+        if (sync?.joinedPlayers) {
+          for (const [vid, meta] of sync.joinedPlayers.entries()) {
+            if (!map.has(vid)) map.set(vid, meta.name || 'Trainer');
+          }
+        }
         return [...map.entries()].map(([voterId, playerName]) => ({ voterId, playerName }));
+      },
+
+      /** Connected trainers + leaderboard entries (excludes host) */
+      gamePlayerCount() {
+        return this.collectParticipants().length;
+      },
+
+      /** Shuffle lobby entrants; if more than 2 joined, randomly pick 2 to fight */
+      pickBattleParticipants() {
+        const entered = shuffleArray(Object.values(this.entrants));
+        if (entered.length < 2) return [];
+        const picks = entered.length > 2 ? entered.slice(0, 2) : entered;
+        return picks.map(e => ({ voterId: e.voterId, playerName: e.playerName }));
       },
 
       syncState() {
@@ -4803,6 +6238,8 @@
           crowdMessage: state.arena?.crowdMessage || null,
           duelLog: state.arena?.duelLog || null,
           winner: state.arena?.winner || null,
+          resultHeadline: state.arena?.resultHeadline || null,
+          resultMsg: state.arena?.resultMsg || null,
         };
       },
 
@@ -4880,6 +6317,7 @@
       openLobby(opts = {}) {
         if (this.active) return;
         if (!ArenaScheduler.canSchedule()) return;
+        if (opts.auto && this.gamePlayerCount() < 2) return;
         this.active = true;
         this.lobbyOpen = true;
         this.battleModeActive = false;
@@ -4915,18 +6353,26 @@
         if (btn) { btn.textContent = '⚔️ LOBBY OPEN'; btn.disabled = false; }
       },
 
-      /** Auto-start draft when trainers join (no host START tap required) */
+      /** Auto-start draft when ≥2 trainers are in the game (no host START tap required) */
       scheduleAutoDraft() {
         clearTimeout(this.autoDraftTimer);
         if (!this.active || !this.lobbyOpen || this.phase !== 'lobby') return;
-        const count = Object.keys(this.entrants).length;
-        if (count < 1) return;
-        const delay = count >= 2 ? CONFIG.ARENA_AUTO_START_MS : CONFIG.ARENA_AUTO_LOBBY_MS;
-        $('arenaLobbyHint').textContent = count >= 2
-          ? `Auto-starting draft in ${Math.ceil(delay / 1000)}s…`
-          : `Waiting for more trainers… auto-start in ${Math.ceil(delay / 1000)}s`;
+        const entrantCount = Object.keys(this.entrants).length;
+        const gameCount = this.gamePlayerCount();
+        if (gameCount < 2) {
+          $('arenaLobbyHint').textContent = 'Need at least 2 trainers in the game to battle…';
+          return;
+        }
+        if (entrantCount < 2) {
+          $('arenaLobbyHint').textContent = entrantCount < 1
+            ? 'Waiting for trainers to join on phone…'
+            : 'Need one more trainer — tap Enter Arena on another phone!';
+          return;
+        }
+        const delay = CONFIG.ARENA_AUTO_START_MS;
+        $('arenaLobbyHint').textContent = `Auto-starting draft in ${Math.ceil(delay / 1000)}s…`;
         this.autoDraftTimer = setTimeout(() => {
-          if (this.active && this.lobbyOpen && this.phase === 'lobby' && Object.keys(this.entrants).length >= 1) {
+          if (this.active && this.lobbyOpen && this.phase === 'lobby' && this.pickBattleParticipants().length >= 2) {
             this.startBattleFromLobby();
           }
         }, delay);
@@ -4945,7 +6391,7 @@
       onArenaEnter({ voterId: vid, playerName: name }) {
         if (!vid) return;
         if (!this.active) {
-          if (ArenaScheduler.canSchedule() && state.isRevealed && ArenaScheduler.isTriggerRound(state.currentRound)) {
+          if (ArenaScheduler.canSchedule() && state.isRevealed && ArenaScheduler.isTriggerRound(state.currentRound) && this.gamePlayerCount() > 1) {
             this.openLobby({ auto: true });
           } else return;
         }
@@ -4979,39 +6425,58 @@
         if (!grid) return;
         const list = Object.values(this.entrants);
         if (!list.length) {
-          grid.innerHTML = '<p class="text-neon-cyan text-center text-sm italic col-span-full py-4">Waiting for trainers to enter…</p>';
+          grid.innerHTML = '<p class="text-neon-cyan text-center text-sm italic col-span-full py-4">📱 Waiting for trainers…</p>';
           return;
         }
         grid.innerHTML = list.map(e => {
-          const status = e.locked ? '✓ Locked' : e.pickedId ? 'Picked' : 'Entered';
-          const cls = e.locked ? 'locked' : 'entered';
+          const cls = e.locked ? 'locked' : e.pickedId ? 'picked' : 'entered';
+          const opts = this.draftOptions[e.voterId] || [];
+          const pick = e.pickedId ? opts.find(p => p.id === e.pickedId) : null;
+          const c = this.combatants[e.voterId];
+          const poke = pick || c?.pokemon;
+          const sprite = poke
+            ? `<div class="lobby-sprite"><img class="img-pending" data-pid="${poke.id}" src="${escapeHtml(poke.artwork)}" alt="" draggable="false" /></div>`
+            : `<div class="lobby-sprite text-2xl">${e.locked ? '🔒' : '📱'}</div>`;
           return `<div class="arena-lobby-trainer ${cls}">
-            <span class="text-lg">${e.locked ? '🔒' : e.pickedId ? '🎯' : '📱'}</span>
-            <span class="truncate w-full">${escapeHtml(e.playerName)}</span>
-            <span class="text-[0.6rem] text-cyan-200/80">${status}</span>
+            ${sprite}
+            <span class="lobby-name">${escapeHtml(e.playerName)}</span>
+            <span class="lobby-status-dot" title="${e.locked ? 'Locked' : e.pickedId ? 'Picked' : 'Joined'}"></span>
           </div>`;
         }).join('');
+        ArenaUX.bindSprites(grid);
       },
 
       updateLobbyStartBtn() {
-        const count = Object.keys(this.entrants).length;
+        const entrantCount = Object.keys(this.entrants).length;
+        const canStart = this.pickBattleParticipants().length >= 2;
         const btn = $('arenaLobbyStartBtn');
         const hint = $('arenaLobbyHint');
-        if (btn) btn.disabled = count < 1 || this.phase !== 'lobby';
+        if (btn) btn.disabled = !canStart || this.phase !== 'lobby';
         if (hint && this.phase === 'lobby' && !this.autoDraftTimer) {
-          hint.textContent = count < 1
-            ? 'Waiting for a trainer to join on phone…'
-            : `${count} trainer${count === 1 ? '' : 's'} — draft auto-starts soon!`;
+          if (this.gamePlayerCount() < 2) {
+            hint.textContent = 'Need at least 2 trainers in the game to battle…';
+          } else if (entrantCount < 2) {
+            hint.textContent = entrantCount < 1
+              ? 'Waiting for trainers to join on phone…'
+              : 'Need one more trainer — tap Enter Arena on another phone!';
+          } else {
+            hint.textContent = `${entrantCount} trainers ready — draft auto-starts soon!`;
+          }
         }
       },
 
       async startBattleFromLobby() {
         clearTimeout(this.autoDraftTimer);
         this.autoDraftTimer = null;
-        if (Object.keys(this.entrants).length < 1) return;
-        const participants = Object.values(this.entrants).map(e => ({
-          voterId: e.voterId, playerName: e.playerName,
-        }));
+        const participants = this.pickBattleParticipants();
+        if (participants.length < 2) return;
+        const selectedIds = new Set(participants.map(p => p.voterId));
+        for (const vid of Object.keys(this.entrants)) {
+          if (!selectedIds.has(vid)) delete this.entrants[vid];
+        }
+        for (const vid of Object.keys(this.combatants)) {
+          if (!selectedIds.has(vid)) delete this.combatants[vid];
+        }
         this.phase = 'draft';
         $('arenaLobbySubtitle').textContent = 'Phones — pick a fighter, then Accept & Lock!';
         $('arenaLobbyHint').textContent = 'Waiting for trainers to lock their draft picks…';
@@ -5092,7 +6557,7 @@
         overlay?.classList.remove('hidden-overlay');
         overlay?.setAttribute('aria-hidden', 'false');
         $('arenaDraftBanner')?.classList.add('hidden');
-        $('battleTurnLabel').textContent = 'Free-for-all — pick any opponent on your phone!';
+        $('battleTurnLabel').textContent = '📱 Pick target + move!';
         $('arenaDuelTicker').textContent = '';
         $('battleMoveTally').innerHTML = '';
         BattleVFX.resize();
@@ -5222,8 +6687,8 @@
         $('arenaDraftBanner')?.classList.add('hidden');
         this.phase = 'combat';
         this.turn = 0;
-        $('arenaPhaseLabel').textContent = `${ready.length} fighters ready — FIGHT!`;
-        $('battleTurnLabel').textContent = 'Free-for-all — pick any opponent on your phone!';
+        $('arenaPhaseLabel').textContent = `${ready.length} ready · FIGHT!`;
+        $('battleTurnLabel').textContent = '📱 Pick target + move!';
         this.renderArenaGrid();
         this.syncState();
         HostGame.broadcast();
@@ -5236,38 +6701,27 @@
         if (!grid) return;
         const list = Object.values(this.combatants).filter(c => c?.pokemon);
         if (!list.length) {
-          grid.innerHTML = '<p class="text-blue-200 text-center col-span-full py-8">Waiting for draft picks…</p>';
+          grid.innerHTML = '<p class="text-blue-200 text-center col-span-full py-8 text-2xl">🎯</p>';
           return;
         }
         grid.innerHTML = list.map(c => {
           const pct = Math.max(0, (c.hp / c.maxHp) * 100);
-          const types = (c.pokemon.types || []).join(' / ');
-          const fallbacks = [
-            Pokedex.fallbackSpriteUrl(c.pokemon.id),
-            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${c.pokemon.id}.png`,
-          ];
-          const moves = (c.moves || []).map(m => `<span title="${escapeHtml(m)}">${escapeHtml(m)}</span>`).join('');
+          const hpCls = ArenaUX.hpFillClass(pct);
           return `<article class="arena-fighter-card${c.eliminated ? ' eliminated' : ''}" data-vid="${escapeHtml(c.voterId)}" id="arena-card-${escapeHtml(c.voterId)}">
             <p class="arena-trainer">${escapeHtml(c.playerName)}</p>
-            <p class="arena-poke-name">${escapeHtml(c.pokemon.name)}</p>
             <div class="arena-sprite-wrap">
-              <img class="img-pending" src="${escapeHtml(c.pokemon.artwork)}" alt="" draggable="false"
-                data-fallbacks="${escapeHtml(JSON.stringify(fallbacks))}" />
+              <img class="img-pending" data-pid="${c.pokemon.id}" src="${escapeHtml(c.pokemon.artwork)}" alt="${escapeHtml(c.pokemon.name)}" draggable="false" />
             </div>
-            <p class="text-[0.55rem] text-cyan-200/80">${escapeHtml(types)}</p>
-            <div class="h-2.5 bg-black/50 rounded-full overflow-hidden border border-white/15">
-              <div class="hp-bar-fill h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style="width:${pct}%"></div>
+            <p class="arena-poke-name">${escapeHtml(c.pokemon.name)}</p>
+            <div class="arena-type-pills">${ArenaUX.typePills(c.pokemon.types, true)}</div>
+            <div class="arena-hp-wrap">
+              <div class="arena-hp-bar"><div class="arena-hp-fill ${hpCls}" style="width:${pct}%"></div></div>
             </div>
-            <p class="text-[0.6rem] text-green-300 font-bold">${c.hp} / ${c.maxHp} HP</p>
-            <div class="arena-moves">${moves}</div>
+            <div class="arena-moves">${ArenaUX.moveIconsHtml(c.moves, c.pokemon.types)}</div>
           </article>`;
         }).join('');
-
-        grid.querySelectorAll('.arena-sprite-wrap img').forEach(img => {
-          let fallbacks = [];
-          try { fallbacks = JSON.parse(img.dataset.fallbacks || '[]'); } catch {}
-          bindSafeImageLoad(img, fallbacks);
-        });
+        ArenaUX.bindSprites(grid);
+        ArenaUX.renderScoreStrip('arenaScoreStrip', list.map(c => c.voterId));
       },
 
       startTurn() {
@@ -5288,8 +6742,8 @@
         this.resolving = false;
         this.timerVal = CONFIG.ARCADE_TURN_SEC;
         $('battleTimer').textContent = this.timerVal;
-        $('battleTurnLabel').textContent = `Turn ${this.turn} — pick a target + move on your phone!`;
-        $('arenaPhaseLabel').textContent = `${alive.length} fighters remain · free-for-all!`;
+        $('battleTurnLabel').textContent = `Turn ${this.turn} · 📱`;
+        $('arenaPhaseLabel').textContent = `${alive.length} left`;
         $('battleMoveTally').innerHTML = '';
         if (state.arena) {
           state.arena.crowdMessage = null;
@@ -5340,13 +6794,10 @@
               const atk = this.getCombatant(v.voterId);
               const tgt = this.getCombatant(v.targetVoterId);
               const move = atk?.moves?.[v.choiceIndex] || 'Attack';
-              return `<div class="bg-white/10 rounded-lg px-3 py-2 border border-white/10">
-                <span class="text-yellow-400 font-bold">${escapeHtml(v.playerName || 'Trainer')}</span>
-                <span class="text-blue-200 ml-1">→ ${escapeHtml(tgt?.playerName || '?')}</span>
-                <span class="text-fuchsia-300 text-xs block">${escapeHtml(move)}</span>
-              </div>`;
+              return ArenaUX.voteChipHtml(atk, tgt, move);
             }).join('')
-          : '<p class="text-blue-300/70 text-center col-span-2">Pick a target + move on your phone…</p>';
+          : '<p class="text-blue-300/70 text-center col-span-2 text-2xl py-2">📱</p>';
+        ArenaUX.bindSprites(el);
       },
 
       pickMoveIndex(voterId) {
@@ -5486,6 +6937,8 @@
         if (state.arena) {
           state.arena.phase = 'victory';
           state.arena.winner = { voterId: winner?.voterId, playerName: name, pokemonName: poke };
+          state.arena.resultHeadline = headline;
+          state.arena.resultMsg = msg;
         }
         HostGame.broadcast();
 
@@ -5496,9 +6949,17 @@
         $('battleVictoryHeadline').textContent = headline;
         $('battleVictoryMsg').textContent = msg;
         $('battleTurnLabel').textContent = `🏆 ${name}!`;
+        const vSprite = $('battleVictorySprite');
+        if (winner?.pokemon?.artwork && vSprite) {
+          vSprite.classList.remove('hidden');
+          vSprite.src = winner.pokemon.artwork;
+          vSprite.alt = winner.pokemon.name;
+          bindSafeImageLoad(vSprite, ArenaUX.pokemonFallbacks(winner.pokemon.id));
+        } else vSprite?.classList.add('hidden');
+        ArenaUX.renderScoreStrip('battleVictoryScores');
         AudioEngine.fadeBgm(CONFIG.VOL.CELEBRATE, CONFIG.FADE_MS);
-        await sleep(4200);
-        this.end(false);
+        this.syncState();
+        HostGame.broadcast();
       },
 
       end(fromSkip = false) {
@@ -5549,7 +7010,7 @@
       const artwork = candidates[0];
       if (!artwork) return null;
       const hpStat = data.stats?.find(s => s.stat?.name === 'hp');
-      return {
+      return markLegendaryPokemon({
         id: data.id,
         name: formatName(data.name),
         rawName: data.name,
@@ -5562,7 +7023,7 @@
         height: data.height,
         weight: data.weight,
         moveUrls: shuffleArray((data.moves || []).map(m => m.move.url)).slice(0, 28),
-      };
+      });
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -5570,7 +7031,168 @@
     // ═══════════════════════════════════════════════════════════════
     const TCGCard = {
       moveCache: new Map(),
+      evolutionCache: new Map(),
       revealGen: 0,
+      _flipBound: false,
+      _evoFrontName: '',
+      _evoBackName: '',
+
+      initFlipHandler() {
+        if (this._flipBound) return;
+        this._flipBound = true;
+        const shell = $('tcgFlipShell');
+        const tryFlip = () => {
+          const inner = $('tcgFlipInner');
+          const card = $('tcgCard');
+          if (!inner?.classList.contains('tcg-flippable') || !card?.classList.contains('tcg-revealed')) return;
+          if (card.classList.contains('shiny-attack-lunge')) return;
+          this.toggleFlip();
+        };
+        shell?.addEventListener('click', tryFlip);
+        shell?.addEventListener('touchend', (e) => {
+          if (!shell.classList.contains('tcg-flippable')) return;
+          e.preventDefault();
+          tryFlip();
+        }, { passive: false });
+      },
+
+      toggleFlip() {
+        const inner = $('tcgFlipInner');
+        if (!inner?.classList.contains('tcg-flippable')) return;
+        inner.classList.toggle('tcg-flipped');
+        AudioEngine.playClick();
+      },
+
+      resetEvolutionFlip() {
+        $('tcgFlipShell')?.classList.remove('tcg-flippable');
+        $('tcgFlipShell')?.removeAttribute('aria-label');
+        $('tcgFlipInner')?.classList.remove('tcg-flipped', 'tcg-flippable');
+        $('tcgCard')?.classList.remove('tcg-evolution');
+        $('tcgCardBack')?.classList.add('hidden');
+        $('tcgCardBack')?.setAttribute('aria-hidden', 'true');
+        $('tcgEvolutionNote')?.classList.add('hidden');
+        $('tcgEvolutionNote')?.setAttribute('aria-hidden', 'true');
+        $('tcgEvolutionNote').textContent = '';
+        $('tcgStageLabel')?.classList.remove('tcg-stage-evolution');
+        $('tcgStageLabel').textContent = 'BASIC';
+        this._evoFrontName = '';
+        this._evoBackName = '';
+      },
+
+      findSpeciesInChain(node, targetName, depth = 0) {
+        if (node.species?.name === targetName) return { depth, node };
+        for (const evo of node.evolves_to || []) {
+          const hit = this.findSpeciesInChain(evo, targetName, depth + 1);
+          if (hit) return hit;
+        }
+        return null;
+      },
+
+      /** PokeAPI species chain — is this Pokémon an evolution? Who did it evolve from? */
+      async fetchEvolutionInfo(pokemon) {
+        if (pokemon.isHero) {
+          return { isEvolution: false, depth: 0, stageLabel: 'BASIC', evolvesFromName: null, preEvolution: null };
+        }
+        if (this.evolutionCache.has(pokemon.id)) return this.evolutionCache.get(pokemon.id);
+        const fallback = { isEvolution: false, depth: 0, stageLabel: 'BASIC', evolvesFromName: null, preEvolution: null };
+        try {
+          const species = await pokeFetch(`/pokemon-species/${pokemon.id}`);
+          if (!species.evolves_from_species) {
+            this.evolutionCache.set(pokemon.id, fallback);
+            return fallback;
+          }
+          const preSpeciesId = +species.evolves_from_species.url.split('/').filter(Boolean).pop();
+          const chainPath = species.evolution_chain.url.replace(CONFIG.POKEAPI_BASE, '');
+          const [chain, preEvolution] = await Promise.all([
+            pokeFetch(chainPath),
+            fetchPokemonDetails(preSpeciesId),
+          ]);
+          const targetName = pokemon.rawName || species.name;
+          const found = this.findSpeciesInChain(chain.chain, targetName);
+          const depth = found?.depth ?? 1;
+          const stageLabels = ['BASIC', 'STAGE 1', 'STAGE 2', 'STAGE 3'];
+          const info = {
+            isEvolution: true,
+            depth,
+            stageLabel: stageLabels[Math.min(depth, stageLabels.length - 1)] || 'EVOLUTION',
+            evolvesFromName: formatName(species.evolves_from_species.name),
+            preEvolution,
+          };
+          this.evolutionCache.set(pokemon.id, info);
+          return info;
+        } catch {
+          this.evolutionCache.set(pokemon.id, fallback);
+          return fallback;
+        }
+      },
+
+      renderStageLabel(evo) {
+        const el = $('tcgStageLabel');
+        if (!el) return;
+        const isEvo = !!evo?.isEvolution;
+        el.textContent = isEvo ? (evo.stageLabel || 'EVOLUTION') : 'BASIC';
+        el.classList.toggle('tcg-stage-evolution', isEvo);
+      },
+
+      async renderBackFace(prePokemon, evolvesIntoName) {
+        const back = $('tcgCardBack');
+        if (!back || !prePokemon) return;
+        const type = this.primaryType(prePokemon);
+        const theme = TCG_TYPE_THEME[type] || TCG_TYPE_THEME.normal;
+        back.style.border = `6px solid ${theme.border}`;
+        back.style.boxShadow = `0 18px 48px rgba(0,0,0,0.58), 0 0 0 3px ${theme.border}99`;
+        const inner = back.querySelector('.tcg-card-inner');
+        if (inner) inner.style.background = theme.inner || theme.art;
+        $('tcgBackArtBg').style.background = theme.art;
+        $('tcgStageLabelBack').textContent = 'BASIC';
+        $('tcgStageLabelBack').classList.remove('tcg-stage-evolution');
+        $('tcgCardBackName').textContent = prePokemon.name.toUpperCase();
+        $('tcgCardBackHp').textContent = prePokemon.hp || 70;
+        $('tcgTypeIconBack').innerHTML = typeBadgeHtml(type, 'lg');
+        $('tcgBackEvolutionNote').innerHTML = evolvesIntoName
+          ? `⬇ Evolves into <strong>${escapeHtml(evolvesIntoName)}</strong>`
+          : '⬇ Pre-evolution form';
+
+        const meta = await this.fetchSpeciesMeta(prePokemon);
+        $('tcgBackMetaBar').textContent = `NO. ${meta.dex} ${meta.genus}  ${formatDexHeight(meta.height)}  ${formatDexWeight(meta.weight)}`;
+        const [lore, moves] = await Promise.all([
+          this.fetchCardLore(prePokemon),
+          this.pickTypeMoves(prePokemon, 2),
+        ]);
+        this.renderMoves(moves, $('tcgBackMoves'));
+        $('tcgBackFlavor').textContent = lore.flavor;
+        $('tcgBackDescription').textContent = lore.description;
+        this.renderStatsBar(prePokemon, 'tcgBackStatsBar');
+
+        const img = $('tcgBackPokemonImage');
+        if (img) {
+          img.classList.add('opacity-0');
+          img.classList.remove('img-loaded', 'silhouette', 'revealed');
+          const urls = artFallbackChain(prePokemon, false);
+          bindSafeImageLoad(img, urls.slice(1), () => img.classList.remove('opacity-0'));
+          img.src = urls[0];
+          img.alt = prePokemon.name;
+        }
+      },
+
+      setupEvolutionFlip(pokemon, evo) {
+        if (!evo?.isEvolution || !evo.preEvolution) {
+          this.resetEvolutionFlip();
+          return;
+        }
+        this._evoFrontName = pokemon.name;
+        this._evoBackName = evo.preEvolution.name;
+        $('tcgCard').classList.add('tcg-evolution');
+        $('tcgEvolutionNote').innerHTML = `⬆ <strong>${escapeHtml(evo.stageLabel || 'EVOLUTION')}</strong> — evolves from <strong>${escapeHtml(evo.evolvesFromName)}</strong> <span class="tcg-flip-hint">· tap card to flip</span>`;
+        $('tcgEvolutionNote').classList.remove('hidden');
+        $('tcgEvolutionNote').removeAttribute('aria-hidden');
+        $('tcgFlipInner')?.classList.add('tcg-flippable');
+        $('tcgFlipShell')?.classList.add('tcg-flippable');
+        $('tcgFlipShell')?.setAttribute('role', 'button');
+        $('tcgFlipShell')?.setAttribute('aria-label', `Pokémon card — tap to flip and see ${evo.preEvolution.name}`);
+        $('tcgCardBack')?.classList.remove('hidden');
+        $('tcgCardBack')?.removeAttribute('aria-hidden');
+      },
 
       primaryType(pokemon) {
         return (pokemon?.types && pokemon.types[0]) || 'normal';
@@ -5581,7 +7203,7 @@
         const type = this.primaryType(pokemon);
         const theme = TCG_TYPE_THEME[type] || TCG_TYPE_THEME.normal;
         const card = $('tcgCard');
-        if (card) card.classList.remove('tcg-shiny');
+        if (card) card.classList.remove('tcg-shiny', 'tcg-legendary');
         const artBg = $('tcgArtBg');
         if (artBg) artBg.style.background = theme.art;
         const iconEl = $('tcgTypeIcon');
@@ -5595,11 +7217,17 @@
         const artBg = $('tcgArtBg');
         const inner = card?.querySelector('.tcg-card-inner');
         const isShiny = revealed && !!pokemon?.isShiny;
+        const isLegendary = revealed && !!pokemon?.isLegendary;
         if (card) {
           card.classList.toggle('tcg-shiny', isShiny);
+          card.classList.toggle('tcg-legendary', isLegendary && !isShiny);
           if (!isShiny) {
-            card.style.border = `6px solid ${theme.border}`;
-            card.style.boxShadow = `0 18px 48px rgba(0,0,0,0.58), 0 0 0 3px ${theme.border}99, 0 0 28px ${theme.border}55`;
+            card.style.border = isLegendary
+              ? '6px solid #ffcb05'
+              : `6px solid ${theme.border}`;
+            card.style.boxShadow = isLegendary
+              ? '0 18px 48px rgba(0,0,0,0.58), 0 0 0 3px rgba(255,203,5,0.75), 0 0 28px rgba(255,203,5,0.45)'
+              : `0 18px 48px rgba(0,0,0,0.58), 0 0 0 3px ${theme.border}99, 0 0 28px ${theme.border}55`;
           } else {
             card.style.border = '';
             card.style.boxShadow = '';
@@ -5618,8 +7246,9 @@
       resetMystery() {
         const card = $('tcgCard');
         if (!card) return;
+        this.resetEvolutionFlip();
         card.classList.add('tcg-mystery');
-        card.classList.remove('tcg-revealed', 'tcg-shiny');
+        card.classList.remove('tcg-revealed', 'tcg-shiny', 'tcg-legendary');
         ShinyCard4D.disable();
         card.style.border = '';
         card.style.boxShadow = '';
@@ -5627,6 +7256,9 @@
         if (inner) inner.style.background = '';
         card.querySelectorAll('.tcg-reveal-only').forEach(el => { el.setAttribute('aria-hidden', 'true'); });
         $('tcgMoves').innerHTML = '';
+        $('tcgBackMoves') && ($('tcgBackMoves').innerHTML = '');
+        $('tcgBackFlavor').textContent = '';
+        $('tcgBackDescription').textContent = '';
         $('tcgFlavor').textContent = '';
         $('tcgDescription').textContent = '';
         $('tcgMetaBar').textContent = '';
@@ -5661,8 +7293,8 @@
         el.textContent = `NO. ${meta.dex} ${meta.genus}  ${formatDexHeight(meta.height)}  ${formatDexWeight(meta.weight)}`;
       },
 
-      renderStatsBar(pokemon) {
-        const el = $('tcgStatsBar');
+      renderStatsBar(pokemon, targetId = 'tcgStatsBar') {
+        const el = $(targetId);
         if (!el) return;
         const type = this.primaryType(pokemon);
         const weak = TCG_TYPE_WEAKNESS[type];
@@ -5678,6 +7310,23 @@
           const primary = HERO_FLAVOR[pokemon.id] || `${pokemon.name} joined Kyrie's birthday arena!`;
           const secondary = `A legendary guest at Kyrie's 5th birthday party — ${pokemon.name} brings arena power and party spirit wherever it goes!`;
           return { flavor: primary, description: secondary };
+        }
+        if (pokemon.isLegendary) {
+          const tierLine = LEGENDARY_FLAVOR[pokemon.legendaryTier] || LEGENDARY_FLAVOR.legendary;
+          try {
+            const data = await pokeFetch(`/pokemon-species/${pokemon.id}`);
+            const entries = [...new Set((data.flavor_text_entries || [])
+              .filter(e => e.language?.name === 'en')
+              .map(e => e.flavor_text.replace(/\f/g, ' ').replace(/\s+/g, ' ').trim())
+              .filter(Boolean))];
+            if (entries.length) {
+              return { flavor: shuffleArray(entries)[0], description: tierLine };
+            }
+          } catch { /* fallback */ }
+          return {
+            flavor: `${pokemon.name} is said to appear only once in a lifetime — today's your lucky day!`,
+            description: tierLine,
+          };
         }
         try {
           const data = await pokeFetch(`/pokemon-species/${pokemon.id}`);
@@ -5753,8 +7402,7 @@
         return Array.from({ length: count }, () => typeBadgeHtml(type)).join('');
       },
 
-      renderMoves(moves) {
-        const el = $('tcgMoves');
+      renderMoves(moves, el = $('tcgMoves')) {
         if (!el) return;
         el.innerHTML = moves.map(m => `
           <div class="tcg-move-row">
@@ -5774,19 +7422,29 @@
         $('tcgCardName').textContent = pokemon.name.toUpperCase();
         $('tcgCardHp').textContent = pokemon.hp || 70;
 
-        const [moves, lore, meta] = await Promise.all([
+        const [moves, lore, meta, evo] = await Promise.all([
           this.pickTypeMoves(pokemon, 2),
           this.fetchCardLore(pokemon),
           this.fetchSpeciesMeta(pokemon),
+          this.fetchEvolutionInfo(pokemon),
         ]);
         if (stale()) return;
 
         this.applyTheme(pokemon, { revealed: true });
+        this.renderStageLabel(evo);
         this.renderMoves(moves);
         this.renderMetaBar(meta);
         this.renderStatsBar(pokemon);
         $('tcgFlavor').textContent = lore.flavor;
         $('tcgDescription').textContent = lore.description;
+
+        if (evo?.isEvolution && evo.preEvolution) {
+          await this.renderBackFace(evo.preEvolution, pokemon.name);
+          if (stale()) return;
+          this.setupEvolutionFlip(pokemon, evo);
+        } else {
+          this.resetEvolutionFlip();
+        }
 
         if (stale()) return;
         card.classList.add('tcg-revealed');
@@ -5964,6 +7622,11 @@
 
       handleHost(e) {
         const { code } = e;
+
+        if (this.overlayOpen('randomDuelOverlay')) {
+          this.prevent(e);
+          return;
+        }
 
         if (this.overlayOpen('battleVictoryOverlay')) {
           if (this.isActionKey(code) || code === 'Escape') {
@@ -6180,7 +7843,11 @@
       init() {
         if (ROLE !== 'host' || this.bound) return;
         this.bound = true;
-        $('manualScoreToggle')?.addEventListener('click', () => this.toggle());
+        const toggle = $('manualScoreToggle');
+        if (toggle && window.matchMedia('(min-width: 640px)').matches) {
+          toggle.hidden = false;
+        }
+        toggle?.addEventListener('click', () => this.toggle());
         $('manualScoreClose')?.addEventListener('click', () => this.close());
         $('manualScoreAddBtn')?.addEventListener('click', () => this.addPlayer());
         $('manualScoreNameInput')?.addEventListener('keydown', e => {
@@ -6291,6 +7958,21 @@
     const HostGame = {
       revealBusy: false,
       revealing: false,
+      shinyRevealGen: 0,
+
+      /** Stop in-flight shiny takeover / cry when advancing to next round */
+      cancelShinyCelebration() {
+        this.shinyRevealGen++;
+        ShinyTakeover.restore();
+      },
+
+      async runShinyCelebration(pokemon, token, revealGen) {
+        $('typeBadge').textContent = `${$('typeBadge').textContent} ✨ SHINY!`;
+        await ShinyTakeover.run();
+        if (token !== this.shinyRevealGen || revealGen !== TCGCard.revealGen) return;
+        await AudioEngine.onReveal(pokemon, { cryMaxMs: 3500 });
+        if (token !== this.shinyRevealGen || revealGen !== TCGCard.revealGen) return;
+      },
 
       setRoundControls(enabled, label) {
         const btn = $('actionBtn');
@@ -6325,11 +8007,17 @@
         sync?.pushState(this.getSyncPayload('lobby'));
 
         $('actionBtn').onclick = () => {
-          if (HostGame.revealBusy || HostGame.revealing) return;
-          state.isRevealed ? this.nextRound() : this.reveal();
+          if (RandomDuel.active) return;
+          if (state.isRevealed) {
+            if (this.revealBusy) return;
+            this.nextRound();
+            return;
+          }
+          if (this.revealBusy || this.revealing) return;
+          this.reveal();
         };
         $('bossBtn').onclick = async () => {
-          if (!state.isRevealed || ArenaRoyale.active || !ArenaScheduler.canSchedule()) return;
+          if (!state.isRevealed || ArenaRoyale.active || RandomDuel.active || !ArenaScheduler.canSchedule()) return;
           const btn = $('bossBtn');
           btn.disabled = true;
           btn.textContent = 'ENTERING ARENA…';
@@ -6350,8 +8038,15 @@
           const btn = $('bossBtn');
           if (btn) { btn.disabled = false; btn.textContent = '⚔️ ENTER ARENA ROYALE!'; }
         });
-        $('battleSkipBtn').onclick = () => ArenaRoyale.end(true);
-        $('battleVictoryBtn').onclick = () => ArenaRoyale.end(true);
+        $('battleSkipBtn').onclick = () => {
+          if (ArenaRoyale.phase === 'combat' && ArenaRoyale.turn > 0) {
+            ArenaRoyale.crownWinner(ArenaRoyale.pickHpLeader());
+          } else {
+            ArenaRoyale.abortStart();
+            HostGame.continueAfterArena();
+          }
+        };
+        $('battleVictoryBtn').onclick = () => HostGame.continueAfterArena();
         $('quitBtn').onclick = () => this.quit();
         AudioEngine.updateMusicSwitcherLabel();
         $('playAgainBtn').onclick = () => {
@@ -6375,6 +8070,18 @@
       },
 
       getSyncPayload(phaseOverride, opts = {}) {
+        if (RandomDuel.active) {
+          RandomDuel.syncState();
+          return {
+            phase: 'random_duel',
+            round: state.currentRound,
+            randomDuel: { ...state.randomDuel },
+            leaderboard: Leaderboard.toPayload(),
+            roomId: ROOM_ID,
+            revealedName: state.isRevealed ? state.currentPokemon?.name : null,
+            ts: Date.now(),
+          };
+        }
         if (state.arena?.active || ArenaRoyale.battleModeActive || ArenaRoyale.lobbyOpen) {
           ArenaRoyale.syncState();
           return {
@@ -6420,7 +8127,7 @@
         if (!btn) return;
         const left = ArenaScheduler.remaining();
         const isSlot = state.isRevealed && ArenaScheduler.isTriggerRound(state.currentRound);
-        if (!left || !isSlot || ArenaRoyale.active) {
+        if (!left || !isSlot || ArenaRoyale.active || RandomDuel.active) {
           btn.classList.add('hidden');
           return;
         }
@@ -6454,14 +8161,39 @@
 
       renderTypeGrid() {
         $('typeGrid').innerHTML = TYPE_OPTIONS.map(t => `
-          <button type="button" data-type="${t.id}" class="type-btn pointer-events-auto ui-interactive flex flex-col items-center justify-center gap-1 bg-gradient-to-br ${t.color} ${t.border} border-2 rounded-xl shadow-lg">
+          <button type="button" data-type="${t.id}" class="type-btn type-card-bg type-card-bg--${t.id} pointer-events-auto ui-interactive flex flex-col items-center justify-center gap-1 ${t.border} border-2 rounded-xl shadow-lg">
             <span class="type-btn-emoji">${t.emoji}</span>
-            <span class="type-btn-label font-arcade text-white drop-shadow-md">${t.label}</span>
+            <span class="type-btn-label font-arcade text-white">${t.label}</span>
           </button>`).join('');
         $('typeGrid').querySelectorAll('[data-type]').forEach(b => b.onclick = () => this.pickType(b.dataset.type));
       },
 
       /** Dismiss audio gate + start game — type buttons must work even if entry overlay visible */
+      async continueAfterArena() {
+        if (this.revealBusy) return;
+        AudioEngine.playClick();
+        ArenaRoyale.end(false);
+        this.revealBusy = true;
+        try {
+          showHostScreen('loading');
+          $('loadingStatus').textContent = '🎲 All Types — Who\'s that Pokémon?!';
+          state.selectedType = 'all';
+          state.isRevealed = false;
+          state.arena = null;
+          state.voteRecords = [];
+          await RoundDeck.init('all');
+          showHostScreen('game');
+          await this.loadNextRound();
+          AudioEngine.fadeBgm(CONFIG.VOL.ROUND, 450);
+        } catch (err) {
+          console.error('[HostGame] continueAfterArena', err);
+          $('loadingStatus').textContent = err.message || 'Could not resume game';
+          setTimeout(() => showHostScreen('start'), 2500);
+        } finally {
+          this.revealBusy = false;
+        }
+      },
+
       async pickType(typeId) {
         const overlay = $('entryOverlay');
         if (overlay && !overlay.classList.contains('dismissed')) {
@@ -6475,7 +8207,7 @@
       async startGame(typeId) {
         AudioEngine.playClick();
         ArenaScheduler.reset();
-        state = { selectedType: typeId, currentPokemon: null, currentRound: -1, isRevealed: false, choices: [], voteRecords: [], arena: null };
+        state = { selectedType: typeId, currentPokemon: null, currentRound: -1, isRevealed: false, choices: [], voteRecords: [], arena: null, randomDuel: null };
         showHostScreen('loading');
         $('loadingStatus').textContent = `Loading ${TYPE_OPTIONS.find(t=>t.id===typeId)?.label ?? typeId} Pokémon…`;
         try {
@@ -6490,6 +8222,7 @@
       },
 
       async loadNextRound() {
+        this.cancelShinyCelebration();
         this.revealBusy = false;
         TCGCard.revealGen++;
         state.currentRound++;
@@ -6502,10 +8235,18 @@
         state.choices = await buildChoices(pokemon, RoundDeck.wrongAnswerPool(pokemon));
 
         $('typeBadge').textContent = `${typeLabel} · ${pokemon.types.join(' / ')}`;
+        $('typeBadge').classList.toggle('legendary-badge', !!pokemon.isLegendary);
         $('pokemonName').classList.add('hidden');
         $('pokemonName').classList.remove('name-pop');
-        $('guessHint').classList.remove('hidden');
-        $('guessHint').textContent = "Who's that Pokémon?!";
+        $('guessHint').classList.remove('hidden', 'legendary-tease');
+        if (pokemon.isLegendary) {
+          const tierTag = pokemon.legendaryTier === 'mythical' ? 'MYTHICAL' : 'LEGENDARY';
+          $('guessHint').textContent = `👑 A ${tierTag} Pokémon approaches… Who's that Pokémon?!`;
+          $('guessHint').classList.add('legendary-tease');
+          $('typeBadge').textContent = `👑 ${tierTag} · ${pokemon.types.join(' / ')}`;
+        } else {
+          $('guessHint').textContent = "Who's that Pokémon?!";
+        }
         this.setRoundControls(true, 'REVEAL!');
         $('actionBtn').classList.remove('next-btn');
         $('bossBtn').classList.add('hidden');
@@ -6566,16 +8307,17 @@
         if (!pokemon) { this.revealBusy = false; this.revealing = false; return; }
         const revealGen = TCGCard.revealGen;
         const correctName = pokemon.name;
+        let revealCompleted = false;
 
         try {
           AudioEngine.playClick();
-          this.setRoundControls(false, pokemon.isShiny ? '✨ SHINY REVEAL…' : 'REVEALING…');
+          this.setRoundControls(false, pokemon.isShiny ? '✨ SHINY REVEAL…' : (pokemon.isLegendary ? '👑 LEGENDARY REVEAL…' : 'REVEALING…'));
 
           Leaderboard.scoreRound(state.voteRecords, correctName);
           Leaderboard.render();
           this.broadcast();
 
-          launchConfetti();
+          launchConfetti(pokemon.isLegendary ? 120 : 80);
           $('revealFlash').classList.remove('reveal-flash');
           void $('revealFlash').offsetWidth;
           $('revealFlash').classList.add('reveal-flash');
@@ -6598,37 +8340,56 @@
           await TCGCard.reveal(pokemon, revealGen);
           if (revealGen !== TCGCard.revealGen) return;
 
-          if (pokemon.isShiny) {
-            $('typeBadge').textContent = `${$('typeBadge').textContent} ✨ SHINY!`;
-            await ShinyTakeover.run();
-            if (revealGen !== TCGCard.revealGen) return;
+          if (pokemon.isLegendary) {
+            const crown = pokemon.legendaryTier === 'mythical' ? '🌟 MYTHICAL!' : '👑 LEGENDARY!';
+            $('typeBadge').textContent = `${$('typeBadge').textContent} ${crown}`;
           }
 
-          await AudioEngine.onReveal(pokemon);
-          if (revealGen !== TCGCard.revealGen) return;
-
+          /* Enable NEXT immediately — shiny takeover + cry run in background */
           state.isRevealed = true;
+          revealCompleted = true;
           $('actionBtn').textContent = 'NEXT POKÉMON →';
           $('actionBtn').classList.add('next-btn');
           this.updateArenaButton();
-          if (ArenaScheduler.isTriggerRound(state.currentRound) && ArenaScheduler.canSchedule()) {
-            setTimeout(() => {
-              if (state.isRevealed && !ArenaRoyale.active) ArenaRoyale.openLobby({ auto: true });
-            }, 1500);
-          }
           this.setRoundControls(true);
           this.broadcast();
+
+          if (pokemon.isShiny) {
+            const token = ++this.shinyRevealGen;
+            void this.runShinyCelebration(pokemon, token, revealGen);
+          } else {
+            await AudioEngine.onReveal(pokemon);
+            if (revealGen !== TCGCard.revealGen) return;
+          }
+
+          if (ArenaScheduler.isTriggerRound(state.currentRound) && ArenaScheduler.canSchedule()) {
+            setTimeout(() => {
+              if (state.isRevealed && !ArenaRoyale.active && !RandomDuel.active && ArenaRoyale.gamePlayerCount() > 1) {
+                ArenaRoyale.openLobby({ auto: true });
+              }
+            }, 1500);
+          }
         } finally {
           this.revealing = false;
           this.revealBusy = false;
+          if (!revealCompleted && !state.isRevealed) {
+            this.setRoundControls(true, 'REVEAL!');
+            $('actionBtn')?.classList.remove('next-btn');
+          }
         }
       },
 
       async nextRound() {
-        if (!state.isRevealed || this.revealBusy) return;
+        if (!state.isRevealed || this.revealBusy || RandomDuel.active) return;
+        this.cancelShinyCelebration();
+        AudioEngine.playClick();
+        /* 30% mid-game duel matrix — evaluated every NEXT click when ≥2 leaderboard players */
+        if (RandomDuel.shouldTriggerOnNext()) {
+          await RandomDuel.start();
+          return;
+        }
         this.revealBusy = true;
         this.setRoundControls(false, 'LOADING…');
-        AudioEngine.playClick();
         try {
           await this.loadNextRound();
         } finally {
@@ -6638,10 +8399,11 @@
 
       quit() {
         AudioEngine.returnToLobby();
+        if (RandomDuel.active) RandomDuel.end(true);
         Leaderboard.reset();
         ArenaScheduler.reset();
         RoundDeck.reset();
-        state = { selectedType: null, currentPokemon: null, currentRound: -1, isRevealed: false, choices: [], voteRecords: [], arena: null };
+        state = { selectedType: null, currentPokemon: null, currentRound: -1, isRevealed: false, choices: [], voteRecords: [], arena: null, randomDuel: null };
         showHostScreen('start');
         sync?.pushState(this.getSyncPayload('lobby', { resetScores: true }));
         QR.renderAll();
@@ -6707,6 +8469,8 @@
           if (e.code === 'Enter') this.submitName();
         });
         this.bindVoteDelegation();
+        this.bindDraftDelegation();
+        this.bindBattleDelegation();
       },
 
       bindVoteDelegation() {
@@ -6736,6 +8500,147 @@
         container.addEventListener('touchend', (e) => {
           if (e.target.closest('button[data-idx]')) e.preventDefault();
           pickVote(e);
+        }, { passive: false });
+      },
+
+      bindDraftDelegation() {
+        if (this._draftBound) return;
+        const cards = $('draftPokemonCards');
+        const lockBtn = $('playerDraftLockBtn');
+        if (!cards) return;
+        this._draftBound = true;
+
+        const pickCard = (e) => {
+          const btn = e.target.closest('.draft-pokemon-card[data-id]');
+          if (!btn || btn.disabled) return;
+          const payload = this.remote;
+          const isRandomDuel = payload?.phase === 'random_duel';
+          const arena = payload?.arena;
+          const duel = payload?.randomDuel;
+          if (isRandomDuel) {
+            if (!duel || duel.phase !== 'draft' || !duel.duelistIds?.includes(voterId)) return;
+            if (duel.combatants?.[voterId]?.locked) return;
+            if (!playerName) return;
+            const id = +btn.dataset.id;
+            const draftKey = `duel-draft-${ROOM_ID}-${payload.round ?? 0}`;
+            if (sessionStorage.getItem(draftKey)) return;
+            sessionStorage.setItem(draftKey, String(id));
+            sync?.sendDraftPick(id);
+            cards.querySelectorAll('.draft-pokemon-card').forEach(b => { b.disabled = true; b.classList.add('opacity-50'); });
+            btn.classList.add('locked');
+            $('playerDraftStepLock')?.classList.remove('active');
+            $('playerDraftStatus').textContent = '✓ Fighter locked!';
+            lockBtn?.classList.add('hidden');
+            AudioEngine.playClick();
+            return;
+          }
+          if (!arena || (arena.phase !== 'draft' && arena.phase !== 'lobby_countdown')) return;
+          const lockKey = `draft-lock-${ROOM_ID}-${payload.round ?? 0}`;
+          if (arena.entrants?.[voterId]?.locked || sessionStorage.getItem(lockKey)) return;
+          if (!playerName) return;
+          const id = +btn.dataset.id;
+          const draftKey = `draft-pick-${ROOM_ID}-${payload.round ?? 0}`;
+          sessionStorage.setItem(draftKey, String(id));
+          sync?.sendDraftPick(id);
+          cards.querySelectorAll('.draft-pokemon-card').forEach(b => b.classList.remove('locked'));
+          btn.classList.add('locked');
+          $('playerDraftStepLock')?.classList.add('active');
+          $('playerDraftStatus').textContent = '✓ Tap LOCK IN';
+          lockBtn?.classList.remove('hidden');
+          lockBtn.disabled = false;
+          AudioEngine.playClick();
+        };
+        cards.addEventListener('click', pickCard);
+        cards.addEventListener('touchend', (e) => {
+          if (e.target.closest('.draft-pokemon-card[data-id]')) e.preventDefault();
+          pickCard(e);
+        }, { passive: false });
+
+        lockBtn?.addEventListener('click', () => {
+          const payload = this.remote;
+          const arena = payload?.arena;
+          if (!arena || !playerName) return;
+          const draftKey = `draft-pick-${ROOM_ID}-${payload.round ?? 0}`;
+          const lockKey = `draft-lock-${ROOM_ID}-${payload.round ?? 0}`;
+          const pickedId = +(sessionStorage.getItem(draftKey) || 0);
+          if (!pickedId || sessionStorage.getItem(lockKey)) return;
+          sessionStorage.setItem(lockKey, String(pickedId));
+          sync?.sendArenaLock(pickedId);
+          $('playerDraftStatus').textContent = '✓ Locked!';
+          lockBtn.classList.add('hidden');
+          AudioEngine.playClick();
+        });
+      },
+
+      bindBattleDelegation() {
+        if (this._battleBound) return;
+        const targets = $('battleTargetButtons');
+        const moves = $('battleMoveButtons');
+        if (!targets || !moves) return;
+        this._battleBound = true;
+
+        const pickTarget = (e) => {
+          const btn = e.target.closest('.arena-target-card[data-target]');
+          if (!btn) return;
+          const payload = this.remote;
+          const arena = payload?.arena;
+          if (!arena || arena.isVotingLocked || arena.phase !== 'combat') return;
+          const turn = arena.turn;
+          const targetKey = `battle-target-${ROOM_ID}-${turn}`;
+          if (sessionStorage.getItem(targetKey)) return;
+          if (!playerName) return;
+          sessionStorage.setItem(targetKey, btn.dataset.target);
+          this.battleTargetId = btn.dataset.target;
+          AudioEngine.playClick();
+          this.renderBattleButtons(payload);
+        };
+        targets.addEventListener('click', pickTarget);
+        targets.addEventListener('touchend', (e) => {
+          if (e.target.closest('.arena-target-card[data-target]')) e.preventDefault();
+          pickTarget(e);
+        }, { passive: false });
+
+        const pickMove = (e) => {
+          const btn = e.target.closest('.arena-move-chip[data-idx]');
+          if (!btn || btn.disabled) return;
+          const payload = this.remote;
+          const isRandomDuel = payload?.phase === 'random_duel';
+          const arena = payload?.arena;
+          const duel = payload?.randomDuel;
+          if (isRandomDuel) {
+            if (!duel || duel.isVotingLocked || duel.phase !== 'combat') return;
+            const turn = duel.turn;
+            const moveKey = `duel-battle-${ROOM_ID}-${turn}`;
+            if (sessionStorage.getItem(moveKey) !== null) return;
+            if (!playerName) return;
+            const idx = +btn.dataset.idx;
+            sessionStorage.setItem(moveKey, String(idx));
+            sync?.sendBattleVote(idx, turn, null);
+            $('playerBattleStatus').textContent = '✓ Locked!';
+            moves.querySelectorAll('.arena-move-chip').forEach(b => { b.disabled = true; });
+            btn.classList.add('selected');
+            AudioEngine.playClick();
+            return;
+          }
+          if (!arena || arena.isVotingLocked || arena.phase !== 'combat') return;
+          const turn = arena.turn;
+          const targetKey = `battle-target-${ROOM_ID}-${turn}`;
+          const moveKey = `battle-${ROOM_ID}-${turn}`;
+          const savedTarget = sessionStorage.getItem(targetKey);
+          if (!savedTarget || sessionStorage.getItem(moveKey) !== null) return;
+          if (!playerName) return;
+          const idx = +btn.dataset.idx;
+          sessionStorage.setItem(moveKey, String(idx));
+          sync?.sendBattleVote(idx, turn, savedTarget);
+          $('playerBattleStatus').textContent = '✓ Locked!';
+          moves.querySelectorAll('.arena-move-chip').forEach(b => { b.disabled = true; });
+          btn.classList.add('selected');
+          AudioEngine.playClick();
+        };
+        moves.addEventListener('click', pickMove);
+        moves.addEventListener('touchend', (e) => {
+          if (e.target.closest('.arena-move-chip[data-idx]')) e.preventDefault();
+          pickMove(e);
         }, { passive: false });
       },
 
@@ -6796,6 +8701,50 @@
           return;
         }
 
+        if (payload.phase === 'random_duel' && payload.randomDuel?.active) {
+          const duel = payload.randomDuel;
+          const isDuelist = duel.duelistIds?.includes(voterId);
+          const specMsg = duel.spectatorMsg
+            || `${duel.trainerA?.playerName || 'Trainer A'} and ${duel.trainerB?.playerName || 'Trainer B'} are dueling! Watch the main screen!`;
+
+          if ((duel.phase === 'draft' || duel.phase === 'trigger') && isDuelist) {
+            showPlayerScreen('draft');
+            this.renderRandomDuelDraft(payload);
+            return;
+          }
+          if ((duel.phase === 'draft' || duel.phase === 'trigger') && !isDuelist) {
+            showPlayerScreen('spectator');
+            $('playerSpectatorMsg').innerHTML = `<span class="spectator-duelists">${escapeHtml(duel.trainerA?.playerName || 'Trainer A')} and ${escapeHtml(duel.trainerB?.playerName || 'Trainer B')}</span> are dueling! Watch the main screen!`;
+            return;
+          }
+          if (duel.isVotingLocked || duel.phase === 'animating') {
+            showPlayerScreen(isDuelist ? 'locked' : 'spectator');
+            if (isDuelist) $('playerLockedMsg').textContent = duel.crowdMessage || duel.duelLog || '⚔️ Resolving…';
+            else $('playerSpectatorMsg').textContent = specMsg;
+            return;
+          }
+          if (duel.phase === 'combat' && isDuelist) {
+            showPlayerScreen('battle');
+            this.renderRandomDuelBattle(payload);
+            return;
+          }
+          if (duel.phase === 'combat' && !isDuelist) {
+            showPlayerScreen('spectator');
+            $('playerSpectatorMsg').textContent = specMsg;
+            return;
+          }
+          if (duel.phase === 'victory') {
+            showPlayerScreen('spectator');
+            $('playerSpectatorMsg').textContent = duel.winner
+              ? `🏆 ${duel.winner.playerName} wins the duel! (+${CONFIG.DUEL_WIN_POINTS} pts)`
+              : 'Duel complete — back to the quiz!';
+            return;
+          }
+          showPlayerScreen('spectator');
+          $('playerSpectatorMsg').textContent = specMsg;
+          return;
+        }
+
         if ((payload.battleModeActive || payload.arena?.active) && payload.phase === 'arena_royale' && payload.arena) {
           const arena = payload.arena;
           if (arena.phase === 'lobby' && arena.lobbyOpen) {
@@ -6833,6 +8782,10 @@
             showPlayerScreen('battle');
             $('playerBattleLabel').textContent = `Turn ${arena.turn} — pick a move!`;
             this.renderBattleButtons(payload);
+            return;
+          }
+          if (arena.phase === 'victory') {
+            this.renderArenaResults(payload);
             return;
           }
           showPlayerScreen('locked');
@@ -6876,7 +8829,7 @@
           $('playerLockedJoinArenaBtn')?.classList.add('hidden');
           if (payload.votingOpen) {
             showPlayerScreen('vote');
-            $('playerRoundLabel').textContent = 'Tap your guess!';
+            $('playerRoundLabel').textContent = `Round ${(payload.round ?? 0) + 1} · All Types`;
             this.renderVoteButtons(payload);
             if (this.votedRound === payload.round) {
               $('playerVoteStatus').textContent = '✓ Vote locked in!';
@@ -6927,73 +8880,112 @@
           const secs = arena.lobbyCountdownEndsAt
             ? Math.max(0, Math.ceil((arena.lobbyCountdownEndsAt - Date.now()) / 1000))
             : arena.timer ?? CONFIG.ARENA_LOBBY_COUNTDOWN_SEC;
-          $('playerDraftTimer').textContent = `⏰ Match starts in ${secs}s!`;
+          $('playerDraftTimer').textContent = `⏰ ${secs}s`;
         } else {
-          $('playerDraftTimer').textContent = 'Pick your fighter — then Accept & Lock!';
+          $('playerDraftTimer').textContent = pickedId ? 'Confirm your pick' : 'Tap a fighter';
         }
 
         if (!options.length) {
-          container.innerHTML = '<p class="text-blue-200 text-center">Waiting for draft cards from host…</p>';
+          container.innerHTML = '<p class="text-blue-200 text-center col-span-full text-3xl py-8">⏳</p>';
           lockBtn?.classList.add('hidden');
           $('playerDraftStatus').textContent = '';
           return;
         }
 
-        container.innerHTML = options.map(p => {
-          const isPicked = pickedId === p.id;
-          return `<button type="button" class="draft-pokemon-card${isPicked ? ' locked' : ''}" data-id="${p.id}" ${isLocked ? 'disabled' : ''}>
-            <img class="img-pending" src="${escapeHtml(p.artwork)}" alt="" draggable="false" />
-            <div class="text-left">
-              <p class="draft-name">${escapeHtml(p.name)}</p>
-              <p class="draft-types">${escapeHtml((p.types || []).join(' · '))}</p>
-            </div>
-          </button>`;
-        }).join('');
+        container.innerHTML = options.map(p =>
+          ArenaUX.draftCardHtml(p, { picked: pickedId === p.id, disabled: isLocked })
+        ).join('');
+        ArenaUX.bindSprites(container);
 
-        container.querySelectorAll('img').forEach((img, i) => {
-          const p = options[i];
-          if (!p) return;
-          bindSafeImageLoad(img, [
-            Pokedex.fallbackSpriteUrl(p.id),
-            `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/home/${p.id}.png`,
-          ]);
-        });
-
+        const stepLock = $('playerDraftStepLock');
+        stepLock?.classList.remove('hidden');
         if (isLocked) {
           lockBtn?.classList.add('hidden');
-          $('playerDraftStatus').textContent = '✓ Accept & Lock confirmed!';
+          stepLock?.classList.add('done');
+          $('playerDraftStatus').textContent = '✓ Ready!';
           return;
         }
 
         if (pickedId) {
           lockBtn?.classList.remove('hidden');
           lockBtn.disabled = false;
-          lockBtn.onclick = () => {
-            if (!playerName) return;
-            sessionStorage.setItem(lockKey, String(pickedId));
-            sync?.sendArenaLock(pickedId);
-            $('playerDraftStatus').textContent = '✓ Locked in!';
-            lockBtn.classList.add('hidden');
-            AudioEngine.playClick();
-          };
-          $('playerDraftStatus').textContent = 'Tap Accept & Lock to confirm!';
+          stepLock?.classList.add('active');
+          $('playerDraftStatus').textContent = $('playerDraftStatus').textContent || '✓ Tap LOCK IN';
         } else {
           lockBtn?.classList.add('hidden');
-          container.querySelectorAll('.draft-pokemon-card').forEach(btn => {
-            btn.onclick = () => {
-              if (!playerName) return;
-              const id = +btn.dataset.id;
-              sessionStorage.setItem(draftKey, String(id));
-              sync?.sendDraftPick(id);
-              $('playerDraftStatus').textContent = 'Fighter selected — confirm below!';
-              container.querySelectorAll('button').forEach(b => b.classList.remove('locked'));
-              btn.classList.add('locked');
-              AudioEngine.playClick();
-              this.renderDraftCards(payload);
-            };
-          });
-          $('playerDraftStatus').textContent = 'Tap your Pokémon!';
+          stepLock?.classList.remove('active', 'done');
+          $('playerDraftStatus').textContent = '';
         }
+      },
+
+      /** Random 1v1 — 10s rapid draft; tap card = instant lock */
+      renderRandomDuelDraft(payload) {
+        const duel = payload.randomDuel;
+        const options = duel?.draftOptions?.[voterId] || [];
+        const container = $('draftPokemonCards');
+        const lockBtn = $('playerDraftLockBtn');
+        const draftKey = `duel-draft-${ROOM_ID}-${payload.round ?? 0}`;
+        const isLocked = duel?.combatants?.[voterId]?.locked || sessionStorage.getItem(draftKey) !== null;
+        const pickedId = duel?.combatants?.[voterId]?.pokemon?.id
+          ?? (sessionStorage.getItem(draftKey) ? +sessionStorage.getItem(draftKey) : null);
+
+        const secs = duel?.draftEndsAt
+          ? Math.max(0, Math.ceil((duel.draftEndsAt - Date.now()) / 1000))
+          : duel?.timer ?? CONFIG.DUEL_DRAFT_SEC;
+        $('playerDraftTimer').textContent = `⚡ ${secs}s — pick NOW!`;
+        lockBtn?.classList.add('hidden');
+        $('playerDraftStepLock')?.classList.add('hidden');
+
+        if (!options.length) {
+          container.innerHTML = '<p class="text-blue-200 text-center col-span-full text-3xl py-8">⏳</p>';
+          $('playerDraftStatus').textContent = 'Loading fighters…';
+          return;
+        }
+
+        container.innerHTML = options.map(p =>
+          ArenaUX.draftCardHtml(p, { picked: pickedId === p.id, disabled: isLocked })
+        ).join('');
+        ArenaUX.bindSprites(container);
+        $('playerDraftStatus').textContent = isLocked ? '✓ Fighter locked!' : 'Tap a Pokémon — you have 10 seconds!';
+      },
+
+      /** Random 1v1 — move-only UI (opponent is fixed) */
+      renderRandomDuelBattle(payload) {
+        const duel = payload.randomDuel;
+        const me = duel?.combatants?.[voterId];
+        const moves = me?.moves || [];
+        const moveContainer = $('battleMoveButtons');
+        const targetContainer = $('battleTargetButtons');
+        const steps = $('playerBattleSteps');
+
+        if (duel?.isVotingLocked) {
+          showPlayerScreen('locked');
+          $('playerLockedMsg').textContent = duel.crowdMessage || '⚔️ Resolving…';
+          return;
+        }
+
+        const turn = duel.turn;
+        const moveKey = `duel-battle-${ROOM_ID}-${turn}`;
+        const savedMove = sessionStorage.getItem(moveKey);
+        const alreadyVoted = savedMove !== null;
+        const oppId = duel.duelistIds?.find(id => id !== voterId);
+        const opp = oppId ? duel.combatants?.[oppId] : null;
+
+        showPlayerScreen('battle');
+        $('playerBattleLabel').textContent = `Turn ${turn} — pick your move!`;
+        steps?.classList.add('hidden');
+        targetContainer.innerHTML = opp
+          ? `<div class="arena-target-locked">
+              <img class="img-pending" data-pid="${opp.pokemon?.id}" src="${escapeHtml(opp.pokemon?.artwork || '')}" alt="" draggable="false" />
+              <span class="target-label">vs ${escapeHtml(opp.playerName)}</span>
+            </div>`
+          : '';
+        ArenaUX.bindSprites(targetContainer);
+
+        moveContainer.innerHTML = `<div class="arena-move-grid">${moves.map((name, i) =>
+          ArenaUX.moveChipHtml(name, i, me?.pokemon?.types, { selected: +savedMove === i, disabled: alreadyVoted })
+        ).join('')}</div>`;
+        $('playerBattleStatus').textContent = alreadyVoted ? '✓ Locked!' : 'Tap a move to attack!';
       },
 
       updateArenaJoinPrompt(payload) {
@@ -7011,15 +9003,38 @@
         }
       },
 
+      renderArenaResults(payload) {
+        showPlayerScreen('arenaResults');
+        const arena = payload.arena || {};
+        const w = arena.winner;
+        const headline = arena.resultHeadline || (w ? `🏆 ${w.playerName} wins!` : 'Arena Complete!');
+        $('playerArenaResultHeadline').textContent = w?.voterId === voterId
+          ? '🏆 You won the Arena!'
+          : headline;
+        $('playerArenaResultMsg').textContent = arena.resultMsg
+          || (w ? `${w.pokemonName || 'Pokémon'} claims the crown!` : '');
+        const el = $('playerArenaResultScores');
+        const top = (payload.leaderboard || []).slice(0, 6);
+        el.innerHTML = top.length
+          ? top.map((e, i) => {
+              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+              const you = e.voterId === voterId ? ' in-fight' : '';
+              return `<span class="arena-score-pill${you}"><span class="score-medal">${medal}</span>
+                <span>${escapeHtml(e.playerName)}</span><span class="score-num">${e.score}</span></span>`;
+            }).join('')
+          : '<p class="text-blue-300/70 text-sm">Scores updating…</p>';
+      },
+
       renderBattleButtons(payload) {
         const moveContainer = $('battleMoveButtons');
         const targetContainer = $('battleTargetButtons');
+        const steps = $('playerBattleSteps');
         const arena = payload.arena;
         const me = arena?.combatants?.[voterId];
         const moves = me?.moves || [];
         if (arena?.isVotingLocked) {
           showPlayerScreen('locked');
-          $('playerLockedMsg').textContent = arena.crowdMessage || 'Combat resolving…';
+          $('playerLockedMsg').textContent = arena.crowdMessage || '⚔️';
           return;
         }
 
@@ -7035,70 +9050,56 @@
 
         if (!targets.length) {
           showPlayerScreen('locked');
-          $('playerLockedMsg').textContent = 'No opponents left — cheer for allies!';
+          $('playerLockedMsg').textContent = '🏆';
           return;
         }
 
         showPlayerScreen('battle');
-        $('playerBattleLabel').textContent = `Turn ${turn} — pick who to attack!`;
+        $('playerBattleLabel').textContent = `Turn ${turn}`;
+
+        const setSteps = (phase) => {
+          steps?.querySelectorAll('.arena-step').forEach(s => {
+            const st = s.dataset.step;
+            s.classList.toggle('active', st === phase);
+            s.classList.toggle('done', (st === 'target' && savedTarget) || (st === 'move' && savedMove !== null));
+          });
+        };
 
         if (!savedTarget) {
-          targetContainer.innerHTML = targets.map(t => `
-            <button type="button" data-target="${escapeHtml(t.voterId)}"
-              class="vote-btn pointer-events-auto w-full py-4 px-4 rounded-2xl border-4 border-orange-300/50 font-arcade text-lg text-white
-                     bg-gradient-to-r from-orange-600 to-red-600 shadow-lg">
-              ⚔️ ${escapeHtml(t.playerName)} <span class="text-sm opacity-80">(${escapeHtml(t.pokemon.name)})</span>
-            </button>`).join('');
-          moveContainer.innerHTML = '<p class="text-center text-blue-200 text-sm py-4">Step 1: Choose your opponent</p>';
-          targetContainer.querySelectorAll('[data-target]').forEach(btn => {
-            btn.onclick = () => {
-              sessionStorage.setItem(targetKey, btn.dataset.target);
-              this.battleTargetId = btn.dataset.target;
-              AudioEngine.playClick();
-              this.renderBattleButtons(payload);
-            };
-          });
-          $('playerBattleStatus').textContent = 'Who do you attack?';
+          setSteps('target');
+          targetContainer.innerHTML = `<div class="arena-target-grid">${targets.map(t =>
+            ArenaUX.targetCardHtml(t)
+          ).join('')}</div>`;
+          moveContainer.innerHTML = '';
+          $('playerBattleStatus').textContent = '';
+          ArenaUX.bindSprites(targetContainer);
           return;
         }
 
         const target = targets.find(t => t.voterId === savedTarget) || arena.combatants?.[savedTarget];
         targetContainer.innerHTML = target
-          ? `<p class="text-center text-amber-400 font-bold py-2">Attacking ${escapeHtml(target.playerName)} (${escapeHtml(target.pokemon?.name || '')})</p>`
+          ? `<div class="arena-target-locked">
+              <img class="img-pending" data-pid="${target.pokemon.id}" src="${escapeHtml(target.pokemon.artwork)}" alt="" draggable="false" />
+              <span class="target-label">→ ${escapeHtml(target.playerName)}</span>
+            </div>`
           : '';
+        ArenaUX.bindSprites(targetContainer);
 
         if (alreadyVoted) {
-          moveContainer.innerHTML = moves.map((name, i) => `
-            <button data-idx="${i}" disabled
-              class="vote-btn w-full py-4 px-4 rounded-2xl border-4 font-arcade text-lg text-white opacity-50
-                     bg-gradient-to-r ${VOTE_COLORS[i % VOTE_COLORS.length]}
-                     ${+savedMove === i ? 'ring-4 ring-yellow-400' : ''}">
-              ${escapeHtml(name)}
-            </button>`).join('');
-          $('playerBattleStatus').textContent = '✓ Attack locked in!';
+          setSteps('move');
+          steps?.querySelector('[data-step="move"]')?.classList.add('done');
+          moveContainer.innerHTML = `<div class="arena-move-grid">${moves.map((name, i) =>
+            ArenaUX.moveChipHtml(name, i, me?.pokemon?.types, { selected: +savedMove === i, disabled: true })
+          ).join('')}</div>`;
+          $('playerBattleStatus').textContent = '✓ Locked!';
           return;
         }
 
-        moveContainer.innerHTML = moves.map((name, i) => `
-          <button data-idx="${i}"
-            class="vote-btn pointer-events-auto w-full py-4 px-4 rounded-2xl border-4 border-fuchsia-300/50 font-arcade text-lg text-white
-                   bg-gradient-to-r ${VOTE_COLORS[i % VOTE_COLORS.length]} shadow-lg">
-            ${escapeHtml(name)}
-          </button>`).join('');
-
-        moveContainer.querySelectorAll('[data-idx]').forEach(btn => {
-          btn.onclick = () => {
-            if (!playerName || !savedTarget) return;
-            const idx = +btn.dataset.idx;
-            sessionStorage.setItem(moveKey, String(idx));
-            sync?.sendBattleVote(idx, turn, savedTarget);
-            $('playerBattleStatus').textContent = '✓ Attack locked in!';
-            moveContainer.querySelectorAll('button').forEach(b => { b.disabled = true; b.classList.add('opacity-50'); });
-            btn.classList.add('ring-4', 'ring-yellow-400');
-            AudioEngine.playClick();
-          };
-        });
-        $('playerBattleStatus').textContent = 'Step 2: Pick your move!';
+        setSteps('move');
+        moveContainer.innerHTML = `<div class="arena-move-grid">${moves.map((name, i) =>
+          ArenaUX.moveChipHtml(name, i, me?.pokemon?.types)
+        ).join('')}</div>`;
+        $('playerBattleStatus').textContent = '';
       },
     };
 
@@ -7122,15 +9123,18 @@
     // BOOTSTRAP
     // ═══════════════════════════════════════════════════════════════
     (async function bootstrap() {
+      document.body.dataset.role = ROLE;
       bindBrokenImageGuard($('pokemonImage'), [Pokedex.fallbackSpriteUrl(25)]);
       await hydrateSupabaseConfig();
       await AudioEngine.init();
+      AudioEngine.setupAudioControls();
       await Pokedex.init().catch(console.warn);
       WildLandscape.init();
       ThreeParallaxScene.init();
       BattleVFX.init();
       ClickBurstCanvas.init();
       ShinyCard4D.init();
+      TCGCard.initFlipHandler();
       KeyboardNav.init();
       if (ROLE === 'player') PlayerCtrl.init();
       else {
