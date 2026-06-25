@@ -1,0 +1,13 @@
+{
+  "name": "kyrie-pokemon-game",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Name That Pokémon! — single-file party game for Vercel",
+  "scripts": {
+    "build": "node scripts/inject-env.mjs",
+    "dev": "python3 -m http.server 8765"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
