@@ -2,6 +2,7 @@ dist/
 .env
 .env.*
 !.env.example
+config.js
 node_modules/
 .DS_Store
 .vercel

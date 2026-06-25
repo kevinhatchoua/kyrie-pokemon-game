@@ -42,9 +42,11 @@ When configured, the host screen shows **🟢 Live — any network** instead of 
 
 ```bash
 cp .env.example .env   # paste Supabase keys
-export $(grep -v '^#' .env | xargs)
+# — or —
+cp config.js.example config.js   # paste keys for local phone testing
+
 npm run build
-npm run dev            # http://localhost:8765
+npm run dev            # http://localhost:8765 (serves dist/)
 ```
 
 Paste keys directly into `index.html` (`SUPABASE_URL` / `SUPABASE_ANON_KEY`) if you prefer.

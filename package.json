@@ -5,7 +5,7 @@
   "description": "Name That Pokémon! — single-file party game for Vercel",
   "scripts": {
     "build": "node scripts/inject-env.mjs",
-    "dev": "python3 -m http.server 8765"
+    "dev": "node scripts/inject-env.mjs && python3 -m http.server 8765 --directory dist"
   },
   "engines": {
     "node": ">=18"
